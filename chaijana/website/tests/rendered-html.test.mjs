@@ -41,8 +41,12 @@ test("server-renders the complete Spanish restaurant website", async () => {
   assert.match(html, /Dmitry Kaplin/);
   assert.match(html, /Eventos especiales/);
   assert.match(html, /Música en vivo, todos los sábados/);
-  assert.match(html, /Menús de chefs invitados/);
+  assert.match(html, /Menús de Chefs Invitados/);
   assert.match(html, /href="\/menu\/index\.html"/);
+  // the carta teaser links guests straight into the standalone menu
+  assert.match(html, /class="carta section"/);
+  assert.equal((html.match(/class="dish-card"/g) ?? []).length, 4);
+  assert.match(html, /Ver la carta completa/);
   assert.match(html, /https:\/\/wa\.me\/5491130537933/);
   assert.match(html, /https:\/\/www\.instagram\.com\/chaijana\.ar/);
   assert.match(html, /https:\/\/www\.tiktok\.com\/@chaijana_ba/);
@@ -64,7 +68,8 @@ test("renders complete English and Russian variants with localized menu paths", 
   assert.match(enHtml, /<html lang="en"/i);
   assert.match(enHtml, /Our story/);
   assert.match(enHtml, /Live music every Saturday/);
-  assert.match(enHtml, /Guest chef menus/);
+  assert.match(enHtml, /Chef&#x27;s Tables|Chef's Tables/);
+  assert.match(enHtml, /See the full menu/);
   assert.match(enHtml, /href="\/menu\/en\.html"/);
   assert.doesNotMatch(enHtml, /Alta gastronomia oriental/);
 
@@ -73,7 +78,8 @@ test("renders complete English and Russian variants with localized menu paths", 
   assert.match(ruHtml, /<html lang="ru"/i);
   assert.match(ruHtml, /Дмитрий Каплин/);
   assert.match(ruHtml, /Живая музыка каждую субботу/);
-  assert.match(ruHtml, /Меню приглашённых шеф-поваров/);
+  assert.match(ruHtml, /Шеф-тейблы/);
+  assert.match(ruHtml, /Смотреть меню целиком/);
   assert.match(ruHtml, /href="\/menu\/ru\.html"/);
   assert.doesNotMatch(ruHtml, /Димитрий|вдохновлен ных/);
 });
@@ -95,6 +101,9 @@ test("ships the official optimized restaurant asset set", async () => {
   assert.doesNotMatch(packageJson, /tailwindcss/);
   assert.match(stylesheet, /grid-area: navigation/);
   assert.match(stylesheet, /\.primary-nav::-webkit-scrollbar/);
+  // the site shares the carta's self-hosted display face; no remote font CSS
+  assert.match(stylesheet, /font-family: "Cormorant Garamond"/);
+  assert.doesNotMatch(stylesheet, /@import|fonts\.googleapis|fonts\.gstatic/);
 
   await Promise.all([
     access(new URL("public/images/restaurant/brand-logo-gold.svg", root)),
@@ -103,6 +112,13 @@ test("ships the official optimized restaurant asset set", async () => {
     access(new URL("public/images/restaurant/chef-dmitry-kaplin.webp", root)),
     access(new URL("public/images/restaurant/event-live-music.webp", root)),
     access(new URL("public/images/restaurant/social-preview.webp", root)),
+    ...[
+      "cyrillic",
+      "latin",
+      "latin-ext",
+      "italic-cyrillic",
+      "italic-latin",
+    ].map((subset) => access(new URL(`public/fonts/cormorant-garamond-${subset}.woff2`, root))),
     ...Array.from({ length: 8 }, (_, index) =>
       access(new URL(`public/images/restaurant/restaurant-gallery-${String(index + 1).padStart(2, "0")}.webp`, root)),
     ),
@@ -125,4 +141,6 @@ test("embeds the standalone multilingual menu at the public menu route", async (
   assert.match(ru, /Масала-чай: насыщенный чёрный чай/);
   assert.doesNotMatch(es, /wa\.me|instagram\.com|restaurant-gallery/i);
   await access(new URL("public/menu/assets/dishes/uzbek-plov.webp", root));
+  await access(new URL("public/menu/assets/chaijana-wordmark.svg", root));
+  await access(new URL("public/menu/assets/fonts/cormorant-garamond-latin.woff2", root));
 });

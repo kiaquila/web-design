@@ -5,3 +5,8 @@ dist/
 .wrangler/
 coverage/
 
+
+# tooling state
+.omc/
+.claude/
+tsconfig.tsbuildinfo

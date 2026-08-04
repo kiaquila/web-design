@@ -44,6 +44,45 @@ const sectionImageAlts = {
   hookah: ["Hookah (Shisha)", "Hookah (Shisha)", "Кальян"],
 };
 
+/* --- ornaments: hand-drawn gold hairlines, no external assets ------------- */
+
+const svg = (body, attrs) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" ${attrs} fill="none" stroke="currentColor" aria-hidden="true">${body}</svg>`;
+
+const ornaments = {
+  /* section divider — lotus / arabesque knot */
+  knot: svg(
+    '<path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/>',
+    'viewBox="0 0 60 14" width="60" height="14"',
+  ),
+  /* cover frame corner flourish */
+  corner: svg(
+    '<path d="M2 46V14C2 7.4 7.4 2 14 2h32" stroke-width="1.1"/><path d="M10 46V17c0-3.9 3.1-7 7-7h29" stroke-width="0.8" opacity="0.55"/><path d="M10 30a20 20 0 0 1 20-20" stroke-width="0.7" opacity="0.5"/><circle cx="15.9" cy="15.9" r="1.8" fill="currentColor" stroke="none"/>',
+    'viewBox="0 0 46 46" width="46" height="46"',
+  ),
+  pin: svg(
+    '<path d="M10 18s6.5-6.4 6.5-11A6.5 6.5 0 0 0 3.5 7C3.5 11.6 10 18 10 18z" stroke-width="1.2"/><circle cx="10" cy="7" r="2.3" stroke-width="1.2"/>',
+    'viewBox="0 0 20 20" width="20" height="20"',
+  ),
+  clock: svg(
+    '<circle cx="10" cy="10" r="8" stroke-width="1.2"/><path d="M10 5.4V10l3.1 2" stroke-width="1.2" stroke-linecap="round"/>',
+    'viewBox="0 0 20 20" width="20" height="20"',
+  ),
+  cash: svg(
+    '<rect x="1.6" y="4.6" width="16.8" height="10.8" rx="1.6" stroke-width="1.2"/><circle cx="10" cy="10" r="2.6" stroke-width="1.2"/>',
+    'viewBox="0 0 20 20" width="20" height="20"',
+  ),
+  halal: svg(
+    '<circle cx="10" cy="10" r="8.4" stroke-width="0.9"/><path d="M12.9 6.2a4.4 4.4 0 1 0 0 7.6 4.9 4.9 0 0 1 0-7.6z" stroke-width="1.1" stroke-linejoin="round"/><path d="m14.4 8.2.55 1.35 1.45.1-1.12.93.36 1.42-1.24-.78-1.24.78.36-1.42-1.12-.93 1.45-.1z" stroke-width="0.8" stroke-linejoin="round"/>',
+    'viewBox="0 0 20 20" width="20" height="20"',
+  ),
+  search: svg(
+    '<circle cx="8.6" cy="8.6" r="5.9" stroke-width="1.3"/><path d="m13.2 13.2 3.4 3.4" stroke-width="1.3" stroke-linecap="round"/>',
+    'viewBox="0 0 20 20" width="20" height="20"',
+  ),
+  chevron: svg('<path d="m1 1 5 5 5-5" stroke-width="1.4" stroke-linecap="round"/>', 'viewBox="0 0 12 8" width="12" height="8"'),
+};
+
 const escapeHtml = (value = "") =>
   String(value)
     .replaceAll("&", "&amp;")
@@ -71,7 +110,7 @@ function renderItem(menuItem, lang, index) {
     : "";
   const visibleOptions = menuItem.options?.filter((option) => !option.languages || option.languages.includes(lang));
   const options = visibleOptions?.length
-    ? `<ul class="option-list">${visibleOptions
+    ? `<ul class="option-list"${visibleOptions.length >= 7 ? " data-dense" : ""}>${visibleOptions
         .map(
           (option) =>
             `<li><span>${text(option.label, lang)}</span><span class="option-leader" aria-hidden="true"></span><strong>${escapeHtml(pickLocalized(option.price, lang))}</strong></li>`,
@@ -88,6 +127,18 @@ function renderItem(menuItem, lang, index) {
   </article>`;
 }
 
+function renderSectionHeading(title, intro = "") {
+  return `<div class="section-heading">
+      <div class="section-kicker" aria-hidden="true">${ornaments.knot}</div>
+      <h2>${title}</h2>
+      ${intro ? `<p>${intro}</p>` : ""}
+    </div>`;
+}
+
+function renderPhoto(image, alt, width = 960, height = 960) {
+  return `<figure class="section-photo"><img src="${image}" alt="${escapeHtml(alt)}" width="${width}" height="${height}" loading="lazy" decoding="async"></figure>`;
+}
+
 function renderSection({ id, title, intro, items }, lang) {
   const image = sectionImages[id];
   const hasImage = image && existsSync(join(root, image));
@@ -97,31 +148,24 @@ function renderSection({ id, title, intro, items }, lang) {
       ? pick(items[0].name, lang)
       : pick(title, lang);
   return `<section class="menu-section" id="${escapeHtml(id)}" data-menu-section>
-    <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>${text(title, lang)}<span aria-hidden="true">◆</span></div>
-      <h2>${text(title, lang)}</h2>
-      <p>${text(intro, lang)}</p>
+    ${renderSectionHeading(text(title, lang), text(intro, lang))}
+    <div class="section-body">
+      ${hasImage ? renderPhoto(image, imageAlt) : ""}
+      <div class="menu-grid">${items.map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
     </div>
-    ${
-      hasImage
-        ? `<figure class="section-photo"><img src="${image}" alt="${escapeHtml(imageAlt)}" width="960" height="960" loading="lazy" decoding="async"></figure>`
-        : ""
-    }
-    <div class="menu-grid">${items.map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
   </section>`;
 }
 
 function renderExperiences(lang) {
-  const title = ui[lang].experiences;
+  const title = escapeHtml(ui[lang].experiences);
   const experienceImage = sectionImages.experiences;
   const hasImage = existsSync(join(root, experienceImage));
   return `<section class="menu-section experiences" id="experiences" data-menu-section>
-    <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>${escapeHtml(title)}<span aria-hidden="true">◆</span></div>
-      <h2>${escapeHtml(title)}</h2>
+    ${renderSectionHeading(title)}
+    <div class="section-body">
+      ${hasImage ? renderPhoto(experienceImage, ui[lang].experiences, 960, 671) : ""}
+      <div class="menu-grid">${experiences.map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
     </div>
-    ${hasImage ? `<figure class="section-photo"><img src="${experienceImage}" alt="${escapeHtml(title)}" width="960" height="671" loading="lazy" decoding="async"></figure>` : ""}
-    <div class="menu-grid experience-grid">${experiences.map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
   </section>`;
 }
 
@@ -145,6 +189,39 @@ function renderNav(lang) {
         `<a href="#${escapeHtml(id)}" data-nav-link="${escapeHtml(id)}">${escapeHtml(title)}</a>`,
     )
     .join("");
+}
+
+function renderCover(lang) {
+  const copy = ui[lang];
+  const detail = (icon, label, value) => `<div>
+          <dt>${icon}</dt>
+          <dd><span class="detail-label">${escapeHtml(label)}</span><span class="detail-value">${escapeHtml(value)}</span></dd>
+        </div>`;
+
+  return `<section class="cover" aria-labelledby="menu-title">
+      <div class="cover-pattern" aria-hidden="true"></div>
+      <div class="cover-frame">
+        <span class="cover-corner cover-corner--tl" aria-hidden="true">${ornaments.corner}</span>
+        <span class="cover-corner cover-corner--tr" aria-hidden="true">${ornaments.corner}</span>
+        <span class="cover-corner cover-corner--bl" aria-hidden="true">${ornaments.corner}</span>
+        <span class="cover-corner cover-corner--br" aria-hidden="true">${ornaments.corner}</span>
+        <img class="cover-logo" src="assets/chaijana-wordmark.svg" alt="Chaijaná" width="842" height="595">
+        <p class="eyebrow">${escapeHtml(copy.eyebrow)}</p>
+        <h1 id="menu-title">${escapeHtml(copy.heroTitle)}</h1>
+        ${copy.heroSubtitle ? `<p class="cover-subtitle">${escapeHtml(copy.heroSubtitle)}</p>` : ""}
+        <p class="menu-word">${escapeHtml(copy.menu)}</p>
+        <dl class="cover-details">
+          ${detail(ornaments.pin, copy.addressLabel, copy.address)}
+          ${detail(ornaments.clock, copy.hoursLabel, copy.hours)}
+          ${detail(ornaments.cash, copy.discountLabel, copy.discount)}
+        </dl>
+        <div class="cover-seals">
+          <span class="seal">${ornaments.halal}${escapeHtml(copy.halal)}</span>
+        </div>
+        <p class="currency-note">${escapeHtml(copy.menuIntro)}</p>
+        <a class="scroll-cue" href="#experiences"><span>${escapeHtml(copy.scrollCue)}</span><span aria-hidden="true">${ornaments.chevron}</span></a>
+      </div>
+    </section>`;
 }
 
 function inlineScript(lang) {
@@ -177,12 +254,20 @@ function inlineScript(lang) {
   clear.addEventListener('click', () => { search.value = ''; update(); search.focus(); });
 
   const navLinks = new Map([...document.querySelectorAll('[data-nav-link]')].map((link) => [link.dataset.navLink, link]));
+  const rail = document.querySelector('[data-category-nav]');
   const observer = new IntersectionObserver((entries) => {
     const visibleSection = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
     if (!visibleSection) return;
     navLinks.forEach((link, id) => {
-      if (id === visibleSection.target.id) link.setAttribute('aria-current', 'true');
-      else link.removeAttribute('aria-current');
+      if (id === visibleSection.target.id) {
+        link.setAttribute('aria-current', 'true');
+        if (rail) {
+          const offset = link.offsetLeft - rail.clientWidth / 2 + link.clientWidth / 2;
+          rail.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+        }
+      } else {
+        link.removeAttribute('aria-current');
+      }
     });
   }, { rootMargin: '-28% 0px -62% 0px', threshold: [0, 0.1, 0.3] });
   sections.forEach((section) => observer.observe(section));
@@ -193,52 +278,39 @@ function inlineScript(lang) {
 function renderPage(lang) {
   const config = languages[lang];
   const copy = ui[lang];
-  const direction = "ltr";
   return `<!doctype html>
-<html lang="${lang}" dir="${direction}">
+<html lang="${lang}" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#12110e">
+  <meta name="theme-color" content="#0a0907">
+  <meta name="color-scheme" content="dark">
   <meta name="description" content="${escapeHtml(copy.heroTitle)} — Chaijaná, ${escapeHtml(copy.address)}">
   <title>${escapeHtml(copy.menu)} · Chaijaná</title>
   <link rel="icon" type="image/png" href="assets/chaijana-logo.png">
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/cormorant-garamond-${lang === "ru" ? "cyrillic" : "latin"}.woff2" crossorigin>
   <link rel="stylesheet" href="assets/menu.css?v=${cssVersion}">
 </head>
 <body>
   <a class="skip-link" href="#menu-content">${escapeHtml(copy.menu)}</a>
   <header class="topbar">
     <a class="back-link" href="${config.back}" aria-label="${escapeHtml(copy.backWebsite)}"><span aria-hidden="true">←</span><span>${escapeHtml(copy.backWebsite)}</span></a>
-    <img class="topbar-logo" src="assets/chaijana-logo.png" alt="Chaijaná" width="54" height="58">
+    <img class="topbar-logo" src="assets/chaijana-wordmark.svg" alt="Chaijaná" width="842" height="595">
     <nav class="language-switch" aria-label="Language">${renderLanguageSwitch(lang)}</nav>
   </header>
 
   <main id="menu-content">
-    <section class="cover" aria-labelledby="menu-title">
-      <div class="cover-pattern" aria-hidden="true"></div>
-      <div class="cover-frame">
-        <img class="cover-logo" src="assets/chaijana-logo.png" alt="Chaijaná" width="180" height="193">
-        <p class="eyebrow">${escapeHtml(copy.eyebrow)}</p>
-        <h1 id="menu-title">${escapeHtml(copy.heroTitle)}</h1>
-        <p class="menu-word">${escapeHtml(copy.menu)}</p>
-        <dl class="cover-details">
-          <div><dt>⌖</dt><dd>${escapeHtml(copy.address)}</dd></div>
-          <div><dt>−10%</dt><dd>${escapeHtml(copy.discount)}</dd></div>
-          <div><dt>◷</dt><dd>${escapeHtml(copy.hours)}</dd></div>
-        </dl>
-        <p class="currency-note">${escapeHtml(copy.menuIntro)}</p>
-      </div>
-    </section>
+    ${renderCover(lang)}
 
     <div class="menu-tools">
       <div class="search-wrap">
         <label class="visually-hidden" for="menu-search">${escapeHtml(copy.search)}</label>
-        <span class="search-icon" aria-hidden="true">⌕</span>
+        <span class="search-icon" aria-hidden="true">${ornaments.search}</span>
         <input id="menu-search" type="search" inputmode="search" autocomplete="off" placeholder="${escapeHtml(copy.searchPlaceholder)}" data-search>
         <button type="button" class="clear-search" aria-label="${escapeHtml(copy.clearSearch)}" data-clear-search hidden>×</button>
         <output class="result-count" for="menu-search" aria-live="polite" data-result-count></output>
       </div>
-      <nav class="category-nav" aria-label="${escapeHtml(copy.categories)}">${renderNav(lang)}</nav>
+      <nav class="category-nav" aria-label="${escapeHtml(copy.categories)}" data-category-nav>${renderNav(lang)}</nav>
     </div>
 
     <div class="menu-shell">
@@ -249,7 +321,8 @@ function renderPage(lang) {
   </main>
 
   <footer class="menu-footer">
-    <img src="assets/chaijana-logo.png" alt="" width="56" height="60" loading="lazy">
+    <img src="assets/chaijana-wordmark.svg" alt="" width="842" height="595" loading="lazy">
+    <p class="footer-address">${escapeHtml(copy.address)} · ${escapeHtml(copy.hours)}</p>
     <a href="#menu-content">${escapeHtml(copy.backTop)} ↑</a>
   </footer>
   ${inlineScript(lang)}

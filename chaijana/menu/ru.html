@@ -3,17 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#12110e">
+  <meta name="theme-color" content="#0a0907">
+  <meta name="color-scheme" content="dark">
   <meta name="description" content="Вкус Востока — Chaijaná, BONPLAND, 1965">
   <title>Меню · Chaijaná</title>
   <link rel="icon" type="image/png" href="assets/chaijana-logo.png">
-  <link rel="stylesheet" href="assets/menu.css?v=0066516277">
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/cormorant-garamond-cyrillic.woff2" crossorigin>
+  <link rel="stylesheet" href="assets/menu.css?v=9cd013b4cf">
 </head>
 <body>
   <a class="skip-link" href="#menu-content">Меню</a>
   <header class="topbar">
     <a class="back-link" href="../ru" aria-label="Вернуться на сайт"><span aria-hidden="true">←</span><span>Вернуться на сайт</span></a>
-    <img class="topbar-logo" src="assets/chaijana-logo.png" alt="Chaijaná" width="54" height="58">
+    <img class="topbar-logo" src="assets/chaijana-wordmark.svg" alt="Chaijaná" width="842" height="595">
     <nav class="language-switch" aria-label="Language"><a href="index.html" lang="es" hreflang="es">ES</a><a href="en.html" lang="en" hreflang="en">EN</a><a href="ru.html" lang="ru" hreflang="ru" aria-current="page">RU</a></nav>
   </header>
 
@@ -21,66 +23,88 @@
     <section class="cover" aria-labelledby="menu-title">
       <div class="cover-pattern" aria-hidden="true"></div>
       <div class="cover-frame">
-        <img class="cover-logo" src="assets/chaijana-logo.png" alt="Chaijaná" width="180" height="193">
+        <span class="cover-corner cover-corner--tl" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 46" width="46" height="46" fill="none" stroke="currentColor" aria-hidden="true"><path d="M2 46V14C2 7.4 7.4 2 14 2h32" stroke-width="1.1"/><path d="M10 46V17c0-3.9 3.1-7 7-7h29" stroke-width="0.8" opacity="0.55"/><path d="M10 30a20 20 0 0 1 20-20" stroke-width="0.7" opacity="0.5"/><circle cx="15.9" cy="15.9" r="1.8" fill="currentColor" stroke="none"/></svg></span>
+        <span class="cover-corner cover-corner--tr" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 46" width="46" height="46" fill="none" stroke="currentColor" aria-hidden="true"><path d="M2 46V14C2 7.4 7.4 2 14 2h32" stroke-width="1.1"/><path d="M10 46V17c0-3.9 3.1-7 7-7h29" stroke-width="0.8" opacity="0.55"/><path d="M10 30a20 20 0 0 1 20-20" stroke-width="0.7" opacity="0.5"/><circle cx="15.9" cy="15.9" r="1.8" fill="currentColor" stroke="none"/></svg></span>
+        <span class="cover-corner cover-corner--bl" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 46" width="46" height="46" fill="none" stroke="currentColor" aria-hidden="true"><path d="M2 46V14C2 7.4 7.4 2 14 2h32" stroke-width="1.1"/><path d="M10 46V17c0-3.9 3.1-7 7-7h29" stroke-width="0.8" opacity="0.55"/><path d="M10 30a20 20 0 0 1 20-20" stroke-width="0.7" opacity="0.5"/><circle cx="15.9" cy="15.9" r="1.8" fill="currentColor" stroke="none"/></svg></span>
+        <span class="cover-corner cover-corner--br" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 46" width="46" height="46" fill="none" stroke="currentColor" aria-hidden="true"><path d="M2 46V14C2 7.4 7.4 2 14 2h32" stroke-width="1.1"/><path d="M10 46V17c0-3.9 3.1-7 7-7h29" stroke-width="0.8" opacity="0.55"/><path d="M10 30a20 20 0 0 1 20-20" stroke-width="0.7" opacity="0.5"/><circle cx="15.9" cy="15.9" r="1.8" fill="currentColor" stroke="none"/></svg></span>
+        <img class="cover-logo" src="assets/chaijana-wordmark.svg" alt="Chaijaná" width="842" height="595">
         <p class="eyebrow">Узбекистан · Россия · Кавказ</p>
         <h1 id="menu-title">Вкус Востока</h1>
+        <p class="cover-subtitle">в каждом блюде</p>
         <p class="menu-word">Меню</p>
         <dl class="cover-details">
-          <div><dt>⌖</dt><dd>BONPLAND, 1965</dd></div>
-          <div><dt>−10%</dt><dd>10% скидка при оплате наличными</dd></div>
-          <div><dt>◷</dt><dd>ПН - ЧТ 11:00-23:00 / ПТ - ВС 11:00-24:00</dd></div>
+          <div>
+          <dt><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" aria-hidden="true"><path d="M10 18s6.5-6.4 6.5-11A6.5 6.5 0 0 0 3.5 7C3.5 11.6 10 18 10 18z" stroke-width="1.2"/><circle cx="10" cy="7" r="2.3" stroke-width="1.2"/></svg></dt>
+          <dd><span class="detail-label">Наш адрес</span><span class="detail-value">BONPLAND, 1965</span></dd>
+        </div>
+          <div>
+          <dt><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="10" cy="10" r="8" stroke-width="1.2"/><path d="M10 5.4V10l3.1 2" stroke-width="1.2" stroke-linecap="round"/></svg></dt>
+          <dd><span class="detail-label">Часы работы</span><span class="detail-value">ПН – ЧТ 11:00–23:00 / ПТ – ВС 11:00–24:00</span></dd>
+        </div>
+          <div>
+          <dt><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" aria-hidden="true"><rect x="1.6" y="4.6" width="16.8" height="10.8" rx="1.6" stroke-width="1.2"/><circle cx="10" cy="10" r="2.6" stroke-width="1.2"/></svg></dt>
+          <dd><span class="detail-label">Оплата наличными</span><span class="detail-value">10% скидка при оплате наличными</span></dd>
+        </div>
         </dl>
+        <div class="cover-seals">
+          <span class="seal"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="10" cy="10" r="8.4" stroke-width="0.9"/><path d="M12.9 6.2a4.4 4.4 0 1 0 0 7.6 4.9 4.9 0 0 1 0-7.6z" stroke-width="1.1" stroke-linejoin="round"/><path d="m14.4 8.2.55 1.35 1.45.1-1.12.93.36 1.42-1.24-.78-1.24.78.36-1.42-1.12-.93 1.45-.1z" stroke-width="0.8" stroke-linejoin="round"/></svg>Халяль</span>
+        </div>
         <p class="currency-note">Все цены указаны в аргентинских песо.</p>
+        <a class="scroll-cue" href="#experiences"><span>Смотреть меню</span><span aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 8" width="12" height="8" fill="none" stroke="currentColor" aria-hidden="true"><path d="m1 1 5 5 5-5" stroke-width="1.4" stroke-linecap="round"/></svg></span></a>
       </div>
     </section>
 
     <div class="menu-tools">
       <div class="search-wrap">
         <label class="visually-hidden" for="menu-search">Поиск по меню</label>
-        <span class="search-icon" aria-hidden="true">⌕</span>
+        <span class="search-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.9" stroke-width="1.3"/><path d="m13.2 13.2 3.4 3.4" stroke-width="1.3" stroke-linecap="round"/></svg></span>
         <input id="menu-search" type="search" inputmode="search" autocomplete="off" placeholder="Найти блюдо или напиток" data-search>
         <button type="button" class="clear-search" aria-label="Очистить поиск" data-clear-search hidden>×</button>
         <output class="result-count" for="menu-search" aria-live="polite" data-result-count></output>
       </div>
-      <nav class="category-nav" aria-label="Разделы"><a href="#experiences" data-nav-link="experiences">Сеты</a><a href="#desayunos" data-nav-link="desayunos">Завтраки</a><a href="#ensaladas" data-nav-link="ensaladas">Салаты</a><a href="#horno" data-nav-link="horno">Из печи</a><a href="#sopas" data-nav-link="sopas">Супы</a><a href="#parrilla" data-nav-link="parrilla">Мангал</a><a href="#casa" data-nav-link="casa">Фирменные блюда</a><a href="#vapor" data-nav-link="vapor">На пару</a><a href="#infantil" data-nav-link="infantil">Детское меню</a><a href="#postres" data-nav-link="postres">Десерты</a><a href="#cafe-te" data-nav-link="cafe-te">Кофе и чай</a><a href="#bebidas" data-nav-link="bebidas">Напитки</a><a href="#cocteles" data-nav-link="cocteles">Коктейли</a><a href="#vinos" data-nav-link="vinos">Вино</a><a href="#hookah" data-nav-link="hookah">Кальян</a></nav>
+      <nav class="category-nav" aria-label="Разделы" data-category-nav><a href="#experiences" data-nav-link="experiences">Сеты</a><a href="#desayunos" data-nav-link="desayunos">Завтраки</a><a href="#ensaladas" data-nav-link="ensaladas">Салаты</a><a href="#horno" data-nav-link="horno">Из печи</a><a href="#sopas" data-nav-link="sopas">Супы</a><a href="#parrilla" data-nav-link="parrilla">Мангал</a><a href="#casa" data-nav-link="casa">Фирменные блюда</a><a href="#vapor" data-nav-link="vapor">На пару</a><a href="#infantil" data-nav-link="infantil">Детское меню</a><a href="#postres" data-nav-link="postres">Десерты</a><a href="#cafe-te" data-nav-link="cafe-te">Кофе и чай</a><a href="#bebidas" data-nav-link="bebidas">Напитки</a><a href="#cocteles" data-nav-link="cocteles">Коктейли</a><a href="#vinos" data-nav-link="vinos">Вино</a><a href="#hookah" data-nav-link="hookah">Кальян</a></nav>
     </div>
 
     <div class="menu-shell">
       <p class="empty-state" data-empty hidden>Ничего не найдено.</p>
       <section class="menu-section experiences" id="experiences" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Сеты<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Сеты</h2>
+
     </div>
-    <figure class="section-photo"><img src="assets/dishes/chaijana-experiences.webp" alt="Сеты" width="960" height="671" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid experience-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/chaijana-experiences.webp" alt="Сеты" width="960" height="671" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Гастрономический сет</h3>
 
     </div>
-    <span class="menu-badge">На двоих</span><p class="menu-description">Авторский сет: хумус с хлебом, самса с бараниной, самса по-татарски, хрустящие баклажаны, салат «Ташкент», ассорти манты (3 вида), люля-кебаб из баранины, узбекский плов и пахлава.</p><ul class="option-list"><li><span>Два бокала вина St. Felicien Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>159 000</strong></li><li><span>С чаем масала</span><span class="option-leader" aria-hidden="true"></span><strong>139 000</strong></li></ul>
+    <span class="menu-badge">На двоих</span><p class="menu-description">Авторский сет на двоих: хумус с хлебом, самса с бараниной, самса по-татарски, хрустящие баклажаны, салат «Ташкент», ассорти манты (3 вида), люля-кебаб из баранины, узбекский плов и пахлава.</p><p class="menu-note">Идеальное знакомство с кухней Chaijaná</p><ul class="option-list"><li><span>Два бокала вина St. Felicien Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>159 000</strong></li><li><span>С чаем масала</span><span class="option-leader" aria-hidden="true"></span><strong>139 000</strong></li></ul>
   </article><article class="menu-item" data-menu-item style="--item-order:1">
     <div class="item-heading">
       <h3>ASADO-сет</h3>
 
     </div>
-    <span class="menu-badge">На огне</span><p class="menu-description">2,2 кг мяса: моллехас на углях, шашлык из сердца, люля-кебаб из баранины, шашлык из рибая и бараньи рёбра на углях.</p><ul class="option-list"><li><span>Сет</span><span class="option-leader" aria-hidden="true"></span><strong>169 000</strong></li><li><span>С бутылкой Saint Felicien</span><span class="option-leader" aria-hidden="true"></span><strong>185 000</strong></li></ul>
+    <span class="menu-badge">На огне</span><p class="menu-description">Вес ассорти: 2,2 кг мяса. Зобная железа телёнка на углях, стейк из сердца, люля-кебаб из баранины, шашлык из охо де биф и рёбра барашка.</p><ul class="option-list"><li><span>Сет без вина</span><span class="option-leader" aria-hidden="true"></span><strong>169 000</strong></li><li><span>С бутылкой St. Felicien Malbec 750 мл</span><span class="option-leader" aria-hidden="true"></span><strong>185 000</strong></li></ul>
   </article><article class="menu-item" data-menu-item style="--item-order:2">
     <div class="item-heading">
       <h3>Романофф</h3>
 
     </div>
-    <span class="menu-badge">Русская кухня</span><p class="menu-description">Салат оливье, блины с красной икрой, соленья под водку, борщ, бефстроганов, вареники с картофелем и медовик.</p><ul class="option-list"><li><span>Сет без вина</span><span class="option-leader" aria-hidden="true"></span><strong>169 000</strong></li><li><span>С водкой (4 шота)</span><span class="option-leader" aria-hidden="true"></span><strong>150 000</strong></li><li><span>С иван-чаем</span><span class="option-leader" aria-hidden="true"></span><strong>130 000</strong></li></ul>
+    <span class="menu-badge">Русская кухня</span><p class="menu-description">Салат оливье, блины с красной икрой, закуска под водочку (соленья), суп борщ, бефстроганов, вареники с картошкой и торт медовик.</p><ul class="option-list"><li><span>С водкой (4 шота)</span><span class="option-leader" aria-hidden="true"></span><strong>150 000</strong></li><li><span>С иван-чаем</span><span class="option-leader" aria-hidden="true"></span><strong>130 000</strong></li></ul>
   </article></div>
+    </div>
   </section>
       <section class="menu-section" id="desayunos" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Завтраки<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Завтраки</h2>
       <p>Сытное утро с восточным акцентом</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/draniki-salmon.webp" alt="Драники или блины с лососем" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/draniki-salmon.webp" alt="Драники или блины с лососем" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Драники или блины с лососем</h3>
       <span class="menu-price">27 000</span>
@@ -91,13 +115,13 @@
       <h3>Шакшука</h3>
       <span class="menu-price">20 000</span>
     </div>
-    <span class="menu-badge">От шефа</span><p class="menu-description">Запечённые яйца в насыщенном соусе из томатов и сладкого перца, со свежим луковым хлебом.</p>
+    <span class="menu-badge">От шефа</span><p class="menu-description">Запечённая в печи яичница в ароматном соусе из томатов, сладкого перца и баклажанов, подаётся с луковым хлебом.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:2">
     <div class="item-heading">
       <h3>Сырники</h3>
       <span class="menu-price">15 000</span>
     </div>
-    <span class="menu-badge">Популярное</span><p class="menu-description">С ягодами и бананом.</p>
+    <span class="menu-badge">Популярное</span><p class="menu-description">Творожные сырники со сметаной, ягодами и бананом.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:3">
     <div class="item-heading">
       <h3>Овсяная каша</h3>
@@ -123,19 +147,21 @@
     </div>
     <ul class="option-list"><li><span>Сметана</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Сгущённое молоко</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Варенье</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="ensaladas" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Салаты<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Салаты</h2>
       <p>Холодные закуски и свежие салаты для компании</p>
     </div>
+    <div class="section-body">
 
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Салат оливье</h3>
       <span class="menu-price">20 000</span>
     </div>
-    <span class="menu-badge">От шефа</span><p class="menu-description">С курицей или отварной говядиной на выбор, овощами, солёными огурцами, горошком и домашним майонезом.</p>
+    <span class="menu-badge">От шефа</span><p class="menu-description">С курицей или отварной говядиной на выбор, картофелем, морковью, солёными огурцами и горошком, заправленный домашним майонезом.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:1">
     <div class="item-heading">
       <h3>Салат «Ташкент»</h3>
@@ -162,19 +188,21 @@
     <p class="menu-description">Квашеная капуста с морковью.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:5">
     <div class="item-heading">
-      <h3>К водке</h3>
+      <h3>Под водочку</h3>
       <span class="menu-price">17 000</span>
     </div>
-    <p class="menu-description">Традиционные соленья: квашеная капуста, огурцы в рассоле, маринованный перец и чёрный хлеб.</p>
+    <p class="menu-description">Ассорти солений: квашеная капуста, бочковые огурчики, маринованный перец и чёрный хлеб.</p><p class="menu-note">Идеально к крепкому алкоголю</p>
   </article></div>
+    </div>
   </section><section class="menu-section" id="horno" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Из печи<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Из печи</h2>
       <p>Горячая выпечка, хлеб и закуски из печи</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/adjarian-khachapuri.webp" alt="Хачапури по-аджарски" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/adjarian-khachapuri.webp" alt="Хачапури по-аджарски" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Хачапури по-аджарски</h3>
       <span class="menu-price">21 000</span>
@@ -221,16 +249,18 @@
       <h3>К хлебу</h3>
 
     </div>
-    <ul class="option-list"><li><span>Дип из рикотты</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Песто</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
+    <p class="menu-description">Попробуйте наш хлеб с намазкой или песто.</p><ul class="option-list"><li><span>Творожная намазка</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Соус песто</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="sopas" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Супы<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Супы</h2>
       <p>Домашние согревающие супы на любой вкус</p>
     </div>
+    <div class="section-body">
 
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Уха от шефа</h3>
       <span class="menu-price">26 000</span>
@@ -241,7 +271,7 @@
       <h3>Борщ</h3>
       <span class="menu-price">20 000</span>
     </div>
-    <span class="menu-badge">От шефа</span><p class="menu-description">С говядиной и овощами, подаётся со сметаной.</p>
+    <span class="menu-badge">От шефа</span><p class="menu-description">Традиционный борщ с говядиной и овощами, подаётся со сметаной и бородинским хлебом.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:2">
     <div class="item-heading">
       <h3>Куриный суп</h3>
@@ -273,14 +303,16 @@
     </div>
     <ul class="option-list"><li><span>Аджика</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Имбирный соус</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Кисло-сладкий соус чили</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="parrilla" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Мангал<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Мангал</h2>
       <p>Мясо на углях и фирменные соусы</p>
     </div>
+    <div class="section-body">
 
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Большой рибай</h3>
       <span class="menu-price">57 900</span>
@@ -288,16 +320,16 @@
     <span class="menu-badge">От шефа</span><p class="menu-description">Аргентинский рибай с ароматным картофелем и перечным соусом. 550 г.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:1">
     <div class="item-heading">
-      <h3>Энтранья на углях</h3>
+      <h3>Стейк «Мачете» (энтранья)</h3>
       <span class="menu-price">54 900</span>
     </div>
-    <span class="menu-badge">От шефа</span><p class="menu-description">Сочный классический аргентинский отруб. 550 г.</p>
+    <span class="menu-badge">От шефа</span><p class="menu-description">Самый мужской стейк с ярким мясным вкусом, приготовленный на углях. 550 г.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:2">
     <div class="item-heading">
-      <h3>Моллехас на углях</h3>
+      <h3>Молехас на углях</h3>
       <span class="menu-price">25 000</span>
     </div>
-    <span class="menu-badge">От шефа</span><p class="menu-description">Жемчужина аргентинского гриля. 350 г.</p>
+    <span class="menu-badge">От шефа</span><p class="menu-description">Один из главных деликатесов аргентинской парильи: золотистый снаружи и нежный внутри. 350 г.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:3">
     <div class="item-heading">
       <h3>Люля-кебаб</h3>
@@ -335,14 +367,16 @@
     </div>
     <ul class="option-list"><li><span>Аджика</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Имбирный соус</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Кисло-сладкий соус</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="casa" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Фирменные блюда<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Фирменные блюда</h2>
       <p>Фирменные блюда для щедрого стола</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/uzbek-plov.webp" alt="Узбекский плов" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/uzbek-plov.webp" alt="Узбекский плов" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Узбекский плов</h3>
 
@@ -353,7 +387,7 @@
       <h3>Бараньи рёбра</h3>
       <span class="menu-price">89 900</span>
     </div>
-    <span class="menu-badge">Популярное</span><p class="menu-description">Выдержанные 14 часов в sous-vide и обжаренные на мангале. 1,2 кг.</p>
+    <span class="menu-badge">На 3 персоны</span><p class="menu-description">Бараньи рёбра, 14 часов в sous-vide, с финальной обжаркой на мангале. 1,2 кг.</p><p class="menu-note">Популярное</p>
   </article><article class="menu-item" data-menu-item style="--item-order:2">
     <div class="item-heading">
       <h3>Бефстроганов</h3>
@@ -373,14 +407,16 @@
     </div>
     <ul class="option-list"><li><span>Сметана</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Аджика</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Тайский чили</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Соус чили reserve</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="vapor" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>На пару<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>На пару</h2>
       <p>Ручная лепка и любимые блюда с душой</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/manti.webp" alt="Манты" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/manti.webp" alt="Манты" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Манты по-татарски</h3>
       <span class="menu-price">22 900</span>
@@ -429,14 +465,16 @@
     </div>
     <ul class="option-list"><li><span>Аджика</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Сметана</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Соевый соус</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="infantil" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Детское меню<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Детское меню</h2>
       <p>Любимые блюда маленьких гостей</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/kids-menu.webp" alt="Куриные котлетки на пару" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/kids-menu.webp" alt="Куриные котлетки на пару" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Куриный суп</h3>
       <span class="menu-price">17 000</span>
@@ -459,7 +497,7 @@
       <h3>Блины</h3>
       <span class="menu-price">12 000</span>
     </div>
-    <span class="menu-badge">Популярное</span><p class="menu-description">Со сметаной и сгущённым молоком.</p>
+    <span class="menu-badge">Популярное</span><p class="menu-description">Со сметаной, сгущёнкой или джемом.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:4">
     <div class="item-heading">
       <h3>Картофель фри</h3>
@@ -491,14 +529,16 @@
     </div>
     <ul class="option-list"><li><span>Сметана</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Кетчуп</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Сырный соус</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="postres" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Десерты<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Десерты</h2>
       <p>Восточные сладости и любимая классика к чаю</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/medovik.webp" alt="Медовик" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/medovik.webp" alt="Медовик" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Медовик</h3>
       <span class="menu-price">11 000</span>
@@ -524,24 +564,26 @@
     <span class="menu-badge">Популярное</span><p class="menu-description">Шоколад, печенье и орехи под слоем какао.</p>
   </article><article class="menu-item" data-menu-item style="--item-order:4">
     <div class="item-heading">
-      <h3>Малиновое или черничное варенье</h3>
-      <span class="menu-price">3 000</span>
-    </div>
+      <h3>Варенье</h3>
 
+    </div>
+    <ul class="option-list"><li><span>Варенье малина</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li><li><span>Варенье черника</span><span class="option-leader" aria-hidden="true"></span><strong>3 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="cafe-te" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Кофе и чай<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Кофе и чай</h2>
       <p>Классика, фирменный чай и согревающие напитки</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/uzbek-tea.webp" alt="Чайная подача" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/uzbek-tea.webp" alt="Чайная подача" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Кофе</h3>
 
     </div>
-    <ul class="option-list"><li><span>Эспрессо</span><span class="option-leader" aria-hidden="true"></span><strong>4 500</strong></li><li><span>Двойной эспрессо</span><span class="option-leader" aria-hidden="true"></span><strong>5 500</strong></li><li><span>Кортадо</span><span class="option-leader" aria-hidden="true"></span><strong>4 500</strong></li><li><span>Американо</span><span class="option-leader" aria-hidden="true"></span><strong>5 500</strong></li><li><span>Капучино</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Латте</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Флэт уайт</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Раф</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Бамбл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Растительное молоко</span><span class="option-leader" aria-hidden="true"></span><strong>+1 000</strong></li></ul>
+    <ul class="option-list" data-dense><li><span>Эспрессо</span><span class="option-leader" aria-hidden="true"></span><strong>4 500</strong></li><li><span>Двойной эспрессо</span><span class="option-leader" aria-hidden="true"></span><strong>5 500</strong></li><li><span>Кортадо</span><span class="option-leader" aria-hidden="true"></span><strong>4 500</strong></li><li><span>Американо</span><span class="option-leader" aria-hidden="true"></span><strong>5 500</strong></li><li><span>Капучино</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Латте</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Флэт уайт</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Раф</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Бамбл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Растительное молоко</span><span class="option-leader" aria-hidden="true"></span><strong>+1 000</strong></li></ul>
   </article><article class="menu-item" data-menu-item style="--item-order:1">
     <div class="item-heading">
       <h3>Раф</h3>
@@ -571,16 +613,18 @@
       <h3>Чай — 600 мл</h3>
 
     </div>
-    <ul class="option-list"><li><span>Каркаде</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Жасминовый</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Улун</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Чёрный чай</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Чёрный чай с мятой</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Ромашковый чай</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>С чабрецом</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li></ul>
+    <ul class="option-list" data-dense><li><span>Каркаде</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Жасминовый</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Улун</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Чёрный чай</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Чёрный чай с мятой</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>Ромашковый чай</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li><li><span>С чабрецом</span><span class="option-leader" aria-hidden="true"></span><strong>7 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="bebidas" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Напитки<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Напитки</h2>
       <p>Освежающие напитки, домашние лимонады и фруктовые шейки</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/fruit-shakes.webp" alt="Фруктовые шейки" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/fruit-shakes.webp" alt="Фруктовые шейки" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Лимонады — 1 000 мл</h3>
 
@@ -591,7 +635,7 @@
       <h3>Вода и газированные напитки</h3>
 
     </div>
-    <ul class="option-list"><li><span>St. Pellegrino с газом — 500 мл</span><span class="option-leader" aria-hidden="true"></span><strong>15 000</strong></li><li><span>Morgade с газом — 490 мл</span><span class="option-leader" aria-hidden="true"></span><strong>5 000</strong></li><li><span>Morgade без газа — 490 мл</span><span class="option-leader" aria-hidden="true"></span><strong>5 000</strong></li><li><span>Coca-Cola Zero / Classic — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Sprite Zero / Classic — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Тоник — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Тархун — 500 мл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Дюшес — 500 мл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li></ul>
+    <ul class="option-list" data-dense><li><span>St. Pellegrino с газом — 500 мл</span><span class="option-leader" aria-hidden="true"></span><strong>15 000</strong></li><li><span>Morgade с газом — 490 мл</span><span class="option-leader" aria-hidden="true"></span><strong>5 000</strong></li><li><span>Morgade без газа — 490 мл</span><span class="option-leader" aria-hidden="true"></span><strong>5 000</strong></li><li><span>Coca-Cola Zero / Classic — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Sprite Zero / Classic — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Тоник — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Тархун — 500 мл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Дюшес — 500 мл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li></ul>
   </article><article class="menu-item" data-menu-item style="--item-order:2">
     <div class="item-heading">
       <h3>Соки и молочные напитки</h3>
@@ -605,31 +649,33 @@
     </div>
     <ul class="option-list"><li><span>Милкшейк 450 мл — ваниль, банан, клубника, шоколад или микс</span><span class="option-leader" aria-hidden="true"></span><strong>12 000</strong></li><li><span>Манговый шейк со сгущённым молоком — 450 мл</span><span class="option-leader" aria-hidden="true"></span><strong>15 000</strong></li><li><span>Свежевыжатый сок — яблоко, морковь, апельсин или грейпфрут — 300 мл</span><span class="option-leader" aria-hidden="true"></span><strong>9 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="cocteles" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Коктейли<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Коктейли</h2>
       <p>Классические коктейли, шоты и крепкий алкоголь</p>
     </div>
+    <div class="section-body">
 
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Классические коктейли</h3>
 
     </div>
-    <ul class="option-list"><li><span>Aperol Spritz — 400 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Gin &amp; Tonic — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Long Island — 500 мл</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Cuba Libre — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Whiskey Cola — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Negroni — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>14 000</strong></li><li><span>Basil Smash — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Кайпироска — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Fernet Cola — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Kir Royale — 150 мл</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Screwdriver — 200 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Bloody Mary — 200 мл</span><span class="option-leader" aria-hidden="true"></span><strong>14 000</strong></li><li><span>Сангрия — 1 000 мл</span><span class="option-leader" aria-hidden="true"></span><strong>15 000</strong></li><li><span>Глинтвейн Malbec — 200 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Яблочный пунш с ромом — 200 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li></ul>
+    <ul class="option-list" data-dense><li><span>Aperol Spritz — 400 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Gin &amp; Tonic — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Long Island — 500 мл</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Cuba Libre — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Whiskey Cola — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Negroni — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>14 000</strong></li><li><span>Basil Smash — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Кайпироска — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Fernet Cola — 250 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Kir Royale — 150 мл</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Screwdriver — 200 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Bloody Mary — 200 мл</span><span class="option-leader" aria-hidden="true"></span><strong>14 000</strong></li><li><span>Сангрия — 1 000 мл</span><span class="option-leader" aria-hidden="true"></span><strong>15 000</strong></li><li><span>Глинтвейн Malbec — 200 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li><li><span>Яблочный пунш с ромом — 200 мл</span><span class="option-leader" aria-hidden="true"></span><strong>11 000</strong></li></ul>
   </article><article class="menu-item" data-menu-item style="--item-order:1">
     <div class="item-heading">
       <h3>Шоты и крепкий алкоголь — 50 мл</h3>
 
     </div>
-    <ul class="option-list"><li><span>B-52</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>B-53</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Виски Jameson</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Jägermeister</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Ром Havana Club 3 года</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Ром Havana Club 7 лет</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Ром Bacardi Oro</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Джин Beefeater</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Бурбон Jack Daniel&#039;s</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Текила Cuervo Silver</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Текила Cuervo Gold</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Абсент 53.7</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li></ul>
+    <ul class="option-list" data-dense><li><span>B-52</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>B-53</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Виски Jameson</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Jägermeister</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Ром Havana Club 3 года</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Ром Havana Club 7 лет</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Ром Bacardi Oro</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Джин Beefeater</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Бурбон Jack Daniel&#039;s</span><span class="option-leader" aria-hidden="true"></span><strong>10 000</strong></li><li><span>Текила Cuervo Silver</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Текила Cuervo Gold</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li><li><span>Абсент 53.7</span><span class="option-leader" aria-hidden="true"></span><strong>13 000</strong></li></ul>
   </article><article class="menu-item" data-menu-item style="--item-order:2">
     <div class="item-heading">
       <h3>Пиво</h3>
 
     </div>
-    <ul class="option-list"><li><span>Corona — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Stella Artois — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>La Paloma 10 Sabores — 475 мл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li></ul>
+    <ul class="option-list"><li><span>Corona Extra — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>Stella Artois — 330 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000</strong></li><li><span>La Paloma, 10 вкусов — 475 мл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li></ul>
   </article><article class="menu-item" data-menu-item style="--item-order:3">
     <div class="item-heading">
       <h3>Водка</h3>
@@ -637,14 +683,16 @@
     </div>
     <ul class="option-list"><li><span>Belvedere — 50 / 200 / 750 мл</span><span class="option-leader" aria-hidden="true"></span><strong>10 000 / 30 000 / 110 000</strong></li><li><span>Rey Russia — 50 / 200 / 750 мл</span><span class="option-leader" aria-hidden="true"></span><strong>6 000 / 15 000 / 30 000</strong></li><li><span>Хреновуха — 50 мл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li><li><span>Huacatay — 50 мл</span><span class="option-leader" aria-hidden="true"></span><strong>8 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="vinos" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Вино<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Вино</h2>
       <p>Аргентинская подборка по бутылкам и бокалам</p>
     </div>
+    <div class="section-body">
 
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Игристое — бутылка / бокал</h3>
 
@@ -667,7 +715,7 @@
       <h3>Красное — бутылка / бокал</h3>
 
     </div>
-    <ul class="option-list"><li><span>St. Felicien Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>19 900 / 7 000</strong></li><li><span>Norton Reserva Cabernet Sauvignon</span><span class="option-leader" aria-hidden="true"></span><strong>24 000 / 7 000</strong></li><li><span>St. Felicien Bonarda</span><span class="option-leader" aria-hidden="true"></span><strong>31 000 / 8 500</strong></li><li><span>D.V. Catena Cabernet–Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>40 000 / 10 000</strong></li><li><span>Rutini Cabernet-Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>31 000</strong></li><li><span>BenMarco Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>35 000</strong></li><li><span>BenMarco Cabernet Franc</span><span class="option-leader" aria-hidden="true"></span><strong>35 000</strong></li><li><span>Escorihuela Gascón Pinot Noir</span><span class="option-leader" aria-hidden="true"></span><strong>32 000</strong></li><li><span>Clos de los Siete</span><span class="option-leader" aria-hidden="true"></span><strong>46 000</strong></li><li><span>Gran Mascota Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>33 000</strong></li><li><span>Luigi Bosca De Sangre Malbec DOC</span><span class="option-leader" aria-hidden="true"></span><strong>52 000 / 14 000</strong></li><li><span>Angélica Zapata Malbec Alta</span><span class="option-leader" aria-hidden="true"></span><strong>58 000</strong></li><li><span>Gran Enemigo Cabernet Franc</span><span class="option-leader" aria-hidden="true"></span><strong>92 000</strong></li></ul>
+    <ul class="option-list" data-dense><li><span>St. Felicien Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>19 900 / 7 000</strong></li><li><span>Norton Reserva Cabernet Sauvignon</span><span class="option-leader" aria-hidden="true"></span><strong>24 000 / 7 000</strong></li><li><span>St. Felicien Bonarda</span><span class="option-leader" aria-hidden="true"></span><strong>31 000 / 8 500</strong></li><li><span>D.V. Catena Cabernet–Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>40 000 / 10 000</strong></li><li><span>Rutini Cabernet-Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>31 000</strong></li><li><span>BenMarco Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>35 000</strong></li><li><span>BenMarco Cabernet Franc</span><span class="option-leader" aria-hidden="true"></span><strong>35 000</strong></li><li><span>Escorihuela Gascón Pinot Noir</span><span class="option-leader" aria-hidden="true"></span><strong>32 000</strong></li><li><span>Clos de los Siete</span><span class="option-leader" aria-hidden="true"></span><strong>46 000</strong></li><li><span>Gran Mascota Malbec</span><span class="option-leader" aria-hidden="true"></span><strong>33 000</strong></li><li><span>Luigi Bosca De Sangre Malbec DOC</span><span class="option-leader" aria-hidden="true"></span><strong>52 000 / 14 000</strong></li><li><span>Angélica Zapata Malbec Alta</span><span class="option-leader" aria-hidden="true"></span><strong>58 000</strong></li><li><span>Gran Enemigo Cabernet Franc</span><span class="option-leader" aria-hidden="true"></span><strong>92 000</strong></li></ul>
   </article><article class="menu-item" data-menu-item style="--item-order:4">
     <div class="item-heading">
       <h3>Гран резерв</h3>
@@ -675,26 +723,30 @@
     </div>
     <ul class="option-list"><li><span>Catena Zapata Malbec Argentino</span><span class="option-leader" aria-hidden="true"></span><strong>139 000</strong></li><li><span>Iscay Malbec–Cabernet Franc</span><span class="option-leader" aria-hidden="true"></span><strong>125 000</strong></li><li><span>Enzo Bianchi Gran Corte</span><span class="option-leader" aria-hidden="true"></span><strong>150 000</strong></li></ul>
   </article></div>
+    </div>
   </section><section class="menu-section" id="hookah" data-menu-section>
     <div class="section-heading">
-      <div class="section-kicker"><span aria-hidden="true">◆</span>Кальян<span aria-hidden="true">◆</span></div>
+      <div class="section-kicker" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor" aria-hidden="true"><path d="M23 7 30 1.5 37 7l-7 5.5z" stroke-width="1"/><circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none"/><path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" stroke-width="1"/><path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" stroke-width="1"/></svg></div>
       <h2>Кальян</h2>
       <p>Кальян и премиальные табаки</p>
     </div>
-    <figure class="section-photo"><img src="assets/dishes/hookah.webp" alt="Кальян" width="960" height="960" loading="lazy" decoding="async"></figure>
-    <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
+    <div class="section-body">
+      <figure class="section-photo"><img src="assets/dishes/hookah.webp" alt="Кальян" width="960" height="960" loading="lazy" decoding="async"></figure>
+      <div class="menu-grid"><article class="menu-item" data-menu-item style="--item-order:0">
     <div class="item-heading">
       <h3>Кальян</h3>
       <span class="menu-price">35 000</span>
     </div>
     <p class="menu-description">Премиальные табаки: Overdose, Blackburn, SENCE и Adalia.</p>
   </article></div>
+    </div>
   </section>
     </div>
   </main>
 
   <footer class="menu-footer">
-    <img src="assets/chaijana-logo.png" alt="" width="56" height="60" loading="lazy">
+    <img src="assets/chaijana-wordmark.svg" alt="" width="842" height="595" loading="lazy">
+    <p class="footer-address">BONPLAND, 1965 · ПН – ЧТ 11:00–23:00 / ПТ – ВС 11:00–24:00</p>
     <a href="#menu-content">Наверх ↑</a>
   </footer>
   <script>
@@ -725,12 +777,20 @@
   clear.addEventListener('click', () => { search.value = ''; update(); search.focus(); });
 
   const navLinks = new Map([...document.querySelectorAll('[data-nav-link]')].map((link) => [link.dataset.navLink, link]));
+  const rail = document.querySelector('[data-category-nav]');
   const observer = new IntersectionObserver((entries) => {
     const visibleSection = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
     if (!visibleSection) return;
     navLinks.forEach((link, id) => {
-      if (id === visibleSection.target.id) link.setAttribute('aria-current', 'true');
-      else link.removeAttribute('aria-current');
+      if (id === visibleSection.target.id) {
+        link.setAttribute('aria-current', 'true');
+        if (rail) {
+          const offset = link.offsetLeft - rail.clientWidth / 2 + link.clientWidth / 2;
+          rail.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+        }
+      } else {
+        link.removeAttribute('aria-current');
+      }
     });
   }, { rootMargin: '-28% 0px -62% 0px', threshold: [0, 0.1, 0.3] });
   sections.forEach((section) => observer.observe(section));

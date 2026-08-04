@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { experiences, menuSections, pick, pickLocalized, ui } from "../src/menu-data.ts";
@@ -80,8 +81,21 @@ test("critical current-menu content and prices are present", () => {
   assert.ok(classicTea.options.some((option) => option.languages?.includes("ru") && option.label === "С чабрецом"));
   assert.equal(byId.vinos.items.length, 5);
   assert.equal(byId.hookah.items[0].price, "35 000");
-  assert.equal(experiences[2].options.length, 3, "Romanoff includes no-wine, vodka and tea prices");
+
+  // The printed carta prices ASADO at 169 000 / 185 000 and Romanoff only as
+  // "with vodka" or "with Ivan tea" — Romanoff has no stand-alone price.
+  assert.deepEqual(experiences[1].options.map(({ price }) => price), ["169 000", "185 000"]);
+  assert.deepEqual(experiences[2].options.map(({ price }) => price), ["150 000", "130 000"]);
   languages.forEach((lang) => assert.match(pick(experiences[2].description, lang), /encurtidos|pickles|соленья/i));
+
+  // Details that only one language of the printed carta carries must survive in all three.
+  const ribs = byId.casa.items.find((item) => pick(item.name, "en") === "Lamb ribs");
+  languages.forEach((lang) => assert.match(pick(ribs.description, lang), /sous-vide/i));
+  assert.deepEqual(ribs.badge, ["Para 3 personas", "For 3 persons", "На 3 персоны"]);
+  const borscht = byId.sopas.items.find((item) => pick(item.name, "en") === "Borscht");
+  languages.forEach((lang) => assert.match(pick(borscht.description, lang), /borodinsky|бородинск/i));
+  const vodkaPickles = byId.ensaladas.items.find((item) => pick(item.name, "ru") === "Под водочку");
+  assert.ok(vodkaPickles.note, "the 'perfect with strong spirits' line must be kept");
 });
 
 test("cover metadata is the official menu metadata", () => {
@@ -90,7 +104,13 @@ test("cover metadata is the official menu metadata", () => {
   assert.equal(ui.es.hours, "Lun–Jue 11:00–23:00 / Vie–Dom 11:00–00:00");
   assert.equal(ui.en.heroTitle, "Taste of the East");
   assert.equal(ui.ru.heroTitle, "Вкус Востока");
-  assert.equal(ui.ru.hours, "ПН - ЧТ 11:00-23:00 / ПТ - ВС 11:00-24:00");
+  assert.equal(ui.ru.heroSubtitle, "в каждом блюде");
+  assert.equal(ui.ru.hours, "ПН – ЧТ 11:00–23:00 / ПТ – ВС 11:00–24:00");
+  languages.forEach((lang) => {
+    ["addressLabel", "hoursLabel", "discountLabel", "halal", "scrollCue"].forEach((key) =>
+      assert.ok(ui[lang][key]?.trim(), `ui.${lang}.${key} must be translated`),
+    );
+  });
 });
 
 test("built pages are self-contained menu views with safe navigation", async () => {
@@ -110,16 +130,29 @@ test("built pages are self-contained menu views with safe navigation", async () 
     assert.match(html, /href="ru\.html"/);
     assert.doesNotMatch(html, /wa\.me|instagram\.com|tiktok\.com|restaurant-gallery/i);
     assert.doesNotMatch(html, /Reservar mesa|Reserve a table|Забронировать стол|Una casa de té|The house|Галере/i);
-    assert.doesNotMatch(html, /https?:\/\//);
-    assert.ok((await stat(join(root, config.file))).size < 180_000, `${config.file} should stay lightweight`);
+    // Inline SVG ornaments legitimately carry the SVG xmlns, so only remote
+    // resource references are forbidden.
+    assert.doesNotMatch(html, /(?:href|src)=["']https?:\/\//);
+    assert.ok((await stat(join(root, config.file))).size < 200_000, `${config.file} should stay lightweight`);
   }
 });
 
 test("stylesheet has no remote dependency and stays compact", async () => {
   const cssPath = join(root, "assets", "menu.css");
   const css = await readFile(cssPath, "utf8");
-  assert.doesNotMatch(css, /@import|https?:\/\//);
+  assert.doesNotMatch(css, /@import/);
+  assert.doesNotMatch(css, /url\(\s*["']?https?:/);
   assert.match(css, /@media \(max-width: 720px\)/);
   assert.match(css, /@media print/);
   assert.ok((await stat(cssPath)).size < 40_000);
+});
+
+test("display typeface is self-hosted and subsetted per script", async () => {
+  const css = await readFile(join(root, "assets", "menu.css"), "utf8");
+  for (const subset of ["cyrillic", "latin", "latin-ext", "italic-cyrillic", "italic-latin"]) {
+    const file = join(root, "assets", "fonts", `cormorant-garamond-${subset}.woff2`);
+    assert.ok(existsSync(file), `missing self-hosted subset ${subset}`);
+    assert.match(css, new RegExp(`fonts/cormorant-garamond-${subset}\\.woff2`));
+  }
+  assert.match(css, /unicode-range: U\+0301, U\+0400-045F/);
 });

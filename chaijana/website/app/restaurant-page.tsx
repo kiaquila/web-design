@@ -22,8 +22,47 @@ type Copy = {
     intro: string;
     cards: Array<{ title: string; text: string }>;
   };
+  carta: {
+    kicker: string;
+    title: string;
+    intro: string;
+    cta: string;
+    dishes: Array<{ name: string; text: string }>;
+  };
   footer: { visit: string; contacts: string; back: string; rights: string };
 };
+
+/* The arch from the Chaijaná wordmark, reused as a quiet ornament. */
+function ArchOrnament({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 300 210"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      aria-hidden="true"
+    >
+      <path d="M96 172c0-50 10-74 32-96 12-12 22-34 22-60 0 26 10 48 22 60 22 22 32 46 32 96" />
+      <path d="M6 172h90M204 172h90" />
+      <circle cx="150" cy="112" r="6.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/* Section rule: hairline — arabesque knot — hairline. */
+function RuleOrnament() {
+  return (
+    <div className="rule-ornament" aria-hidden="true">
+      <svg viewBox="0 0 60 14" width="60" height="14" fill="none" stroke="currentColor">
+        <path d="M23 7 30 1.5 37 7l-7 5.5z" strokeWidth="1" />
+        <circle cx="30" cy="7" r="1.7" fill="currentColor" stroke="none" />
+        <path d="M22 7c-4.4 0-6.6-4-11-4-3.3 0-5 1.8-5 4s1.7 4 5 4c4.4 0 6.6-4 11-4z" strokeWidth="1" />
+        <path d="M38 7c4.4 0 6.6-4 11-4 3.3 0 5 1.8 5 4s-1.7 4-5 4c-4.4 0-6.6-4-11-4z" strokeWidth="1" />
+      </svg>
+    </div>
+  );
+}
 
 const copy: Record<Lang, Copy> = {
   es: {
@@ -88,9 +127,22 @@ const copy: Record<Lang, Copy> = {
           text: "Cada sábado por la noche, Chaijaná se llena de melodías y buena energía con presentaciones acústicas en vivo. Un ambiente íntimo, cálido y perfecto para disfrutar de nuestra cocina mientras la música te acompaña en un viaje sensorial por sabores y sonidos.",
         },
         {
-          title: "Menús de chefs invitados",
+          title: "Menús de Chefs Invitados",
           text: "En Chaijaná abrimos nuestras puertas a chefs de renombre de todo el mundo, quienes diseñan menús exclusivos que solo podés disfrutar por tiempo limitado. Cada propuesta combina la esencia de Asia Central con técnicas y sabores internacionales, creando platos únicos que no volverán a repetirse. Una oportunidad para vivir un viaje gastronómico irrepetible en cada visita.",
         },
+      ],
+    },
+    carta: {
+      kicker: "Sabores de Oriente",
+      title: "La carta",
+      intro:
+        "Uzbekistán, Rusia y el Cáucaso en una misma mesa: horno de barro, brasas, masas hechas a mano y té de la casa.",
+      cta: "Ver la carta completa",
+      dishes: [
+        { name: "Plov uzbeko", text: "Arroz, carne y zanahoria al fuego en kazan." },
+        { name: "Khachapuri estilo Adjarian", text: "Barca de pan dorada con queso y huevo." },
+        { name: "Manti", text: "Hechos a mano, al vapor, en el momento." },
+        { name: "Medovik", text: "Finas capas de miel con crema suave." },
       ],
     },
     footer: { visit: "Visitanos", contacts: "Contacto", back: "Volver arriba", rights: "Todos los derechos reservados." },
@@ -157,9 +209,22 @@ const copy: Record<Lang, Copy> = {
           text: "Every Saturday night, Chaijaná is filled with melodies and good energy with live acoustic performances. An intimate, warm atmosphere, perfect for enjoying our cuisine while the music accompanies you on a sensorial journey through flavors and sounds.",
         },
         {
-          title: "Guest chef menus",
+          title: "Chef's Tables",
           text: "At Chaijaná, we open our doors to renowned chefs from around the world, who design exclusive menus that you can enjoy for a limited time only. Each offering combines the essence of Central Asia with international techniques and flavors, creating unique dishes that will never be repeated. An opportunity to experience a unique gastronomic journey with every visit.",
         },
+      ],
+    },
+    carta: {
+      kicker: "Taste of the East",
+      title: "The menu",
+      intro:
+        "Uzbekistan, Russia and the Caucasus at one table: the clay oven, live charcoal, handmade dough and house teas.",
+      cta: "See the full menu",
+      dishes: [
+        { name: "Uzbek plov", text: "Rice, meat and carrot cooked over fire in a kazan." },
+        { name: "Adjarian khachapuri", text: "A golden bread boat with cheese and egg." },
+        { name: "Manti", text: "Hand-folded and steamed to order." },
+        { name: "Medovik", text: "Delicate honey layers with soft cream." },
       ],
     },
     footer: { visit: "Visit us", contacts: "Contact", back: "Back to top", rights: "All rights reserved." },
@@ -226,9 +291,22 @@ const copy: Record<Lang, Copy> = {
           text: "Каждую субботу вечером в Chaijaná царит атмосфера вдохновения и позитива благодаря живым акустическим выступлениям. Уютная, тёплая атмосфера идеально подходит для того, чтобы насладиться нашей кухней, пока музыка сопровождает вас в чувственном путешествии сквозь вкусы и звуки.",
         },
         {
-          title: "Меню приглашённых шеф-поваров",
+          title: "Шеф-тейблы",
           text: "В Chaijaná мы рады приветствовать известных шеф-поваров со всего мира, которые создают эксклюзивные меню, доступные только в течение ограниченного времени. Каждое предложение сочетает в себе традиционную кухню Центральной Азии с международными техниками и вкусами, создавая уникальные блюда, которые невозможно повторить. Это возможность совершить уникальное гастрономическое путешествие с каждым посещением.",
         },
+      ],
+    },
+    carta: {
+      kicker: "Вкус Востока",
+      title: "Меню",
+      intro:
+        "Узбекистан, Россия и Кавказ за одним столом: тандыр, живые угли, тесто ручной лепки и фирменный чай.",
+      cta: "Смотреть меню целиком",
+      dishes: [
+        { name: "Узбекский плов", text: "Рис, мясо и морковь на огне в казане." },
+        { name: "Хачапури по-аджарски", text: "Румяная лодочка с сыром и яйцом." },
+        { name: "Манты", text: "Ручная лепка, готовим на пару под заказ." },
+        { name: "Медовик", text: "Тонкие медовые коржи с нежным кремом." },
       ],
     },
     footer: { visit: "Наш адрес", contacts: "Контакты", back: "Наверх", rights: "Все права защищены." },
@@ -308,6 +386,14 @@ const firstGalleryImages = [
   "/images/restaurant/restaurant-gallery-04.webp",
 ];
 
+/* Served from the synchronised standalone menu build. */
+const cartaDishImages = [
+  "/menu/assets/dishes/uzbek-plov.webp",
+  "/menu/assets/dishes/adjarian-khachapuri.webp",
+  "/menu/assets/dishes/manti.webp",
+  "/menu/assets/dishes/medovik.webp",
+];
+
 const secondGalleryImages = [
   "/images/restaurant/restaurant-gallery-05.webp",
   "/images/restaurant/restaurant-gallery-06.webp",
@@ -383,7 +469,9 @@ export function RestaurantPage({ lang }: { lang: Lang }) {
 
       <main id="main-content">
         <section className="hero" id="top" aria-labelledby="hero-title">
-          <div className="hero__ornament" aria-hidden="true" />
+          <div className="hero__ornament" aria-hidden="true">
+            <ArchOrnament />
+          </div>
           <div className="hero__inner shell">
             <div className="hero__copy">
               <p className="eyebrow">{text.hero.eyebrow}</p>
@@ -398,7 +486,10 @@ export function RestaurantPage({ lang }: { lang: Lang }) {
                 </a>
               </div>
             </div>
-            <p className="hero__monogram" aria-hidden="true">Ч</p>
+            <p className="hero__monogram" aria-hidden="true">
+              <span>{text.nav.story}</span>
+              <span>↓</span>
+            </p>
           </div>
         </section>
 
@@ -439,6 +530,7 @@ export function RestaurantPage({ lang }: { lang: Lang }) {
         <section className="story section shell" id="story">
           <div className="section-marker" aria-hidden="true">01</div>
           <header className="section-heading">
+            <RuleOrnament />
             <p className="kicker">{text.story.kicker}</p>
             <h2>{text.story.title}</h2>
           </header>
@@ -456,7 +548,7 @@ export function RestaurantPage({ lang }: { lang: Lang }) {
               loading="lazy"
             />
           </figure>
-          <div className="story__seal" aria-hidden="true"><span>Ч</span></div>
+          <div className="story__seal" aria-hidden="true"><ArchOrnament /></div>
         </section>
 
         <section className="gallery-duo" aria-label="Chaijaná interiors">
@@ -465,6 +557,39 @@ export function RestaurantPage({ lang }: { lang: Lang }) {
               <img src={src} alt={text.gallery.second[index]} width="1400" height="933" loading="lazy" />
             </figure>
           ))}
+        </section>
+
+        <section className="carta section" aria-labelledby="carta-title">
+          <div className="shell">
+            <header className="carta__head">
+              <RuleOrnament />
+              <p className="kicker">{text.carta.kicker}</p>
+              <h2 id="carta-title">{text.carta.title}</h2>
+              <p>{text.carta.intro}</p>
+            </header>
+            <div className="dish-row">
+              {text.carta.dishes.map((dish, index) => (
+                <article className="dish-card" key={dish.name}>
+                  <figure>
+                    <img
+                      src={cartaDishImages[index]}
+                      alt={dish.name}
+                      width="960"
+                      height="960"
+                      loading="lazy"
+                    />
+                  </figure>
+                  <h3>{dish.name}</h3>
+                  <p>{dish.text}</p>
+                </article>
+              ))}
+            </div>
+            <div className="carta__action">
+              <a className="button button--gold" href={menuHref}>
+                {text.carta.cta} <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </div>
         </section>
 
         <section className="chef section" id="chef">
@@ -497,6 +622,7 @@ export function RestaurantPage({ lang }: { lang: Lang }) {
             <div className="events__intro">
               <div className="section-marker" aria-hidden="true">02</div>
               <header className="section-heading">
+                <RuleOrnament />
                 <p className="kicker">{text.events.kicker}</p>
                 <h2>{text.events.title}</h2>
               </header>

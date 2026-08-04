@@ -13,9 +13,13 @@ for (const file of ["index.html", "en.html", "ru.html"]) {
   await cp(join(menuRoot, file), join(destination, file));
 }
 
-for (const file of ["chaijana-logo.png", "menu.css"]) {
+for (const file of ["chaijana-logo.png", "chaijana-wordmark.svg", "menu.css"]) {
   await cp(join(menuRoot, "assets", file), join(destination, "assets", file));
 }
+
+await cp(join(menuRoot, "assets", "fonts"), join(destination, "assets", "fonts"), {
+  recursive: true,
+});
 
 const dishFiles = await readdir(join(menuRoot, "assets", "dishes"));
 for (const file of dishFiles.filter((name) => name.endsWith(".webp"))) {
