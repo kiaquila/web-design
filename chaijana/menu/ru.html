@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Меню Chaijaná в Палермо.">
+  <meta name="theme-color" content="#11100d">
+  <title>Chaijaná — Вкусы Востока</title>
+  <link rel="icon" href="assets/chaijana-logo.png">
+  <style>:root {
+  --ink: #11100d;
+  --ink-soft: #1a1712;
+  --charcoal: #252119;
+  --paper: #f1eadc;
+  --paper-deep: #e5dac5;
+  --gold: #d6ae60;
+  --gold-bright: #f1d28d;
+  --rust: #823f29;
+  --line-dark: rgba(33, 25, 15, 0.18);
+  --line-light: rgba(244, 220, 163, 0.24);
+  --shell: 1180px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+}
+
+body::selection {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+p,
+figure {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.shell {
+  width: min(calc(100% - 48px), var(--shell));
+  margin-inline: auto;
+}
+
+.section {
+  padding-block: 116px;
+}
+
+.language-switcher {
+  position: fixed;
+  z-index: 50;
+  top: 20px;
+  right: max(24px, calc((100vw - var(--shell)) / 2));
+  display: flex;
+  padding: 5px;
+  border: 1px solid rgba(250, 234, 197, 0.34);
+  border-radius: 999px;
+  background: rgba(14, 13, 11, 0.76);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(14px);
+}
+
+.language-switcher a {
+  display: grid;
+  min-width: 44px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff5df;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  transition: 160ms ease;
+}
+
+.language-switcher a:hover,
+.language-switcher a:focus-visible {
+  color: var(--gold-bright);
+}
+
+.language-switcher a.active {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.hero {
+  position: relative;
+  min-height: 820px;
+  height: min(920px, 100svh);
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(9, 8, 6, 0.93) 0%, rgba(9, 8, 6, 0.72) 45%, rgba(9, 8, 6, 0.22) 100%),
+    url("assets/restaurant-gallery-3.webp") center 52% / cover no-repeat;
+  color: #fff7e8;
+}
+
+.hero__veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 74% 30%, rgba(230, 147, 60, 0.14), transparent 35%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.64));
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  height: 100%;
+  grid-template-columns: 150px minmax(0, 660px);
+  grid-template-rows: 1fr auto;
+  align-content: center;
+  column-gap: 44px;
+  padding-top: 72px;
+  padding-bottom: 34px;
+}
+
+.hero__logo {
+  width: 128px;
+  height: 150px;
+  align-self: center;
+  object-fit: cover;
+  object-position: 50% 57%;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.38));
+}
+
+.hero__copy {
+  align-self: center;
+  padding-top: 12px;
+}
+
+.eyebrow,
+.kicker {
+  color: var(--gold-bright);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 700px;
+  margin-top: 18px;
+  color: #fff8ea;
+  font-size: clamp(64px, 8vw, 118px);
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.hero__intro {
+  max-width: 590px;
+  margin-top: 24px;
+  color: rgba(255, 247, 232, 0.8);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.45;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.button {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 25px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.button:hover,
+.button:focus-visible {
+  transform: translateY(-2px);
+}
+
+.button--gold {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.button--gold:hover,
+.button--gold:focus-visible {
+  background: var(--gold-bright);
+}
+
+.button--glass {
+  border-color: rgba(255, 245, 222, 0.44);
+  background: rgba(10, 9, 8, 0.25);
+  color: #fff8e8;
+  backdrop-filter: blur(8px);
+}
+
+.hero__facts {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  border-top: 1px solid rgba(248, 223, 171, 0.34);
+}
+
+.hero__facts > * {
+  display: flex;
+  min-height: 84px;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 26px;
+  border-right: 1px solid rgba(248, 223, 171, 0.22);
+  color: rgba(255, 246, 228, 0.8);
+}
+
+.hero__facts > *:last-child {
+  border-right: 0;
+}
+
+.hero__facts span {
+  color: var(--gold);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+}
+
+.hero__facts strong {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.hero__facts a:hover strong,
+.hero__facts a:focus-visible strong {
+  color: var(--gold-bright);
+}
+
+.section-nav {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  border-bottom: 1px solid rgba(228, 199, 139, 0.16);
+  background: rgba(17, 16, 13, 0.94);
+  color: #f7edda;
+  backdrop-filter: blur(16px);
+}
+
+.section-nav__inner {
+  display: flex;
+  gap: 26px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.section-nav__inner::-webkit-scrollbar {
+  display: none;
+}
+
+.section-nav a {
+  position: relative;
+  flex: none;
+  padding: 24px 0 22px;
+  color: rgba(247, 237, 218, 0.68);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section-nav a::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--gold);
+  content: "";
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 160ms ease;
+}
+
+.section-nav a:hover,
+.section-nav a:focus-visible {
+  color: var(--gold-bright);
+}
+
+.section-nav a:hover::after,
+.section-nav a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.experiences {
+  position: relative;
+}
+
+.experiences::before,
+.menu::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.42;
+  background:
+    radial-gradient(circle at 18px 18px, rgba(126, 75, 41, 0.09) 2px, transparent 2.5px) 0 0 / 36px 36px,
+    linear-gradient(135deg, transparent 46%, rgba(147, 89, 48, 0.05) 47%, rgba(147, 89, 48, 0.05) 53%, transparent 54%) 0 0 / 28px 28px;
+  content: "";
+  pointer-events: none;
+}
+
+.section-heading {
+  max-width: 680px;
+  margin-bottom: 54px;
+}
+
+.section-heading h2 {
+  margin-top: 13px;
+  font-size: clamp(50px, 7vw, 86px);
+  letter-spacing: -0.045em;
+}
+
+.section-heading > p:last-child {
+  max-width: 540px;
+  margin-top: 18px;
+  color: rgba(17, 16, 13, 0.62);
+}
+
+.section-heading--wide {
+  display: grid;
+  max-width: none;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+}
+
+.section-heading--wide .kicker,
+.section-heading--wide h2 {
+  grid-column: 1;
+}
+
+.section-heading--wide > p:last-child {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  margin: 0 0 8px 30px;
+}
+
+.kicker {
+  color: var(--rust);
+}
+
+.experience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.menu-card {
+  padding: 28px 0;
+  border-top: 1px solid var(--line-dark);
+}
+
+.menu-card--featured {
+  position: relative;
+  min-height: 430px;
+  padding: 34px;
+  overflow: hidden;
+  border: 1px solid rgba(221, 187, 116, 0.22);
+  border-radius: 3px;
+  background: var(--ink-soft);
+  color: #f7edda;
+}
+
+.menu-card--featured::before,
+.menu-card--featured::after {
+  position: absolute;
+  width: 88px;
+  height: 88px;
+  border: solid rgba(222, 181, 94, 0.32);
+  content: "";
+  pointer-events: none;
+}
+
+.menu-card--featured::before {
+  top: 14px;
+  right: 14px;
+  border-width: 1px 1px 0 0;
+  border-radius: 0 50% 0 0;
+}
+
+.menu-card--featured::after {
+  bottom: 14px;
+  left: 14px;
+  border-width: 0 0 1px 1px;
+  border-radius: 0 0 0 50%;
+}
+
+.menu-card__topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.menu-card h3 {
+  max-width: 560px;
+  font-size: 28px;
+  line-height: 1.08;
+}
+
+.menu-card--featured h3 {
+  margin-top: 14px;
+  color: var(--gold-bright);
+  font-size: clamp(32px, 3vw, 43px);
+}
+
+.menu-card > p {
+  max-width: 620px;
+  margin-top: 13px;
+  color: rgba(17, 16, 13, 0.62);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.menu-card--featured > p {
+  color: rgba(247, 237, 218, 0.68);
+}
+
+.badge {
+  display: inline-block;
+  color: var(--rust);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.menu-card--featured .badge {
+  color: var(--gold);
+}
+
+.price,
+.option strong {
+  flex: none;
+  color: var(--rust);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.menu-card--featured .price,
+.menu-card--featured .option strong {
+  color: var(--gold-bright);
+}
+
+.note {
+  color: var(--rust) !important;
+  font-weight: 700;
+}
+
+.menu-card--featured .note {
+  color: var(--gold) !important;
+}
+
+.options {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.option {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.option__line {
+  min-width: 12px;
+  flex: 1;
+  border-bottom: 1px dotted rgba(20, 16, 11, 0.28);
+}
+
+.menu-card--featured .option__line {
+  border-color: rgba(229, 194, 121, 0.25);
+}
+
+.story {
+  display: grid;
+  min-height: 760px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+  background: var(--charcoal);
+  color: #f8efdd;
+}
+
+.story__image {
+  min-height: 680px;
+  background:
+    linear-gradient(90deg, transparent 72%, rgba(37, 33, 25, 0.62)),
+    url("assets/restaurant-gallery-2.webp") center / cover no-repeat;
+}
+
+.story__copy {
+  display: flex;
+  max-width: 600px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 70px clamp(48px, 7vw, 110px);
+}
+
+.story h2 {
+  max-width: 520px;
+  margin-top: 18px;
+  color: var(--gold-bright);
+  font-size: clamp(48px, 6vw, 78px);
+  letter-spacing: -0.05em;
+}
+
+.story__copy > p:not(.kicker) {
+  max-width: 480px;
+  margin-top: 28px;
+  color: rgba(248, 239, 221, 0.68);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+  line-height: 1.55;
+}
+
+.story__details {
+  display: grid;
+  gap: 9px;
+  margin-top: 32px;
+  color: rgba(248, 239, 221, 0.84);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.text-link {
+  align-self: flex-start;
+  margin-top: 34px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--gold);
+  color: var(--gold-bright);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.menu {
+  position: relative;
+  background-color: var(--paper);
+}
+
+.section-heading--menu {
+  margin-bottom: 100px;
+}
+
+.menu-section {
+  padding: 82px 0 38px;
+  border-top: 1px solid rgba(87, 58, 34, 0.24);
+}
+
+.menu-section__header {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  align-items: start;
+  margin-bottom: 42px;
+}
+
+.menu-section__header > span {
+  color: var(--rust);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+}
+
+.menu-section__header h2 {
+  font-size: clamp(44px, 6vw, 72px);
+  letter-spacing: -0.045em;
+}
+
+.menu-section__header p {
+  max-width: 560px;
+  margin-top: 12px;
+  color: rgba(17, 16, 13, 0.56);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 64px;
+}
+
+.house {
+  background: var(--ink);
+  color: #f8efdd;
+}
+
+.section-heading--house .kicker {
+  color: var(--gold);
+}
+
+.section-heading--house h2 {
+  color: var(--gold-bright);
+}
+
+.section-heading--house > p:last-child {
+  color: rgba(248, 239, 221, 0.62);
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.gallery figure {
+  position: relative;
+  height: 360px;
+  overflow: hidden;
+  background: #29251d;
+}
+
+.gallery figure::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(242, 213, 151, 0.14);
+  content: "";
+  pointer-events: none;
+}
+
+.gallery__wide {
+  grid-column: 1 / -1;
+  height: 560px !important;
+}
+
+.gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 600ms ease;
+}
+
+.gallery figure:hover img {
+  transform: scale(1.02);
+}
+
+.contact {
+  position: relative;
+  overflow: hidden;
+  background: var(--rust);
+  color: #fff2da;
+}
+
+.contact::before {
+  position: absolute;
+  inset: -80px;
+  opacity: 0.28;
+  background:
+    repeating-radial-gradient(circle at center, transparent 0 25px, rgba(245, 208, 134, 0.18) 26px 27px),
+    linear-gradient(45deg, transparent 48%, rgba(245, 208, 134, 0.09) 49% 51%, transparent 52%);
+  content: "";
+  transform: rotate(12deg);
+}
+
+.contact__inner {
+  position: relative;
+  display: flex;
+  min-height: 440px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.contact .kicker {
+  color: #f6d89a;
+}
+
+.contact h2 {
+  margin: 18px 0 34px;
+  color: #fff2da;
+  font-size: clamp(52px, 8vw, 96px);
+  letter-spacing: -0.05em;
+}
+
+.footer {
+  padding: 60px 0 34px;
+  background: #0b0a08;
+  color: rgba(247, 237, 218, 0.66);
+}
+
+.footer__inner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 36px;
+}
+
+.footer img {
+  width: 88px;
+  height: 94px;
+  object-fit: cover;
+  object-position: 50% 57%;
+}
+
+.footer p {
+  margin-top: 12px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 24px;
+  color: var(--gold-bright);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.footer__links a:hover,
+.footer__links a:focus-visible {
+  color: #fff5df;
+}
+
+.footer__small {
+  grid-column: 1 / -1;
+  padding-top: 22px;
+  border-top: 1px solid rgba(244, 220, 163, 0.12);
+}
+
+@media (max-width: 920px) {
+  .hero {
+    min-height: 760px;
+  }
+
+  .hero__content {
+    grid-template-columns: 100px minmax(0, 1fr);
+    column-gap: 28px;
+  }
+
+  .hero__logo {
+    width: 92px;
+    height: 112px;
+  }
+
+  .hero__facts {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hero__facts > *:last-child {
+    display: none;
+  }
+
+  .experience-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-card--featured {
+    min-height: 0;
+  }
+
+  .story {
+    grid-template-columns: 1fr;
+  }
+
+  .story__image {
+    min-height: 540px;
+  }
+
+  .story__copy {
+    max-width: none;
+    padding: 90px 48px;
+  }
+}
+
+@media (max-width: 700px) {
+  .shell {
+    width: min(calc(100% - 32px), var(--shell));
+  }
+
+  .section {
+    padding-block: 82px;
+  }
+
+  .language-switcher {
+    top: 12px;
+    right: 12px;
+  }
+
+  .language-switcher a {
+    min-width: 39px;
+    height: 32px;
+  }
+
+  .hero {
+    min-height: 730px;
+    height: 100svh;
+    background-position: 61% center;
+  }
+
+  .hero__content {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-top: 80px;
+    padding-bottom: 22px;
+  }
+
+  .hero__logo {
+    position: absolute;
+    top: 18px;
+    left: 0;
+    width: 76px;
+    height: 88px;
+  }
+
+  .hero__copy {
+    padding-bottom: 38px;
+  }
+
+  .hero h1 {
+    max-width: 420px;
+    font-size: clamp(56px, 18vw, 82px);
+  }
+
+  .hero__intro {
+    max-width: 440px;
+    font-size: 18px;
+  }
+
+  .hero__actions {
+    gap: 8px;
+  }
+
+  .button {
+    min-height: 48px;
+    padding-inline: 20px;
+    font-size: 10px;
+  }
+
+  .hero__facts {
+    grid-template-columns: 1fr;
+  }
+
+  .hero__facts > * {
+    min-height: 48px;
+    padding: 13px 0;
+    border-right: 0;
+  }
+
+  .hero__facts > *:nth-child(2),
+  .hero__facts > *:last-child {
+    display: none;
+  }
+
+  .section-nav a {
+    padding-block: 19px 17px;
+  }
+
+  .section-heading--wide {
+    display: block;
+  }
+
+  .section-heading--wide > p:last-child {
+    margin: 16px 0 0;
+  }
+
+  .experience-grid {
+    gap: 10px;
+  }
+
+  .menu-card--featured {
+    padding: 27px;
+  }
+
+  .story__image {
+    min-height: 430px;
+  }
+
+  .story__copy {
+    padding: 76px 24px;
+  }
+
+  .section-heading--menu {
+    margin-bottom: 54px;
+  }
+
+  .menu-section {
+    padding-top: 58px;
+  }
+
+  .menu-section__header {
+    grid-template-columns: 42px 1fr;
+    margin-bottom: 28px;
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-card {
+    padding-block: 24px;
+  }
+
+  .menu-card h3 {
+    font-size: 25px;
+  }
+
+  .menu-card__topline {
+    gap: 14px;
+  }
+
+  .option {
+    font-size: 12px;
+  }
+
+  .gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery figure,
+  .gallery__wide {
+    grid-column: auto;
+    height: 300px !important;
+  }
+
+  .footer__inner {
+    grid-template-columns: 1fr;
+  }
+
+  .footer__links {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Restaurant","name":"Chaijaná","image":"assets/restaurant-gallery-3.webp","address":{"@type":"PostalAddress","streetAddress":"Bonpland 1965","addressLocality":"Buenos Aires","addressRegion":"CABA","addressCountry":"AR"},"servesCuisine":["Central Asian","Uzbek","Russian","Halal"],"telephone":"+54 9 11 3053-7933","url":"https://chaijana.com/"}</script>
+<div class="language-switcher" aria-label="Language selector"><a href="index.html">ES</a><a href="en.html">EN</a><a href="ru.html" class="active" aria-current="page">RU</a></div><header class="hero" id="top"><div class="hero__veil"></div><div class="hero__content shell"><img class="hero__logo" src="assets/chaijana-logo.png" alt="Chaijaná by Kaplin" width="1680" height="1799"/><div class="hero__copy"><p class="eyebrow">Узбекистан · Россия · Кавказ</p><h1>Вкусы Востока</h1><p class="hero__intro">Меню, вдохновлённое кухней и гостеприимством Центральной Азии, в самом сердце Палермо.</p><div class="hero__actions"><a class="button button--gold" href="#menu">Меню</a><a class="button button--glass" href="https://wa.me/5491130537933" target="_blank" rel="noreferrer">Забронировать стол</a></div></div><div class="hero__facts"><a href="https://maps.google.com/?q=Bonpland+1965+Buenos+Aires" target="_blank" rel="noreferrer"><span>01</span><strong>Bonpland 1965 · Palermo Hollywood</strong></a><div><span>02</span><strong>Пн–Чт 11:00–23:00 · Пт–Вс 11:00–00:00</strong></div><div><span>03</span><strong>Скидка 10% при оплате наличными</strong></div></div></div></header><nav class="section-nav" aria-label="Меню"><div class="section-nav__inner shell"><a href="#experiencias">Сеты</a><a href="#desayunos">Завтраки</a><a href="#ensaladas">Салаты</a><a href="#horno">Из печи</a><a href="#sopas">Супы</a><a href="#parrilla">На гриле</a><a href="#casa">Фирменные блюда</a><a href="#vapor">На пару</a><a href="#infantil">Детское меню</a><a href="#postres">Десерты</a><a href="#cafe-te">Кофе и чай</a><a href="#bebidas">Напитки</a><a href="#cocteles">Коктейли</a><a href="#vinos">Вино</a><a href="#hookah">Кальян</a><a href="#la-casa">Ресторан</a></div></nav><main><section class="experiences section shell" id="experiencias"><div class="section-heading section-heading--wide"><p class="kicker">01 · Chaijaná</p><h2>Сеты</h2><p>Все цены указаны в аргентинских песо.</p></div><div class="experience-grid"><article class="menu-card menu-card--featured"><div class="menu-card__topline"><div><span class="badge">На двоих</span><h3>Гастрономический сет</h3></div></div><p>Авторский сет из восьми блюд на двоих: самса с бараниной, самса по-татарски, хрустящие баклажаны, салат «Ташкент», ассорти манты (3 вида), люля-кебаб из баранины, узбекский плов и пахлава.</p><div class="options"><div class="option"><span>С 2 бокалами St. Felicien Malbec</span><span class="option__line" aria-hidden="true"></span><strong>159 000</strong></div><div class="option"><span>С традиционным чаем</span><span class="option__line" aria-hidden="true"></span><strong>139 000</strong></div></div></article><article class="menu-card menu-card--featured"><div class="menu-card__topline"><div><span class="badge">На огне</span><h3>ASADO-сет</h3></div></div><p>2,2 кг мяса: моллехас на углях, шашлык из сердца, люля-кебаб из баранины, шашлык из рибая и бараньи рёбра на углях.</p><div class="options"><div class="option"><span>Сет</span><span class="option__line" aria-hidden="true"></span><strong>169 000</strong></div><div class="option"><span>С бутылкой Saint Felicien</span><span class="option__line" aria-hidden="true"></span><strong>185 000</strong></div></div></article><article class="menu-card menu-card--featured"><div class="menu-card__topline"><div><span class="badge">Русская кухня</span><h3>Романофф</h3></div></div><p>Салат оливье, блины с красной икрой, борщ, бефстроганов, вареники с картофелем и медовик.</p><div class="options"><div class="option"><span>С водкой (4 шота)</span><span class="option__line" aria-hidden="true"></span><strong>150 000</strong></div><div class="option"><span>С иван-чаем</span><span class="option__line" aria-hidden="true"></span><strong>130 000</strong></div></div></article></div></section><section class="story"><div class="story__image" role="img" aria-label="Chaijaná, Bonpland 1965"></div><div class="story__copy"><p class="kicker">02 · Ждём вас</p><h2>Чайный дом и общий стол</h2><p>Вдохновлённый чайханами Центральной Азии, этот дом объединяет старинные рецепты, медленный огонь, чай и гостеприимство, ради которого хочется остаться.</p><div class="story__details"><span>Bonpland 1965 · Palermo Hollywood</span><span>Пн–Чт 11:00–23:00 · Пт–Вс 11:00–00:00</span></div><a class="text-link" href="https://wa.me/5491130537933" target="_blank" rel="noreferrer">Забронировать стол <span aria-hidden="true">↗</span></a></div></section><section class="menu section" id="menu"><div class="shell"><div class="section-heading section-heading--menu"><p class="kicker">03 · Меню</p><h2>Меню</h2><p>Все цены указаны в аргентинских песо.</p></div><section class="menu-section" id="desayunos"><header class="menu-section__header"><span>01</span><div><h2>Завтраки</h2><p>Сытное утро с восточным акцентом</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Драники или блины с лососем</h3></div><span class="price">27 000</span></div><p>Золотистые картофельные драники или блины со слабосолёным лососем, кремом из рикотты и укропом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Шакшука</h3></div><span class="price">20 000</span></div><p>Запечённые яйца в насыщенном соусе из томатов и сладкого перца, со свежим луковым хлебом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Сырники</h3></div><span class="price">15 000</span></div><p>С ягодами и бананом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Овсяная каша</h3></div><span class="price">8 000</span></div><p>С ягодами и бананом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Блины</h3></div><span class="price">12 000</span></div><p>Со сметаной и сгущённым молоком.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Блины с красной икрой</h3></div><span class="price">25 000</span></div><p>Тонкие блины со сметаной и икрой патагонской форели.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Соусы и добавки</h3></div></div><div class="options"><div class="option"><span>Сметана</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Сгущённое молоко</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Варенье</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div></div></article></div></section><section class="menu-section" id="ensaladas"><header class="menu-section__header"><span>02</span><div><h2>Салаты</h2><p>Холодные закуски и свежие салаты для компании</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Салат оливье</h3></div><span class="price">20 000</span></div><p>С курицей или отварной говядиной на выбор, овощами, солёными огурцами, горошком и домашним майонезом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Салат «Ташкент»</h3></div><span class="price">18 000</span></div><p>Традиционный узбекский салат с языком, говядиной, свежей редькой, огурцом и яйцом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Ачичук</h3></div><span class="price">10 000</span></div><p>Сочные свежие томаты с красным луком и острым перцем.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Хрустящие баклажаны</h3></div><span class="price">18 000</span></div><p>Баклажаны в темпуре с томатами, базиликом и кисло-сладким соусом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Квашеная капуста</h3></div><span class="price">9 000</span></div><p>Квашеная капуста с морковью.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>К водке</h3></div><span class="price">17 000</span></div><p>Традиционные соленья: квашеная капуста, огурцы в рассоле, маринованный перец и чёрный хлеб.</p></article></div></section><section class="menu-section" id="horno"><header class="menu-section__header"><span>03</span><div><h2>Из печи</h2><p>Свежая выпечка и закуски</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Хачапури по-аджарски</h3></div><span class="price">21 000</span></div><p>Горячая румяная лодочка с нежной начинкой из сыра и яйца.</p><p class="note">Готовим 20 минут</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Самса</h3></div></div><p>С бараниной, по-татарски или с лососем. Традиционная узбекская самса, подаётся горячей прямо из печи.</p><div class="options"><div class="option"><span>1 штука</span><span class="option__line" aria-hidden="true"></span><strong>7 000</strong></div><div class="option"><span>3 штуки</span><span class="option__line" aria-hidden="true"></span><strong>18 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Луковый хлеб</h3></div><span class="price">3 000</span></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Бородинский хлеб</h3></div><span class="price">6 000</span></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Лаваш</h3></div><span class="price">4 000</span></div></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Ржаные гренки с чесноком</h3></div><span class="price">11 000</span></div><p>Хрустящие ржаные гренки с чесноком и зеленью.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Джерки из курицы или говядины</h3></div><span class="price">12 000</span></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>К хлебу</h3></div></div><div class="options"><div class="option"><span>Дип из рикотты</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Песто</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div></div></article></div></section><section class="menu-section" id="sopas"><header class="menu-section__header"><span>04</span><div><h2>Супы</h2><p>Домашние согревающие супы на любой вкус</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Рыбный суп</h3></div><span class="price">26 000</span></div><p>Сливочный суп с лососем, картофелем и укропом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Борщ</h3></div><span class="price">20 000</span></div><p>С говядиной и овощами, подаётся со сметаной.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Куриный суп</h3></div><span class="price">17 000</span></div><p>Домашний бульон с лапшой и нежными кусочками курицы.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Суйру-лагман</h3></div><span class="price">25 000</span></div><p>Узбекский лагман с насыщенным бульоном, домашней лапшой, говядиной и овощами.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Густой лагман</h3></div><span class="price">25 000</span></div><p>Домашняя лапша, говядина и овощи в густом пряном бульоне.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Гречка с грибами</h3></div><span class="price">18 000</span></div><p>Гречка со сливочным грибным соусом и золотистым луком.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Соусы</h3></div></div><div class="options"><div class="option"><span>Аджика</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Имбирный соус</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Кисло-сладкий соус чили</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div></div></article></div></section><section class="menu-section" id="parrilla"><header class="menu-section__header"><span>05</span><div><h2>На гриле</h2><p>Мясо на углях с фирменными соусами</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Большой рибай</h3></div><span class="price">57 900</span></div><p>Аргентинский рибай с ароматным картофелем и перечным соусом. 550 г.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Энтранья на углях</h3></div><span class="price">54 900</span></div><p>Сочный классический аргентинский отруб. 550 г.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Моллехас на углях</h3></div><span class="price">25 000</span></div><p>Жемчужина аргентинского гриля. 350 г.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Люля-кебаб</h3></div><span class="price">25 000</span></div><p>Рубленая баранина со специями, приготовленная на углях. 300 г.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Язык на гриле</h3></div><span class="price">26 000</span></div><p>Говяжий язык на углях с овощами. 300 г.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Куриное бедро</h3></div><span class="price">22 000</span></div><p>Без кости, мариновано в пряной аджике и приготовлено на углях.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Шашлык из сердца</h3></div><span class="price">25 000</span></div><p>Нежное говяжье сердце на углях с малиновым соусом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Шаурма / шавурла</h3></div><span class="price">20 000</span></div><p>Курица или люля-кебаб в тонком лаваше с овощами, доведённые на углях.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Соусы</h3></div></div><div class="options"><div class="option"><span>Аджика</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Имбирный соус</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Кисло-сладкий соус</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div></div></article></div></section><section class="menu-section" id="casa"><header class="menu-section__header"><span>06</span><div><h2>Фирменные блюда</h2><p>Блюда, созданные для компании</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Узбекский плов</h3></div></div><p>Рассыпчатый рис, мясо и морковь, приготовленные на огне в казане на зирваке. Подаётся с ачичуком, аджикой и айраном.</p><p class="note">Идеально для компании</p><div class="options"><div class="option"><span>1 порция (550 г)</span><span class="option__line" aria-hidden="true"></span><strong>29 900</strong></div><div class="option"><span>На четверых (2,2 кг)</span><span class="option__line" aria-hidden="true"></span><strong>109 900</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Бараньи рёбра</h3></div><span class="price">89 900</span></div><p>Маринованные в специях и приготовленные на углях. 1,2 кг.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Бефстроганов</h3></div><span class="price">30 000</span></div><p>Тонкие ломтики вырезки в сливочном соусе с луком и грибами.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Говяжьи щёчки</h3></div><span class="price">32 900</span></div><p>Томлёные 12 часов, подаются с картофельным пюре.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Соусы</h3></div></div><div class="options"><div class="option"><span>Сметана</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Аджика</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Тайский чили</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Соус чили reserve</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div></div></article></div></section><section class="menu-section" id="vapor"><header class="menu-section__header"><span>07</span><div><h2>На пару</h2><p>Традиционные блюда ручной работы</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Манты по-татарски</h3></div><span class="price">22 900</span></div><p>С говядиной и картофелем. 3 штуки.</p><p class="note">Готовим под заказ — 40 минут</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Манты с бараниной</h3></div><span class="price">24 900</span></div><p>С бараниной и луком. 3 штуки.</p><p class="note">Готовим под заказ — 40 минут</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Буузы</h3></div><span class="price">27 900</span></div><p>Монгольские буузы с говядиной и зелёным луком. 5 штук.</p><p class="note">Готовим под заказ — 40 минут</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Пельмени</h3></div><span class="price">22 900</span></div><p>Пельмени из тонкого теста с сочной начинкой из говядины и лука.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Вареники с картофелем</h3></div><span class="price">17 000</span></div><p>Вареники из тонкого теста с нежной картофельной начинкой.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Грибной соус</h3></div><span class="price">10 000</span></div><p>Грибы и лук в сливочном соусе — идеально к пельменям или вареникам.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Новинка</span><h3>Манты-маки</h3></div><span class="price">99 900</span></div><p>Сет из 16 штук: 5 мантов с бараниной, 5 мантов по-татарски и 6 монгольских бууз.</p><p class="note">Готовим под заказ — 40 минут</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Соусы</h3></div></div><div class="options"><div class="option"><span>Аджика</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Сметана</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Соевый соус</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div></div></article></div></section><section class="menu-section" id="infantil"><header class="menu-section__header"><span>08</span><div><h2>Детское меню</h2><p>Любимые блюда маленьких гостей</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Куриный суп</h3></div><span class="price">17 000</span></div><p>Домашний суп с лапшой и нежной курицей.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Куриные наггетсы</h3></div><span class="price">9 000</span></div><p>Хрустящие, с кетчупом и сырным соусом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Спагетти</h3></div><span class="price">8 000</span></div><p>Со сливочным маслом. Можно добавить сыр.</p><div class="options"><div class="option"><span>Дополнительный сыр</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Блины</h3></div><span class="price">12 000</span></div><p>Со сметаной и сгущённым молоком.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Картофель фри</h3></div><span class="price">7 000</span></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Картофельное пюре</h3></div><span class="price">7 000</span></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Гречка</h3></div><span class="price">8 000</span></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Куриные медальоны на пару</h3></div><span class="price">10 000</span></div><p>Нежные медальоны из рубленой курицы, приготовленные на пару.</p><p class="note">Готовим под заказ — 25 минут</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Соусы</h3></div></div><div class="options"><div class="option"><span>Сметана</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Кетчуп</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div><div class="option"><span>Сырный соус</span><span class="option__line" aria-hidden="true"></span><strong>3 000</strong></div></div></article></div></section><section class="menu-section" id="postres"><header class="menu-section__header"><span>09</span><div><h2>Десерты</h2><p>Восточные сладости и классика</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Медовик</h3></div><span class="price">11 000</span></div><p>Тонкие медовые коржи с нежным кремом — классический вкус детства.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">От шефа</span><h3>Наполеон</h3></div><span class="price">11 000</span></div><p>Хрустящие слои теста с нежным ванильным кремом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Пахлава</h3></div><span class="price">11 000</span></div><p>Слоёное тесто с орехами и медовым сиропом.</p></article><article class="menu-card"><div class="menu-card__topline"><div><span class="badge">Популярное</span><h3>Пирожное «Картошка»</h3></div><span class="price">11 000</span></div><p>Шоколад, печенье и орехи под слоем какао.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Малиновое или черничное варенье</h3></div><span class="price">3 000</span></div></article></div></section><section class="menu-section" id="cafe-te"><header class="menu-section__header"><span>10</span><div><h2>Кофе и чай</h2><p>Классика, фирменный чай и согревающие напитки</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><h3>Кофе</h3></div></div><div class="options"><div class="option"><span>Эспрессо</span><span class="option__line" aria-hidden="true"></span><strong>4 500</strong></div><div class="option"><span>Двойной эспрессо</span><span class="option__line" aria-hidden="true"></span><strong>5 500</strong></div><div class="option"><span>Кортадо</span><span class="option__line" aria-hidden="true"></span><strong>4 500</strong></div><div class="option"><span>Американо</span><span class="option__line" aria-hidden="true"></span><strong>5 500</strong></div><div class="option"><span>Капучино</span><span class="option__line" aria-hidden="true"></span><strong>6 000</strong></div><div class="option"><span>Латте</span><span class="option__line" aria-hidden="true"></span><strong>6 000</strong></div><div class="option"><span>Флэт уайт</span><span class="option__line" aria-hidden="true"></span><strong>7 000</strong></div><div class="option"><span>Раф</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div><div class="option"><span>Бамбл</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div><div class="option"><span>Растительное молоко</span><span class="option__line" aria-hidden="true"></span><strong>+1 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Раф</h3></div></div><p>Эспрессо, взбитый со сливками и ванилью до шелковистой текстуры.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Бамбл</h3></div></div><p>Эспрессо и апельсиновый сок: яркая сладость с лёгкой горчинкой.</p></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Согревающие безалкогольные напитки</h3></div></div><div class="options"><div class="option"><span>Глинтвейн</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Яблочный пунш</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Фирменные чаи</h3></div></div><div class="options"><div class="option"><span>Масала-чай</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Облепиховый чай</span><span class="option__line" aria-hidden="true"></span><strong>15 000</strong></div><div class="option"><span>Иван-чай</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Узбекский чай</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Чай — 600 мл</h3></div></div><div class="options"><div class="option"><span>Каркаде</span><span class="option__line" aria-hidden="true"></span><strong>7 000</strong></div><div class="option"><span>Жасминовый</span><span class="option__line" aria-hidden="true"></span><strong>7 000</strong></div><div class="option"><span>Улун</span><span class="option__line" aria-hidden="true"></span><strong>7 000</strong></div><div class="option"><span>Чёрный чай</span><span class="option__line" aria-hidden="true"></span><strong>7 000</strong></div><div class="option"><span>Чёрный чай с мятой</span><span class="option__line" aria-hidden="true"></span><strong>7 000</strong></div><div class="option"><span>Ромашковый чай</span><span class="option__line" aria-hidden="true"></span><strong>7 000</strong></div></div></article></div></section><section class="menu-section" id="bebidas"><header class="menu-section__header"><span>11</span><div><h2>Напитки</h2><p>Домашние лимонады, прохладительные напитки и фруктовые шейки</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><h3>Лимонады — 1 000 мл</h3></div></div><div class="options"><div class="option"><span>Базилик</span><span class="option__line" aria-hidden="true"></span><strong>15 000</strong></div><div class="option"><span>Мята</span><span class="option__line" aria-hidden="true"></span><strong>15 000</strong></div><div class="option"><span>Лимон</span><span class="option__line" aria-hidden="true"></span><strong>15 000</strong></div><div class="option"><span>Грейпфрут и базилик</span><span class="option__line" aria-hidden="true"></span><strong>15 000</strong></div><div class="option"><span>Мята и имбирь</span><span class="option__line" aria-hidden="true"></span><strong>15 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Вода и газированные напитки</h3></div></div><div class="options"><div class="option"><span>St. Pellegrino с газом — 500 мл</span><span class="option__line" aria-hidden="true"></span><strong>15 000</strong></div><div class="option"><span>Morgade с газом — 490 мл</span><span class="option__line" aria-hidden="true"></span><strong>5 000</strong></div><div class="option"><span>Morgade без газа — 490 мл</span><span class="option__line" aria-hidden="true"></span><strong>5 000</strong></div><div class="option"><span>Coca-Cola Zero / Classic — 330 мл</span><span class="option__line" aria-hidden="true"></span><strong>6 000</strong></div><div class="option"><span>Sprite Zero / Classic — 330 мл</span><span class="option__line" aria-hidden="true"></span><strong>6 000</strong></div><div class="option"><span>Тоник — 330 мл</span><span class="option__line" aria-hidden="true"></span><strong>6 000</strong></div><div class="option"><span>Тархун — 500 мл</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div><div class="option"><span>Дюшес — 500 мл</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Соки и молочные напитки</h3></div></div><div class="options"><div class="option"><span>Яблочный сок — 200 мл</span><span class="option__line" aria-hidden="true"></span><strong>2 000</strong></div><div class="option"><span>Молоко — 200 мл</span><span class="option__line" aria-hidden="true"></span><strong>2 000</strong></div><div class="option"><span>Свежий апельсиновый сок — 200 мл</span><span class="option__line" aria-hidden="true"></span><strong>9 000</strong></div><div class="option"><span>Холодный чай с фруктами — 500 мл</span><span class="option__line" aria-hidden="true"></span><strong>9 000</strong></div><div class="option"><span>Айран — 500 мл</span><span class="option__line" aria-hidden="true"></span><strong>6 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Фруктовые шейки</h3></div></div></article></div></section><section class="menu-section" id="cocteles"><header class="menu-section__header"><span>12</span><div><h2>Коктейли</h2><p>Классические коктейли, шоты и крепкий алкоголь</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><h3>Классические коктейли</h3></div></div><div class="options"><div class="option"><span>Aperol Spritz — 400 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Gin &amp; Tonic — 250 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Long Island — 500 мл</span><span class="option__line" aria-hidden="true"></span><strong>13 000</strong></div><div class="option"><span>Cuba Libre — 250 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Whiskey Cola — 250 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Negroni — 250 мл</span><span class="option__line" aria-hidden="true"></span><strong>14 000</strong></div><div class="option"><span>Basil Smash — 250 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Кайпироска — 250 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Fernet Cola — 250 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Kir Royale — 150 мл</span><span class="option__line" aria-hidden="true"></span><strong>13 000</strong></div><div class="option"><span>Screwdriver — 200 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Bloody Mary — 200 мл</span><span class="option__line" aria-hidden="true"></span><strong>14 000</strong></div><div class="option"><span>Сангрия — 1 000 мл</span><span class="option__line" aria-hidden="true"></span><strong>15 000</strong></div><div class="option"><span>Глинтвейн Malbec — 200 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div><div class="option"><span>Яблочный пунш с ромом — 200 мл</span><span class="option__line" aria-hidden="true"></span><strong>11 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Шоты и крепкий алкоголь — 50 мл</h3></div></div><div class="options"><div class="option"><span>B-52</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div><div class="option"><span>B-53</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div><div class="option"><span>Виски Jameson</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Jägermeister</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Ром Havana Club 3 года</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Ром Havana Club 7 лет</span><span class="option__line" aria-hidden="true"></span><strong>13 000</strong></div><div class="option"><span>Ром Bacardi Oro</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Джин Beefeater</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Бурбон Jack Daniel&#x27;s</span><span class="option__line" aria-hidden="true"></span><strong>10 000</strong></div><div class="option"><span>Текила Cuervo Silver</span><span class="option__line" aria-hidden="true"></span><strong>13 000</strong></div><div class="option"><span>Текила Cuervo Gold</span><span class="option__line" aria-hidden="true"></span><strong>13 000</strong></div><div class="option"><span>Абсент 53.7</span><span class="option__line" aria-hidden="true"></span><strong>13 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Пиво</h3></div></div><div class="options"><div class="option"><span>Corona — 330 мл</span><span class="option__line" aria-hidden="true"></span><strong>6 000</strong></div><div class="option"><span>Stella Artois — 330 мл</span><span class="option__line" aria-hidden="true"></span><strong>6 000</strong></div><div class="option"><span>La Paloma 10 Sabores — 475 мл</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Водка</h3></div></div><div class="options"><div class="option"><span>Belvedere — 50 / 200 / 750 мл</span><span class="option__line" aria-hidden="true"></span><strong>10 000 / 30 000 / 110 000</strong></div><div class="option"><span>Rey Russia — 50 / 200 / 750 мл</span><span class="option__line" aria-hidden="true"></span><strong>6 000 / 15 000 / 30 000</strong></div><div class="option"><span>Хреновуха — 50 мл</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div><div class="option"><span>Huacatay — 50 мл</span><span class="option__line" aria-hidden="true"></span><strong>8 000</strong></div></div></article></div></section><section class="menu-section" id="vinos"><header class="menu-section__header"><span>13</span><div><h2>Вино</h2><p>Аргентинская подборка по бутылкам и бокалам</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><h3>Игристое — бутылка / бокал</h3></div></div><div class="options"><div class="option"><span>Salentein Extra Brut, Mendoza</span><span class="option__line" aria-hidden="true"></span><strong>29 000 / 7 500</strong></div><div class="option"><span>Cruzat Cuvée Rosé Extra Brut, Mendoza</span><span class="option__line" aria-hidden="true"></span><strong>35 000 / 8 900</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Белое — бутылка / бокал</h3></div></div><div class="options"><div class="option"><span>El Esteco Old Vines 1945 Torrontés</span><span class="option__line" aria-hidden="true"></span><strong>34 000 / 8 500</strong></div><div class="option"><span>Pequeñas Producciones Sauvignon Blanc</span><span class="option__line" aria-hidden="true"></span><strong>41 000 / 10 000</strong></div><div class="option"><span>Blanco Histórico Semillón–Chenin</span><span class="option__line" aria-hidden="true"></span><strong>38 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Розе — бутылка / бокал</h3></div></div><div class="options"><div class="option"><span>Trumpeter Rosé, Mendoza</span><span class="option__line" aria-hidden="true"></span><strong>26 000 / 6 500</strong></div><div class="option"><span>El Esteco Blanc de Noir, Salta</span><span class="option__line" aria-hidden="true"></span><strong>32 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Красное — бутылка / бокал</h3></div></div><div class="options"><div class="option"><span>St. Felicien Malbec</span><span class="option__line" aria-hidden="true"></span><strong>19 900 / 7 000</strong></div><div class="option"><span>Norton Reserva Cabernet Sauvignon</span><span class="option__line" aria-hidden="true"></span><strong>24 000 / 7 000</strong></div><div class="option"><span>St. Felicien Bonarda</span><span class="option__line" aria-hidden="true"></span><strong>31 000 / 8 500</strong></div><div class="option"><span>D.V. Catena Cabernet–Malbec</span><span class="option__line" aria-hidden="true"></span><strong>40 000 / 10 000</strong></div><div class="option"><span>Rutini Cabernet-Malbec</span><span class="option__line" aria-hidden="true"></span><strong>31 000</strong></div><div class="option"><span>BenMarco Malbec</span><span class="option__line" aria-hidden="true"></span><strong>35 000</strong></div><div class="option"><span>BenMarco Cabernet Franc</span><span class="option__line" aria-hidden="true"></span><strong>35 000</strong></div><div class="option"><span>Escorihuela Gascón Pinot Noir</span><span class="option__line" aria-hidden="true"></span><strong>32 000</strong></div><div class="option"><span>Clos de los Siete</span><span class="option__line" aria-hidden="true"></span><strong>46 000</strong></div><div class="option"><span>Gran Mascota Malbec</span><span class="option__line" aria-hidden="true"></span><strong>33 000</strong></div><div class="option"><span>Luigi Bosca De Sangre Malbec DOC</span><span class="option__line" aria-hidden="true"></span><strong>52 000 / 14 000</strong></div><div class="option"><span>Angélica Zapata Malbec Alta</span><span class="option__line" aria-hidden="true"></span><strong>58 000</strong></div><div class="option"><span>Gran Enemigo Cabernet Franc</span><span class="option__line" aria-hidden="true"></span><strong>92 000</strong></div></div></article><article class="menu-card"><div class="menu-card__topline"><div><h3>Гран резерв</h3></div></div><div class="options"><div class="option"><span>Catena Zapata Malbec Argentino</span><span class="option__line" aria-hidden="true"></span><strong>139 000</strong></div><div class="option"><span>Iscay Malbec–Cabernet Franc</span><span class="option__line" aria-hidden="true"></span><strong>125 000</strong></div><div class="option"><span>Enzo Bianchi Gran Corte</span><span class="option__line" aria-hidden="true"></span><strong>150 000</strong></div></div></article></div></section><section class="menu-section" id="hookah"><header class="menu-section__header"><span>14</span><div><h2>Кальян</h2><p>Кальян и премиальные табаки</p></div></header><div class="menu-grid"><article class="menu-card"><div class="menu-card__topline"><div><h3>Кальян</h3></div><span class="price">35 000</span></div><p>Премиальные табаки: Overdose, Blackburn, SENCE и Adalia.</p></article></div></section></div></section><section class="house section" id="la-casa"><div class="shell"><div class="section-heading section-heading--house"><p class="kicker">04 · Bonpland 1965</p><h2>Ресторан</h2><p>Оригинальные интерьеры Chaijaná: тёплый свет, ткани, восточные лампы и уютные места для долгого ужина.</p></div><div class="gallery"><figure class="gallery__wide"><img src="assets/restaurant-gallery-3.webp" alt="Bar de Chaijaná" width="1400" height="933" loading="lazy"/></figure><figure><img src="assets/restaurant-gallery-1.webp" alt="Servicio en el salón de Chaijaná" width="1400" height="933" loading="lazy"/></figure><figure><img src="assets/restaurant-gallery-4.webp" alt="Patio y narguile de Chaijaná" width="1400" height="933" loading="lazy"/></figure><figure class="gallery__wide"><img src="assets/restaurant-gallery-2.webp" alt="Fachada de Chaijaná en Bonpland 1965" width="1400" height="992" loading="lazy"/></figure></div></div></section><section class="contact"><div class="contact__inner shell"><p class="kicker">WhatsApp · +54 9 11 3053 7933</p><h2>Забронировать стол</h2><a class="button button--gold" href="https://wa.me/5491130537933" target="_blank" rel="noreferrer">WhatsApp <span aria-hidden="true">↗</span></a></div></section></main><footer class="footer"><div class="shell footer__inner"><div><img src="assets/chaijana-logo.png" alt="Chaijaná" width="1680" height="1799" loading="lazy"/><p>Кухня Центральной Азии · Halal · Кальян</p></div><div class="footer__links"><a href="https://www.instagram.com/chaijana.ar" target="_blank" rel="noreferrer">Instagram</a><a href="https://wa.me/5491130537933" target="_blank" rel="noreferrer">WhatsApp</a><a href="#top">Наверх ↑</a></div><p class="footer__small">Актуальное меню предоставлено Chaijaná.</p></div></footer>
+</body>
+</html>
