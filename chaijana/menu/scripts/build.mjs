@@ -114,7 +114,7 @@ function renderPrice(price, lang) {
   return `<span class="menu-price">${escapeHtml(pickLocalized(price, lang))}</span>`;
 }
 
-function renderItem(menuItem, lang, index) {
+function renderItem(menuItem, lang) {
   const description = menuItem.description
     ? `<p class="menu-description">${text(menuItem.description, lang)}</p>`
     : "";
@@ -134,7 +134,9 @@ function renderItem(menuItem, lang, index) {
         .join("")}</ul>`
     : "";
 
-  return `<article class="menu-item" data-menu-item style="--item-order:${index}">
+  // No inline style attribute: nothing reads `--item-order`, and keeping the
+  // markup free of inline styles lets the menu ship `style-src 'self'`.
+  return `<article class="menu-item" data-menu-item>
     <div class="item-heading">
       <h3>${text(menuItem.name, lang)}</h3>
       ${renderPrice(menuItem.price, lang)}
@@ -173,7 +175,7 @@ function renderSection({ id, title, intro, items }, lang) {
     ${renderSectionHeading(text(title, lang), text(intro, lang))}
     <div class="section-body">
       ${hasImage ? renderPhoto(image, imageAlt) : ""}
-      <div class="menu-grid">${visibleItems.map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
+      <div class="menu-grid">${visibleItems.map((menuItem) => renderItem(menuItem, lang)).join("")}</div>
     </div>
   </section>`;
 }
@@ -186,7 +188,7 @@ function renderExperiences(lang) {
     ${renderSectionHeading(title)}
     <div class="section-body">
       ${hasImage ? renderPhoto(experienceImage, ui[lang].experiences, 960, 671) : ""}
-      <div class="menu-grid">${experiences.filter(visibleIn(lang)).map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
+      <div class="menu-grid">${experiences.filter(visibleIn(lang)).map((menuItem) => renderItem(menuItem, lang)).join("")}</div>
     </div>
   </section>`;
 }
