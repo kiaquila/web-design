@@ -70,6 +70,11 @@ that one installation PR binds directly to a trusted `@codex review` source
 comment and rejects it if the head changes afterward. Normal PRs require the
 persistent `github-actions[bot]` marker.
 
+Native review also requires a Codex cloud environment connected to this
+repository. If it is missing, the Codex bot posts an environment-setup link
+instead of review evidence and the gate correctly remains red. After creating
+the environment, post a new `@codex review` on the current head.
+
 ## Audit of omitted Unicorn Hub controls
 
 The omitted-control audit was repeated against Unicorn Hub commit
