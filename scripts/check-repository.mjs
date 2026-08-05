@@ -45,13 +45,21 @@ const failures = [];
 const requiredRootFiles = [
   ".gitignore",
   ".repo-guard.json",
+  ".github/workflows/codex-review.yml",
+  ".github/workflows/codex-review-request.yml",
+  ".github/workflows/codex-review-rerun.yml",
   ".github/workflows/repository-guard.yml",
   "AGENTS.md",
   "CLAUDE.md",
   "README.md",
   "docs/repository-guardrails.md",
   "docs/stage-hosting.md",
+  "scripts/codex-review-gate.mjs",
+  "scripts/codex-review-helpers.mjs",
+  "scripts/codex-review-request.mjs",
+  "scripts/codex-review-rerun.mjs",
   "scripts/check-repository.mjs",
+  "tests/codex-review-gate.test.mjs",
   "tests/repository-guard.test.mjs",
   "third-party-notices.md"
 ];

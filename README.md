@@ -50,10 +50,11 @@ isolated public preview for every pull request.
 
 ## Guardrails
 
-Pull requests run repository policy checks, project tests, and a dependency
-vulnerability scan. The policy check rejects common secrets and private keys,
-personal absolute paths, tracked generated output, unsafe workflow triggers,
-un-pinned GitHub Actions, and project folders without their local context files.
+Pull requests run repository policy checks, project tests, a dependency
+vulnerability scan, and a current-head Codex review gate. The policy check
+rejects common secrets and private keys, personal absolute paths, tracked
+generated output, unsafe workflow triggers, un-pinned GitHub Actions, and
+project folders without their local context files.
 
 The implementation and maintainer setup are documented in
 [`docs/repository-guardrails.md`](./docs/repository-guardrails.md).

@@ -17,7 +17,9 @@
 - [ ] The PR is project-scoped and contains no unrelated customer data or assets.
 - [ ] No secrets, `.env` files, personal paths, generated build directories, or local state are tracked.
 - [ ] `node scripts/check-repository.mjs`
+- [ ] `node --test tests/repository-guard.test.mjs tests/codex-review-gate.test.mjs`
 - [ ] Affected project checks (list commands and results below)
+- [ ] A trusted maintainer requested `@codex review`, and `Codex Review` is green for the current head SHA.
 
 ## Validation evidence
 
