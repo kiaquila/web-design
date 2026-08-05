@@ -1,0 +1,50 @@
+name: Project CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chaijana-menu:
+    name: chaijana-menu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.18.0"
+
+      - name: Build and test menu
+        run: npm --prefix chaijana/menu run check
+
+  chaijana-website:
+    name: chaijana-website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.18.0"
+          cache: npm
+          cache-dependency-path: chaijana/website/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci --prefix chaijana/website
+
+      - name: Lint website
+        run: npm --prefix chaijana/website run lint
+
+      - name: Build and test website
+        run: npm --prefix chaijana/website test

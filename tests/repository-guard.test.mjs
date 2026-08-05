@@ -1,0 +1,134 @@
+import assert from "node:assert/strict";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import test from "node:test";
+
+const repositoryRoot = resolve(import.meta.dirname, "..");
+const guardScript = join(repositoryRoot, "scripts/check-repository.mjs");
+const checkoutSha = "34e114876b0b11c390a56381ad16ebd13914f8d5";
+
+function write(root, path, contents = "placeholder\n") {
+  const target = join(root, path);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, contents);
+}
+
+function git(root, ...args) {
+  const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+}
+
+function makeFixture() {
+  const root = mkdtempSync(join(tmpdir(), "web-design-guard-"));
+  write(root, ".gitignore", "node_modules/\ndist/\n");
+  write(
+    root,
+    ".repo-guard.json",
+    JSON.stringify({
+      infrastructureDirectories: ["docs", "scripts", "tests"],
+      projects: ["demo"]
+    })
+  );
+  write(root, "AGENTS.md");
+  write(root, "CLAUDE.md");
+  write(root, "README.md", "[Demo](./demo/)\n");
+  write(root, "demo/AGENTS.md");
+  write(root, "demo/README.md");
+  write(root, "docs/repository-guardrails.md");
+  write(root, "tests/repository-guard.test.mjs");
+  write(root, "third-party-notices.md");
+  mkdirSync(join(root, "scripts"), { recursive: true });
+  cpSync(guardScript, join(root, "scripts/check-repository.mjs"));
+  write(
+    root,
+    ".github/workflows/repository-guard.yml",
+    [
+      "name: Guard",
+      "on: push",
+      "permissions:",
+      "  contents: read",
+      "jobs:",
+      "  guard:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`,
+      ""
+    ].join("\n")
+  );
+  git(root, "init", "-q");
+  git(root, "add", "-A");
+  return root;
+}
+
+function runGuard(root) {
+  return spawnSync(process.execPath, [guardScript, "--root", root], {
+    encoding: "utf8"
+  });
+}
+
+function withFixture(run) {
+  const root = makeFixture();
+  try {
+    run(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+test("accepts a minimal conforming project", () => {
+  withFixture((root) => {
+    const result = runGuard(root);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Repository guard passed/);
+  });
+});
+
+test("rejects a known token signature", () => {
+  withFixture((root) => {
+    const token = ["ghp", "A".repeat(32)].join("_");
+    write(root, "credentials.txt", `${token}\n`);
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Possible GitHub token/);
+  });
+});
+
+test("rejects personal absolute paths", () => {
+  withFixture((root) => {
+    const personalPath = ["", "Users", "example", "project", "file.txt"].join("/");
+    write(root, "notes.md", `${personalPath}\n`);
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Personal absolute path/);
+  });
+});
+
+test("rejects unpinned GitHub Actions", () => {
+  withFixture((root) => {
+    write(
+      root,
+      ".github/workflows/repository-guard.yml",
+      "name: Guard\non: push\npermissions:\n  contents: read\njobs:\n" +
+        "  guard:\n    runs-on: ubuntu-latest\n    steps:\n" +
+        "      - uses: actions/checkout@v4\n"
+    );
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /not pinned to a full commit SHA/);
+  });
+});
+
+test("rejects unclassified top-level directories", () => {
+  withFixture((root) => {
+    write(root, "unlisted-project/README.md");
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Unclassified top-level directory/);
+  });
+});
