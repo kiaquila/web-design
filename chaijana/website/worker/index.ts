@@ -1,6 +1,8 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { withSecurityHeaders } from "./security-headers";
+import { MENU_SCRIPT_HASHES } from "./menu-script-hashes.generated";
 
 interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> };
@@ -39,7 +41,10 @@ const worker = {
       }, allowedWidths);
     }
 
-    return handler.fetch(request, env, ctx);
+    // `public/_headers` only covers responses served straight from static
+    // assets, which is deployment-dependent. Decorating here as well means the
+    // policy holds on every path that reaches the Worker.
+    return withSecurityHeaders(request, await handler.fetch(request, env, ctx), MENU_SCRIPT_HASHES);
   },
 };
 

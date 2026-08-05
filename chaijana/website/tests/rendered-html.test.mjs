@@ -166,3 +166,52 @@ test("every local asset the rendered pages reference is actually shipped", async
     ),
   );
 });
+
+test("every rendered response carries the baseline security headers", async () => {
+  const response = await render();
+
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+  assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+  assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
+  assert.match(response.headers.get("strict-transport-security") ?? "", /max-age=31536000/);
+  assert.match(response.headers.get("permissions-policy") ?? "", /geolocation=\(\)/);
+
+  const csp = response.headers.get("content-security-policy") ?? "";
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.match(csp, /object-src 'none'/);
+  assert.match(csp, /base-uri 'self'/);
+  assert.match(csp, /form-action 'self'/);
+  // The rendered pages need inline scripts for the RSC payload; nothing else may be inline.
+  assert.match(csp, /style-src 'self'/);
+  assert.ok(!/style-src[^;]*unsafe-inline/.test(csp), "styles must not allow 'unsafe-inline'");
+});
+
+test("the menu is served under a strict, hash-pinned policy", async () => {
+  const response = await renderUrl("/menu/ru.html");
+  const csp = response.headers.get("content-security-policy") ?? "";
+
+  assert.ok(!csp.includes("unsafe-inline"), "the static menu must not allow any inline source");
+  assert.match(csp, /connect-src 'none'/);
+  assert.match(csp, /form-action 'none'/);
+  assert.equal((csp.match(/sha256-/g) ?? []).length, 3, "one hash per built menu language");
+});
+
+test("the generated script hashes match the menu that ships", async () => {
+  const { MENU_SCRIPT_HASHES } = await import("../worker/menu-script-hashes.generated.ts");
+  const { createHash } = await import("node:crypto");
+
+  for (const page of ["index.html", "en.html", "ru.html"]) {
+    const html = await readFile(new URL(`public/menu/${page}`, root), "utf8");
+    const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)];
+    assert.ok(inline.length > 0, `${page}: expected an inline script`);
+
+    for (const [, body] of inline) {
+      const hash = `sha256-${createHash("sha256").update(body, "utf8").digest("base64")}`;
+      assert.ok(
+        MENU_SCRIPT_HASHES.includes(hash),
+        `${page}: inline script is not pinned in the CSP — re-run the build to refresh the hashes`,
+      );
+    }
+  }
+});
