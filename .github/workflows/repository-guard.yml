@@ -1,0 +1,42 @@
+name: Repository Guard
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-guard:
+    name: repository-guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proposed repository state
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Checkout trusted guard
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .guard-trusted
+          fetch-depth: 1
+
+      - name: Run repository policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f .guard-trusted/scripts/check-repository.mjs ]; then
+            node .guard-trusted/scripts/check-repository.mjs --root "$GITHUB_WORKSPACE"
+          else
+            echo "Trusted guard is not on the default branch yet; using the bootstrap copy."
+            node scripts/check-repository.mjs --root "$GITHUB_WORKSPACE"
+          fi
+
+      - name: Test repository policy
+        run: node --test tests/repository-guard.test.mjs

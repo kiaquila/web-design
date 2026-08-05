@@ -1,0 +1,10 @@
+{
+  "infrastructureDirectories": [
+    "docs",
+    "scripts",
+    "tests"
+  ],
+  "projects": [
+    "chaijana"
+  ]
+}
