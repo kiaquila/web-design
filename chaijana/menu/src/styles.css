@@ -457,7 +457,8 @@ h3 {
   gap: 1px;
 }
 
-.cover-details .detail-label {
+.cover-details .detail-label,
+.cover-partner .detail-label {
   color: var(--gold-deep);
   font-size: 0.6rem;
   font-weight: 700;
@@ -506,6 +507,24 @@ h3 {
   color: var(--cream-dim);
   font-size: 0.74rem;
   letter-spacing: 0.06em;
+}
+
+/* Loyalty-programme partner mark, as printed on the carta cover. Bonpunto's
+   blue is left untouched — it is someone else's brand — so it gets its own
+   quiet zone below a hairline instead of competing with the gold. */
+.cover-partner {
+  display: grid;
+  gap: 9px;
+  justify-items: center;
+  margin-top: clamp(16px, 2.4vw, 24px);
+  padding-top: clamp(14px, 2vw, 20px);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.cover-partner img {
+  width: clamp(92px, 16vw, 118px);
+  height: auto;
+  opacity: 0.9;
 }
 
 .scroll-cue {

@@ -93,6 +93,9 @@ const escapeHtml = (value = "") =>
 
 const text = (copy, lang) => escapeHtml(pickLocalized(copy, lang));
 
+/** Items without a `languages` list appear everywhere. */
+const visibleIn = (lang) => (menuItem) => !menuItem.languages || menuItem.languages.includes(lang);
+
 function renderPrice(price, lang) {
   if (!price) return "";
   return `<span class="menu-price">${escapeHtml(pickLocalized(price, lang))}</span>`;
@@ -142,16 +145,17 @@ function renderPhoto(image, alt, width = 960, height = 960) {
 function renderSection({ id, title, intro, items }, lang) {
   const image = sectionImages[id];
   const hasImage = image && existsSync(join(root, image));
+  const visibleItems = items.filter(visibleIn(lang));
   const imageAlt = sectionImageAlts[id]
     ? pick(sectionImageAlts[id], lang)
-    : items[0]
-      ? pick(items[0].name, lang)
+    : visibleItems[0]
+      ? pick(visibleItems[0].name, lang)
       : pick(title, lang);
   return `<section class="menu-section" id="${escapeHtml(id)}" data-menu-section>
     ${renderSectionHeading(text(title, lang), text(intro, lang))}
     <div class="section-body">
       ${hasImage ? renderPhoto(image, imageAlt) : ""}
-      <div class="menu-grid">${items.map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
+      <div class="menu-grid">${visibleItems.map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
     </div>
   </section>`;
 }
@@ -164,7 +168,7 @@ function renderExperiences(lang) {
     ${renderSectionHeading(title)}
     <div class="section-body">
       ${hasImage ? renderPhoto(experienceImage, ui[lang].experiences, 960, 671) : ""}
-      <div class="menu-grid">${experiences.map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
+      <div class="menu-grid">${experiences.filter(visibleIn(lang)).map((menuItem, index) => renderItem(menuItem, lang, index)).join("")}</div>
     </div>
   </section>`;
 }
@@ -219,6 +223,10 @@ function renderCover(lang) {
           <span class="seal">${ornaments.halal}${escapeHtml(copy.halal)}</span>
         </div>
         <p class="currency-note">${escapeHtml(copy.menuIntro)}</p>
+        <div class="cover-partner">
+          <span class="detail-label">${escapeHtml(copy.partner)}</span>
+          <img src="assets/bonpunto-logo.svg" alt="Bonpunto" width="300" height="80" loading="lazy">
+        </div>
         <a class="scroll-cue" href="#experiences"><span>${escapeHtml(copy.scrollCue)}</span><span aria-hidden="true">${ornaments.chevron}</span></a>
       </div>
     </section>`;

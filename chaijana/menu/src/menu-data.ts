@@ -9,6 +9,9 @@ export type MenuItem = {
   badge?: Copy;
   note?: Copy;
   options?: { label: LocalizedValue; price: LocalizedValue; languages?: Lang[] }[];
+  /** Omit the item outside these languages. The printed cartas do not agree on
+   *  where a few dishes belong, and each locale keeps its own placement. */
+  languages?: Lang[];
 };
 
 export type MenuSection = {
@@ -33,6 +36,9 @@ const item = (
   note?: Copy,
   options?: { label: LocalizedValue; price: LocalizedValue; languages?: Lang[] }[],
 ): MenuItem => ({ name, price, description, badge, note, options });
+
+/** Restrict an item to the locales whose printed carta actually lists it there. */
+const only = (languages: Lang[], menuItem: MenuItem): MenuItem => ({ ...menuItem, languages });
 
 export const experiences: MenuItem[] = [
   item(
@@ -149,7 +155,9 @@ export const menuSections: MenuSection[] = [
       item(c("Sopa de pollo", "Chicken soup", "Куриный суп"), "17 000", c("Caldo casero con fideos suaves y tiernos trozos de pollo.", "Homemade broth with soft noodles and tender chicken.", "Домашний бульон с лапшой и нежными кусочками курицы."), c("Especial del Chef", "Chef's special", "От шефа")),
       item(c("Suyru lagman", "Suyru lagman", "Суйру-лагман"), "25 000", c("Lagman uzbeko con doble caldo, fideos caseros, carne de res y verduras.", "Uzbek lagman with rich broth, homemade noodles, beef and vegetables.", "Узбекский лагман с насыщенным бульоном, домашней лапшой, говядиной и овощами."), c("Más pedidos", "Popular", "Популярное")),
       item(c("Lagman espeso", "Thick lagman", "Густой лагман"), "25 000", c("Fideos caseros, carne de res y verduras en un caldo rico y especiado.", "Homemade noodles, beef and vegetables in a rich spiced broth.", "Домашняя лапша, говядина и овощи в густом пряном бульоне.")),
-      item(c("Trigo sarraceno con hongos", "Buckwheat with mushrooms", "Гречка с грибами"), "18 000", c("Trigo sarraceno con salsa cremosa de champiñones y cebolla dorada.", "Buckwheat with creamy mushroom sauce and golden onions.", "Гречка со сливочным грибным соусом и золотистым луком.")),
+      // The ES and EN cartas print this on the soup page; the RU carta files it
+      // under the chef's signature dishes instead. Each locale keeps its own.
+      only(["es", "en"], item(c("Trigo sarraceno con hongos", "Creamy buckwheat with mushrooms", "Гречка с грибами"), "18 000", c("Trigo sarraceno hervido y desmenuzado, con salsa cremosa de champiñones y cebollas doradas.", "Tender buckwheat, slowly cooked and tossed in a creamy mushroom sauce, topped with golden onions.", "Гречка со сливочным грибным соусом и золотистым луком."))),
       item(c("Salsas", "Sauces", "Соусы"), undefined, undefined, undefined, undefined, [
         { label: c("Adjika", "Adjika", "Аджика"), price: "3 000" },
         { label: c("Salsa de jengibre", "Ginger sauce", "Имбирный соус"), price: "3 000" },
@@ -189,6 +197,8 @@ export const menuSections: MenuSection[] = [
       item(c("Costillas de cordero", "Lamb ribs", "Бараньи рёбра"), "89 900", c("Marinadas en especias, 14 horas de sous-vide y terminadas a las brasas. 1,2 kg.", "Spice-marinated, 14 hours sous-vide and finished over charcoal. 1.2 kg.", "Бараньи рёбра, 14 часов в sous-vide, с финальной обжаркой на мангале. 1,2 кг."), c("Para 3 personas", "For 3 persons", "На 3 персоны"), c("Más pedidos", "Guest favourite", "Популярное")),
       item(c("Bifstroganov", "Beef stroganoff", "Бефстроганов"), "30 000", c("Finas láminas de lomo en salsa cremosa con cebolla y hongos.", "Fine slices of tenderloin in a creamy onion and mushroom sauce.", "Тонкие ломтики вырезки в сливочном соусе с луком и грибами."), c("Más pedidos", "Popular", "Популярное")),
       item(c("Carrilleras de res", "Beef cheeks", "Говяжьи щёчки"), "32 900", c("Cocidas lentamente durante 12 horas, servidas con puré de papas.", "Slow-cooked for 12 hours and served with mashed potatoes.", "Томлёные 12 часов, подаются с картофельным пюре.")),
+      // Printed here in the RU carta, and in both places in the EN one.
+      only(["en", "ru"], item(c("Trigo sarraceno con hongos", "Buckwheat with mushrooms", "Гречка с грибами"), "18 000", c("Trigo sarraceno con salsa cremosa de champiñones.", "Buckwheat groats served with a rich creamy mushroom sauce.", "Гречневая крупа со сливочно-грибным соусом."))),
       item(c("Salsas", "Sauces", "Соусы"), undefined, undefined, undefined, undefined, [
         { label: c("Crema agria", "Sour cream", "Сметана"), price: "3 000" },
         { label: c("Adjika", "Adjika", "Аджика"), price: "3 000" },
@@ -368,6 +378,7 @@ export const ui = {
     discount: "10% de descuento pagando en efectivo",
     menuIntro: "Todos los precios están expresados en pesos argentinos.",
     halal: "Halal",
+    partner: "Programa de fidelidad",
     scrollCue: "Ver la carta",
     backTop: "Volver arriba",
   },
@@ -392,6 +403,7 @@ export const ui = {
     discount: "10% discount when paying in cash",
     menuIntro: "All prices are in Argentine pesos.",
     halal: "Halal",
+    partner: "Loyalty programme",
     scrollCue: "View the menu",
     backTop: "Back to top",
   },
@@ -416,6 +428,7 @@ export const ui = {
     discount: "10% скидка при оплате наличными",
     menuIntro: "Все цены указаны в аргентинских песо.",
     halal: "Халяль",
+    partner: "Программа лояльности",
     scrollCue: "Смотреть меню",
     backTop: "Наверх",
   },

@@ -96,6 +96,15 @@ test("critical current-menu content and prices are present", () => {
   languages.forEach((lang) => assert.match(pick(borscht.description, lang), /borodinsky|бородинск/i));
   const vodkaPickles = byId.ensaladas.items.find((item) => pick(item.name, "ru") === "Под водочку");
   assert.ok(vodkaPickles.note, "the 'perfect with strong spirits' line must be kept");
+
+  // Buckwheat with mushrooms sits on the soup page in ES/EN and among the
+  // signature dishes in RU/EN — each locale keeps its printed placement.
+  const inSoups = byId.sopas.items.find((item) => pick(item.name, "ru") === "Гречка с грибами");
+  const inSignature = byId.casa.items.find((item) => pick(item.name, "ru") === "Гречка с грибами");
+  assert.deepEqual(inSoups.languages, ["es", "en"]);
+  assert.deepEqual(inSignature.languages, ["en", "ru"]);
+  assert.equal(inSoups.price, "18 000");
+  assert.equal(inSignature.price, "18 000");
 });
 
 test("cover metadata is the official menu metadata", () => {
@@ -107,15 +116,21 @@ test("cover metadata is the official menu metadata", () => {
   assert.equal(ui.ru.heroSubtitle, "в каждом блюде");
   assert.equal(ui.ru.hours, "ПН – ЧТ 11:00–23:00 / ПТ – ВС 11:00–24:00");
   languages.forEach((lang) => {
-    ["addressLabel", "hoursLabel", "discountLabel", "halal", "scrollCue"].forEach((key) =>
+    ["addressLabel", "hoursLabel", "discountLabel", "halal", "partner", "scrollCue"].forEach((key) =>
       assert.ok(ui[lang][key]?.trim(), `ui.${lang}.${key} must be translated`),
     );
   });
 });
 
+const visibleIn = (lang) => (menuItem) => !menuItem.languages || menuItem.languages.includes(lang);
+
+const countItems = (lang) =>
+  experiences.filter(visibleIn(lang)).length +
+  menuSections.reduce((sum, section) => sum + section.items.filter(visibleIn(lang)).length, 0);
+
 test("built pages are self-contained menu views with safe navigation", async () => {
-  const expectedItems = experiences.length + menuSections.reduce((sum, section) => sum + section.items.length, 0);
   for (const [lang, config] of Object.entries(pages)) {
+    const expectedItems = countItems(lang);
     const html = await readFile(join(root, config.file), "utf8");
     assert.match(html, new RegExp(`<html lang="${lang}"`));
     assert.match(html, new RegExp(`class="back-link" href="${config.back.replaceAll("?", "\\?")}"`));
@@ -125,6 +140,7 @@ test("built pages are self-contained menu views with safe navigation", async () 
     assert.match(html, /href="assets\/menu\.css\?v=[a-f0-9]{10}"/);
     assert.match(html, /data-nav-link="vinos"/);
     assert.match(html, /data-nav-link="hookah"/);
+    assert.match(html, /assets\/bonpunto-logo\.svg/);
     assert.match(html, /href="index\.html"/);
     assert.match(html, /href="en\.html"/);
     assert.match(html, /href="ru\.html"/);

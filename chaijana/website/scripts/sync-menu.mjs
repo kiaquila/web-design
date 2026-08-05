@@ -13,7 +13,7 @@ for (const file of ["index.html", "en.html", "ru.html"]) {
   await cp(join(menuRoot, file), join(destination, file));
 }
 
-for (const file of ["chaijana-logo.png", "chaijana-wordmark.svg", "menu.css"]) {
+for (const file of ["chaijana-logo.png", "chaijana-wordmark.svg", "bonpunto-logo.svg", "menu.css"]) {
   await cp(join(menuRoot, "assets", file), join(destination, "assets", file));
 }
 
