@@ -122,15 +122,14 @@ test("cover metadata is the official menu metadata", () => {
   });
 });
 
-const visibleIn = (lang) => (menuItem) => !menuItem.languages || menuItem.languages.includes(lang);
-
-const countItems = (lang) =>
-  experiences.filter(visibleIn(lang)).length +
-  menuSections.reduce((sum, section) => sum + section.items.filter(visibleIn(lang)).length, 0);
+// Hard-coded on purpose. Deriving these with the same predicate the generator
+// uses makes the assertion agree with any distribution of items across
+// languages, which is how a duplicate or a dropped dish slips through.
+const expectedItemCount = { es: 87, en: 88, ru: 87 };
 
 test("built pages are self-contained menu views with safe navigation", async () => {
   for (const [lang, config] of Object.entries(pages)) {
-    const expectedItems = countItems(lang);
+    const expectedItems = expectedItemCount[lang];
     const html = await readFile(join(root, config.file), "utf8");
     assert.match(html, new RegExp(`<html lang="${lang}"`));
     assert.match(html, new RegExp(`class="back-link" href="${config.back.replaceAll("?", "\\?")}"`));
@@ -151,6 +150,48 @@ test("built pages are self-contained menu views with safe navigation", async () 
     assert.doesNotMatch(html, /(?:href|src)=["']https?:\/\//);
     assert.ok((await stat(join(root, config.file))).size < 200_000, `${config.file} should stay lightweight`);
   }
+});
+
+test("locale-specific dishes land in the sections their printed carta uses", async () => {
+  const html = Object.fromEntries(
+    await Promise.all(
+      Object.entries(pages).map(async ([lang, config]) => [lang, await readFile(join(root, config.file), "utf8")]),
+    ),
+  );
+
+  const sectionsContaining = (lang, pattern) =>
+    [...html[lang].matchAll(/<section class="menu-section" id="([^"]+)"([\s\S]*?)<\/section>/g)]
+      .filter(([, , body]) => pattern.test(body))
+      .map(([, id]) => id);
+
+  const buckwheat = /Trigo sarraceno con hongos|uckwheat with mushrooms|Гречка с грибами/;
+  // The ES carta prints it once, on the soup page. The RU carta prints it once,
+  // among the signature dishes. The EN carta genuinely prints it in both, with
+  // two different descriptions — that is the source, not a bug.
+  assert.deepEqual(sectionsContaining("es", buckwheat), ["sopas"]);
+  assert.deepEqual(sectionsContaining("ru", buckwheat), ["casa"]);
+  assert.deepEqual(sectionsContaining("en", buckwheat), ["sopas", "casa"]);
+
+  // A RU-only tea must not leak into the other two pages.
+  assert.match(html.ru, /С чабрецом/);
+  assert.doesNotMatch(html.es, /С чабрецом/);
+  assert.doesNotMatch(html.en, /С чабрецом/);
+
+  // Every category link must point at a section that exists on that page.
+  for (const lang of languages) {
+    const navIds = [...html[lang].matchAll(/data-nav-link="([^"]+)"/g)].map(([, id]) => id);
+    const sectionIds = [...html[lang].matchAll(/<section class="menu-section[^"]*" id="([^"]+)"/g)].map(([, id]) => id);
+    assert.deepEqual(navIds, sectionIds, `${lang}: category rail and sections must agree`);
+  }
+});
+
+test("inline script interpolation is escaped for a script context", async () => {
+  const html = await readFile(join(root, pages.ru.file), "utf8");
+  const script = html.slice(html.lastIndexOf("<script>"));
+  // A JS string literal, not an HTML-escaped fragment: HTML entities are never
+  // decoded inside <script>, so `&#039;` would reach the user verbatim.
+  assert.match(script, /visible \+ ' ' \+ "позиций"/);
+  assert.doesNotMatch(script, /&#0?39;|&amp;|&lt;|&quot;/);
 });
 
 test("stylesheet has no remote dependency and stays compact", async () => {

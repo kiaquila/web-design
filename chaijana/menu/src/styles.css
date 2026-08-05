@@ -650,6 +650,7 @@ h3 {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   /* fade the rail edges so clipped labels don't look broken */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 26px, #000 calc(100% - 26px), transparent);
   mask-image: linear-gradient(90deg, transparent, #000 26px, #000 calc(100% - 26px), transparent);
 }
 

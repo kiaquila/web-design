@@ -1,5 +1,5 @@
 import { buildMetadata, RestaurantPage } from "../restaurant-page";
-import { permanentRedirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export const generateMetadata = () => buildMetadata("es");
 
@@ -10,7 +10,10 @@ export default async function SpanishPage({
 }) {
   const requestedLanguage = (await searchParams)?.lang;
   if (requestedLanguage === "en" || requestedLanguage === "ru") {
-    permanentRedirect(`/${requestedLanguage}`);
+    // 307, not 308: a permanent redirect is cached by browsers indefinitely, so
+    // returning visitors would keep being bounced even after a revert. Promote
+    // this once the URL scheme is settled with the restaurant.
+    redirect(`/${requestedLanguage}`);
   }
 
   return <RestaurantPage lang="es" />;

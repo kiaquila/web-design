@@ -58,7 +58,7 @@
 :root {
   --black: #050403;
   --night: #0a0907;
-  --night-raised: #0f0d09;
+  --night-raised: #100e0a;
   --night-panel: #14110c;
 
   --gold: #cda349;
@@ -68,14 +68,17 @@
 
   --cream: #f4ecda;
   --cream-soft: rgba(244, 236, 218, 0.78);
-  --cream-dim: rgba(244, 236, 218, 0.56);
+  --cream-dim: rgba(244, 236, 218, 0.58);
 
   --rule: rgba(205, 163, 73, 0.26);
-  --rule-soft: rgba(205, 163, 73, 0.13);
+  --rule-soft: rgba(205, 163, 73, 0.14);
 
   --display: "Cormorant Garamond", "Iowan Old Style", Georgia, "Times New Roman", serif;
   --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
+  /* Wider than the carta's 1220px on purpose: the site is a full-width
+     editorial layout, the menu is a reading column. Every other token here
+     must stay identical to chaijana/menu/src/styles.css. */
   --shell: 1280px;
   --header-height: 84px;
 

@@ -9,7 +9,7 @@
   <title>Menu · Chaijaná</title>
   <link rel="icon" type="image/png" href="assets/chaijana-logo.png">
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/cormorant-garamond-latin.woff2" crossorigin>
-  <link rel="stylesheet" href="assets/menu.css?v=fb87d7b5d6">
+  <link rel="stylesheet" href="assets/menu.css?v=19ccf922ab">
 </head>
 <body>
   <a class="skip-link" href="#menu-content">Menu</a>
@@ -779,7 +779,7 @@
     sections.forEach((section) => {
       section.hidden = !section.querySelector('[data-menu-item]:not([hidden])');
     });
-    result.textContent = query ? visible + ' results' : '';
+    result.textContent = query ? visible + ' ' + "results" : '';
     empty.hidden = visible !== 0;
     clear.hidden = !search.value;
   };

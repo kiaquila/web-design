@@ -87,9 +87,11 @@ test("renders complete English and Russian variants with localized menu paths", 
 test("redirects legacy language query links to canonical language paths", async () => {
   const [english, russian] = await Promise.all([renderUrl("/?lang=en"), renderUrl("/?lang=ru")]);
 
-  assert.equal(english.status, 308);
+  // 307, not 308: browsers cache a permanent redirect indefinitely, which would
+  // outlive any change of mind about the URL scheme.
+  assert.equal(english.status, 307);
   assert.equal(new URL(english.headers.get("location"), "http://localhost").pathname, "/en");
-  assert.equal(russian.status, 308);
+  assert.equal(russian.status, 307);
   assert.equal(new URL(russian.headers.get("location"), "http://localhost").pathname, "/ru");
 });
 
@@ -142,5 +144,25 @@ test("embeds the standalone multilingual menu at the public menu route", async (
   assert.doesNotMatch(es, /wa\.me|instagram\.com|restaurant-gallery/i);
   await access(new URL("public/menu/assets/dishes/uzbek-plov.webp", root));
   await access(new URL("public/menu/assets/chaijana-wordmark.svg", root));
+  await access(new URL("public/menu/assets/bonpunto-logo.svg", root));
   await access(new URL("public/menu/assets/fonts/cormorant-garamond-latin.woff2", root));
+});
+
+test("every local asset the rendered pages reference is actually shipped", async () => {
+  // The sync step used to copy a hand-written list of filenames, so adding an
+  // asset to the menu shipped a silent 404 while the build stayed green.
+  const html = await (await render()).text();
+  // Only the directories this repository ships from `public/`; `/assets/*` is
+  // Vite's own build output and lives in `dist/`.
+  const referenced = [
+    ...html.matchAll(/(?:src|href)="(\/(?:menu|fonts|images)\/[^"]+)"/g),
+  ].map(([, path]) => path);
+  assert.ok(referenced.length >= 10, "expected the page to reference local assets");
+  await Promise.all(
+    [...new Set(referenced)].map((path) =>
+      access(new URL(`public${path}`, root)).catch(() => {
+        throw new Error(`referenced but not shipped: ${path}`);
+      }),
+    ),
+  );
 });

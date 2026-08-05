@@ -96,6 +96,19 @@ const text = (copy, lang) => escapeHtml(pickLocalized(copy, lang));
 /** Items without a `languages` list appear everywhere. */
 const visibleIn = (lang) => (menuItem) => !menuItem.languages || menuItem.languages.includes(lang);
 
+/**
+ * Escape a string for a JavaScript *string-literal* context. HTML escaping is
+ * wrong inside `<script>`: entities are not decoded there, so an apostrophe
+ * would render as a literal `&#039;`, and a backslash or newline would break
+ * the literal and take the whole inline script down with it. `<` keeps a
+ * stray `</script>` from ending the element early.
+ */
+const jsString = (value) =>
+  JSON.stringify(String(value))
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+
 function renderPrice(price, lang) {
   if (!price) return "";
   return `<span class="menu-price">${escapeHtml(pickLocalized(price, lang))}</span>`;
@@ -139,8 +152,13 @@ function renderSectionHeading(title, intro = "") {
 }
 
 function renderPhoto(image, alt, width = 960, height = 960) {
-  return `<figure class="section-photo"><img src="${image}" alt="${escapeHtml(alt)}" width="${width}" height="${height}" loading="lazy" decoding="async"></figure>`;
+  return `<figure class="section-photo"><img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" width="${width}" height="${height}" loading="lazy" decoding="async"></figure>`;
 }
+
+/** Sections whose every item is scoped away for this language are dropped
+ *  outright, so no locale gets a heading and a nav link with nothing under it. */
+const sectionsFor = (lang) =>
+  menuSections.filter((section) => section.items.some(visibleIn(lang)));
 
 function renderSection({ id, title, intro, items }, lang) {
   const image = sectionImages[id];
@@ -185,7 +203,7 @@ function renderLanguageSwitch(activeLang) {
 function renderNav(lang) {
   const links = [
     { id: "experiences", title: ui[lang].experiences },
-    ...menuSections.map((section) => ({ id: section.id, title: pick(section.title, lang) })),
+    ...sectionsFor(lang).map((section) => ({ id: section.id, title: pick(section.title, lang) })),
   ];
   return links
     .map(
@@ -254,7 +272,7 @@ function inlineScript(lang) {
     sections.forEach((section) => {
       section.hidden = !section.querySelector('[data-menu-item]:not([hidden])');
     });
-    result.textContent = query ? visible + ' ${escapeHtml(copy.results)}' : '';
+    result.textContent = query ? visible + ' ' + ${jsString(copy.results)} : '';
     empty.hidden = visible !== 0;
     clear.hidden = !search.value;
   };
@@ -324,7 +342,7 @@ function renderPage(lang) {
     <div class="menu-shell">
       <p class="empty-state" data-empty hidden>${escapeHtml(copy.noResults)}</p>
       ${renderExperiences(lang)}
-      ${menuSections.map((section) => renderSection(section, lang)).join("")}
+      ${sectionsFor(lang).map((section) => renderSection(section, lang)).join("")}
     </div>
   </main>
 

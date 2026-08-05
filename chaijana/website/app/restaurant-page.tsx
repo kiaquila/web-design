@@ -433,7 +433,12 @@ export function RestaurantPage({ lang }: { lang: Lang }) {
     <div lang={lang}>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(restaurantJsonLd) }}
+        // JSON.stringify leaves `<` alone, which would let a future value
+        // close this element early. Every value here is a literal today; the
+        // escape keeps that from becoming load-bearing.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(restaurantJsonLd).replace(/</g, "\\u003c"),
+        }}
       />
       <a className="skip-link" href="#main-content">
         {text.skip}

@@ -12,8 +12,22 @@ then run `npm test` in `website/` before publishing.
 
 Both share one design system — *Chaijaná Noir*: warm near-black ground, a
 gold-leaf accent ramp, self-hosted Cormorant Garamond for display, and inline
-SVG arabesque ornaments. Tokens live at the top of `menu/src/styles.css` and
-`website/app/globals.css` and are kept in sync by hand.
+SVG arabesque ornaments.
+
+**The two stylesheets are synchronised by hand, on purpose.** `menu/` must open
+straight from a clone with no build step and no network, so it cannot import
+tokens from the website package. `menu/src/styles.css` is the reference
+implementation: every `:root` token in `website/app/globals.css` must match it
+byte for byte, with one documented exception (`--shell`, wider on the site).
+Changing a token means changing both files in the same commit. To check:
+
+```sh
+node -e 'const r=p=>{const s=require("fs").readFileSync(p,"utf8"),b=s.slice(s.indexOf(":root {"));return Object.fromEntries([...b.slice(0,b.indexOf("}")).matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map(m=>[m[1],m[2].trim()]))};const a=r("chaijana/menu/src/styles.css"),b=r("chaijana/website/app/globals.css");const d=Object.keys(a).filter(k=>k in b&&a[k]!==b[k]&&k!=="--shell");console.log(d.length?"drifted: "+d:"tokens in sync")'
+```
+
+The five woff2 subsets live once, in `menu/assets/fonts/` (with their `OFL.txt`).
+`website/scripts/sync-menu.mjs` copies them into the git-ignored
+`website/public/fonts/` at build time.
 
 ## Working documents
 
