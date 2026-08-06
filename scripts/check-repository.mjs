@@ -337,6 +337,10 @@ for (const workflow of workflows) {
 const codexReviewWorkflow = ".github/workflows/codex-review.yml";
 if (files.includes(codexReviewWorkflow)) {
   const text = readFileSync(join(root, codexReviewWorkflow), "utf8");
+  const executableYaml = text
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
   const requiredFragments = [
     "name: Codex Review",
     "pull_request:",
@@ -346,7 +350,7 @@ if (files.includes(codexReviewWorkflow)) {
     'node "$script_root/scripts/codex-review-gate.mjs"'
   ];
   for (const fragment of requiredFragments) {
-    if (!text.includes(fragment)) {
+    if (!executableYaml.includes(fragment)) {
       fail(`Codex Review workflow is missing trusted gate invariant: ${fragment}`);
     }
   }

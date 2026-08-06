@@ -77,13 +77,13 @@ persistent `github-actions[bot]` marker.
 Native review also requires a Codex cloud environment connected to this
 repository. If it is missing, the Codex bot posts an environment-setup link
 instead of review evidence and the gate correctly remains red. After creating
-the environment, post a new `@codex review <current-full-head-sha>`. For this
-one-time installation PR, then rerun its existing `Codex Review (pull_request)`
-check from the PR's **Checks** tab. The trusted result-event rerun policy is
-not available on the default branch until the installation itself has merged,
-and it intentionally never executes the proposed PR's helper code with a
-write-capable token. The rerun keeps the original pull-request event context
-and evaluates the new current-head review evidence.
+the environment, post a new `@codex review <current-full-head-sha>`. The first
+installation PR cannot receive this new `pull_request` check automatically
+because its workflow is not yet on the default branch; verify it locally and
+through the native Codex review, then merge it so later PRs receive the
+required gate. The trusted result-event policy becomes available only after
+that merge and intentionally never executes proposed helper code with a
+write-capable token.
 
 ## Audit of omitted Unicorn Hub controls
 
