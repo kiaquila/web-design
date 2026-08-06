@@ -57,6 +57,9 @@ stack. Do not add placeholder checks that always pass.
 - GitHub Actions are pinned to full commit SHAs.
 - Dependabot watches GitHub Actions and the existing website lockfile weekly,
   with a cooldown before newly published dependency versions are proposed.
+  Routine minor and patch version updates are grouped by ecosystem. Major
+  TypeScript, ESLint, and `@types/node` updates are intentionally ignored until
+  the website toolchain or Node runtime is deliberately migrated.
 - OSV Scanner checks the repository on pull requests, pushes to `main`, weekly,
   and on demand.
 
