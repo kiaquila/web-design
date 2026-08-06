@@ -1,6 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const repositoryRoot = resolve(
+  process.env.WEB_DESIGN_REPOSITORY_ROOT || resolve(import.meta.dirname, "..")
+);
+const helpers = await import(pathToFileURL(
+  resolve(repositoryRoot, "scripts/codex-review-helpers.mjs")
+).href);
+const rerun = await import(pathToFileURL(
+  resolve(repositoryRoot, "scripts/codex-review-rerun.mjs")
+).href);
+
+const {
   classifyCodexNativeReview,
   createCodexReviewRequestMarkerBody,
   extractCodexReviewRequestMarker,
@@ -11,12 +24,12 @@ import {
   latestCodexNativeReviewResult,
   latestCodexReviewRequestMarker,
   latestTrustedCodexReviewCommand
-} from "../scripts/codex-review-helpers.mjs";
-import {
+} = helpers;
+const {
   rerunCodexReviewForHead,
   selectCodexReviewRun,
   shouldRouteCodexReviewRerunEvent
-} from "../scripts/codex-review-rerun.mjs";
+} = rerun;
 
 const headSha = "abc123def456";
 const codexUser = { login: "chatgpt-codex-connector[bot]" };
