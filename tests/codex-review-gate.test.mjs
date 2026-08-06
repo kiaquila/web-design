@@ -229,7 +229,7 @@ test("rerun routing accepts only exact trusted Codex evidence", () => {
   );
 });
 
-test("rerun selection is head-bound and prefers active then failed runs", () => {
+test("rerun selection is head-bound and waits for active runs before rerunning", () => {
   const failed = {
     id: 30,
     event: "pull_request",
@@ -254,11 +254,53 @@ test("rerun selection is head-bound and prefers active then failed runs", () => 
   };
   assert.deepEqual(
     selectCodexReviewRun([failed, active], headSha),
-    { action: "already_running", run: active }
+    { action: "wait_for_active_then_rerun", run: active }
   );
   assert.deepEqual(selectCodexReviewRun([failed], "new-head"), {
     action: "not_found",
     run: null
+  });
+});
+
+test("rerun helper waits for an active gate before rerunning it", async () => {
+  const calls = [];
+  const active = {
+    id: 42,
+    event: "pull_request",
+    head_sha: headSha,
+    status: "in_progress",
+    conclusion: null,
+    created_at: "2026-08-05T12:00:00Z"
+  };
+  let readCount = 0;
+  const request = async (_token, _repository, path, options = {}) => {
+    calls.push({ path, method: options.method || "GET" });
+    if (path.includes("/actions/workflows/codex-review.yml/runs")) {
+      readCount += 1;
+      return {
+        workflow_runs: [readCount === 1 ? active : {
+          ...active,
+          status: "completed",
+          conclusion: "success"
+        }]
+      };
+    }
+    return null;
+  };
+
+  const result = await rerunCodexReviewForHead({
+    token: "token",
+    repository: "owner/repo",
+    headSha,
+    request,
+    sleep: async () => {}
+  });
+
+  assert.equal(result.action, "rerun");
+  assert.equal(calls.filter(({ method }) => method === "GET").length, 2);
+  assert.deepEqual(calls.at(-1), {
+    path: "/repos/owner/repo/actions/runs/42/rerun",
+    method: "POST"
   });
 });
 

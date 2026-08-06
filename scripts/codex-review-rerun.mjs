@@ -11,6 +11,8 @@ const ACTIVE_STATUSES = new Set([
   "requested",
   "pending"
 ]);
+const ACTIVE_RUN_POLL_INTERVAL_MS = 10_000;
+const MAX_ACTIVE_RUN_POLLS = 24;
 
 export function shouldRouteCodexReviewRerunEvent(event) {
   if (event?.review) return isTrustedCodexLogin(event.review.user?.login);
@@ -27,12 +29,16 @@ export function selectCodexReviewRun(runs = [], headSha) {
     );
 
   const activeRun = matchingRuns.find((run) => ACTIVE_STATUSES.has(run.status));
-  if (activeRun) return { action: "already_running", run: activeRun };
+  if (activeRun) return { action: "wait_for_active_then_rerun", run: activeRun };
 
   const rerunnableRun = matchingRuns.find((run) => run.status === "completed");
   if (rerunnableRun) return { action: "rerun", run: rerunnableRun };
 
   return { action: "not_found", run: null };
+}
+
+function defaultSleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 async function defaultRequest(token, repository, path, options = {}) {
@@ -56,19 +62,30 @@ export async function rerunCodexReviewForHead({
   token,
   repository,
   headSha,
-  request = defaultRequest
+  request = defaultRequest,
+  sleep = defaultSleep,
+  maxActiveRunPolls = MAX_ACTIVE_RUN_POLLS
 }) {
   if (!token || !repository || !headSha) {
     throw new Error("token, repository, and headSha are required to rerun Codex Review.");
   }
 
   const [owner, repo] = repository.split("/");
-  const data = await request(
-    token,
-    repository,
-    `/repos/${owner}/${repo}/actions/workflows/codex-review.yml/runs?event=pull_request&head_sha=${encodeURIComponent(headSha)}&per_page=100`
-  );
-  const selected = selectCodexReviewRun(data.workflow_runs || [], headSha);
+  const runsPath = `/repos/${owner}/${repo}/actions/workflows/codex-review.yml/runs?event=pull_request&head_sha=${encodeURIComponent(headSha)}&per_page=100`;
+  let data = await request(token, repository, runsPath);
+  let selected = selectCodexReviewRun(data.workflow_runs || [], headSha);
+
+  for (let poll = 0; selected.action === "wait_for_active_then_rerun" && poll < maxActiveRunPolls; poll += 1) {
+    await sleep(ACTIVE_RUN_POLL_INTERVAL_MS);
+    data = await request(token, repository, runsPath);
+    selected = selectCodexReviewRun(data.workflow_runs || [], headSha);
+  }
+
+  if (selected.action === "wait_for_active_then_rerun") {
+    throw new Error(
+      `Codex Review run ${selected.run.id} remained active while waiting to evaluate new trusted evidence for ${headSha}.`
+    );
+  }
 
   if (selected.action === "rerun") {
     await request(
@@ -85,7 +102,6 @@ export async function rerunCodexReviewForHead({
 
   const runId = selected.run?.id ? ` run ${selected.run.id}` : "";
   const messages = {
-    already_running: `Codex Review is already running for ${headSha}${runId}.`,
     not_found: `No completed Codex Review pull_request run found for ${headSha}.`
   };
   return { ...selected, message: messages[selected.action] };
