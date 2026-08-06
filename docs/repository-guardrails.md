@@ -74,17 +74,12 @@ Native review also requires a Codex cloud environment connected to this
 repository. If it is missing, the Codex bot posts an environment-setup link
 instead of review evidence and the gate correctly remains red. After creating
 the environment, post a new `@codex review` on the current head. For this
-one-time installation PR, then manually dispatch `Codex Review` with its PR
-number: the trusted result-event rerun policy is not available on the default
-branch until the installation itself has merged, and it intentionally never
-executes the proposed PR's helper code with a write-capable token.
-
-Use GitHub CLI to dispatch that bootstrap run from the PR head branch:
-
-```sh
-gh workflow run codex-review.yml --repo OWNER/REPOSITORY \
-  --ref HEAD_BRANCH -f pr_number=PR_NUMBER
-```
+one-time installation PR, then rerun its existing `Codex Review (pull_request)`
+check from the PR's **Checks** tab. The trusted result-event rerun policy is
+not available on the default branch until the installation itself has merged,
+and it intentionally never executes the proposed PR's helper code with a
+write-capable token. The rerun keeps the original pull-request event context
+and evaluates the new current-head review evidence.
 
 ## Audit of omitted Unicorn Hub controls
 
