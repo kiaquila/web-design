@@ -146,6 +146,13 @@ test("summary fallback is rejected when the head moved after the request", () =>
   assert.equal(hasHeadUpdateBetweenTimestamps([
     { event: "head_ref_force_pushed", created_at: "2026-08-05T12:01:00Z" }
   ], trigger, summary), true);
+  assert.equal(
+    hasHeadUpdateBetweenTimestamps([
+      { event: "committed", committer: { date: "2026-08-05T12:01:00Z" } }
+    ], trigger, summary),
+    true,
+    "request workflows must reject a head update reported only through committer.date"
+  );
 });
 
 test("native Codex reviews are current-head and P0-P2 blocking", () => {

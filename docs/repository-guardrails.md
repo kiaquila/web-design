@@ -79,6 +79,13 @@ number: the trusted result-event rerun policy is not available on the default
 branch until the installation itself has merged, and it intentionally never
 executes the proposed PR's helper code with a write-capable token.
 
+Use GitHub CLI to dispatch that bootstrap run from the PR head branch:
+
+```sh
+gh workflow run codex-review.yml --repo OWNER/REPOSITORY \
+  --ref HEAD_BRANCH -f pr_number=PR_NUMBER
+```
+
 ## Audit of omitted Unicorn Hub controls
 
 The omitted-control audit was repeated against Unicorn Hub commit
