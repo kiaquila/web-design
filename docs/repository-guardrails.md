@@ -65,13 +65,30 @@ not a permanent requirement for every project in the repository.
 - GitHub Actions are pinned to full commit SHAs.
 - Dependabot watches GitHub Actions and the existing website lockfile weekly,
   with a cooldown before newly published dependency versions are proposed.
+  Routine minor and patch version updates are grouped by ecosystem. Major
+  TypeScript, ESLint, and `@types/node` updates are intentionally ignored until
+  the website toolchain or Node runtime is deliberately migrated.
 - OSV Scanner checks the repository on pull requests, pushes to `main`, weekly,
   and on demand.
 
 ## GitHub settings after merge
 
-Repository settings are not changed by this PR. After the workflows exist on
-`main`, protect `main` with:
+The repository preserves AI co-author attribution across each supported merge
+method:
+
+- regular merge commits use the pull request title and body as their commit
+  title and message, so a final
+  `Co-authored-by: Codex <codex@openai.com>` trailer is retained;
+- squash merges use the source commit messages, which retain the required
+  `Co-authored-by: OpenAI Codex <codex@openai.com>` commit trailers;
+- rebase merges retain the source commits and their trailers directly.
+
+The regular-merge settings are repository metadata rather than versioned files.
+Verify them with
+`gh api repos/kiaquila/web-design --jq '[.merge_commit_title, .merge_commit_message]'`;
+the expected values are `["PR_TITLE","PR_BODY"]`.
+
+After the workflows exist on `main`, protect `main` with:
 
 - pull requests required before merge;
 - required checks `repository-guard`, `chaijana-menu`, `chaijana-website`, and
