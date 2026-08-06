@@ -7,6 +7,7 @@ import {
   hasHeadUpdateBetweenTimestamps,
   isAcceptableCodexSummaryComment,
   isCodexReviewCommand,
+  isCodexReviewCommandForHead,
   isTrustedAssociation,
   latestCodexNativeReviewResult,
   latestCodexReviewRequestMarker,
@@ -32,6 +33,7 @@ function markerBody() {
 }
 
 test("trusted request associations and the Codex command are explicit", () => {
+  const commandHeadSha = "abcdef0123456789abcdef0123456789abcdef01";
   assert.equal(isTrustedAssociation("OWNER"), true);
   assert.equal(isTrustedAssociation("MEMBER"), true);
   assert.equal(isTrustedAssociation("COLLABORATOR"), true);
@@ -39,6 +41,9 @@ test("trusted request associations and the Codex command are explicit", () => {
   assert.equal(isCodexReviewCommand("@codex review"), true);
   assert.equal(isCodexReviewCommand("please @CoDeX   review this"), true);
   assert.equal(isCodexReviewCommand("@codex implement"), false);
+  assert.equal(isCodexReviewCommandForHead(`@codex review ${commandHeadSha}`, commandHeadSha), true);
+  assert.equal(isCodexReviewCommandForHead(`@codex review ${commandHeadSha}`, "b".repeat(40)), false);
+  assert.equal(isCodexReviewCommandForHead("@codex review", commandHeadSha), false);
 });
 
 test("request markers bind a GitHub Actions comment to the current head", () => {
@@ -66,31 +71,32 @@ test("request markers bind a GitHub Actions comment to the current head", () => 
 });
 
 test("the installation PR can bind directly to a trusted request comment", () => {
+  const installationHeadSha = "abcdef0123456789abcdef0123456789abcdef01";
   const command = {
     id: 12,
-    body: "@codex review",
+    body: `@codex review ${installationHeadSha}`,
     created_at: "2026-08-05T12:00:00Z",
     author_association: "OWNER",
     user: { login: "repo-owner", type: "User" }
   };
   assert.equal(
-    latestTrustedCodexReviewCommand([command], [], headSha)?.bootstrap,
+    latestTrustedCodexReviewCommand([command], [], installationHeadSha)?.bootstrap,
     true
   );
   assert.equal(
     latestTrustedCodexReviewCommand(
       [command],
       [{ event: "committed", created_at: "2026-08-05T12:01:00Z" }],
-      headSha
+      "new-head"
     ),
     null,
-    "a later head update invalidates the bootstrap request"
+    "a later head update changes the required command SHA"
   );
   assert.equal(
     latestTrustedCodexReviewCommand(
       [{ ...command, author_association: "CONTRIBUTOR" }],
       [],
-      headSha
+      installationHeadSha
     ),
     null
   );
@@ -146,13 +152,6 @@ test("summary fallback is rejected when the head moved after the request", () =>
   assert.equal(hasHeadUpdateBetweenTimestamps([
     { event: "head_ref_force_pushed", created_at: "2026-08-05T12:01:00Z" }
   ], trigger, summary), true);
-  assert.equal(
-    hasHeadUpdateBetweenTimestamps([
-      { event: "committed", committer: { date: "2026-08-05T12:01:00Z" } }
-    ], trigger, summary),
-    true,
-    "request workflows must reject a head update reported only through committer.date"
-  );
 });
 
 test("native Codex reviews are current-head and P0-P2 blocking", () => {
@@ -240,6 +239,12 @@ test("rerun selection is head-bound and prefers active then failed runs", () => 
     created_at: "2026-08-05T12:00:00Z"
   };
   assert.deepEqual(selectCodexReviewRun([failed], headSha), { action: "rerun", run: failed });
+  const succeeded = { ...failed, conclusion: "success" };
+  assert.deepEqual(
+    selectCodexReviewRun([succeeded], headSha),
+    { action: "rerun", run: succeeded },
+    "fresh trusted evidence must re-evaluate a previously successful gate run"
+  );
   const active = {
     ...failed,
     id: 31,

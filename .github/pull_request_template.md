@@ -19,7 +19,7 @@
 - [ ] `node scripts/check-repository.mjs`
 - [ ] `node --test tests/repository-guard.test.mjs tests/codex-review-gate.test.mjs`
 - [ ] Affected project checks (list commands and results below)
-- [ ] A trusted maintainer requested `@codex review`, and `Codex Review` is green for the current head SHA.
+- [ ] A trusted maintainer requested `@codex review <current-full-head-sha>`, and `Codex Review` is green for that head.
 
 ## Validation evidence
 

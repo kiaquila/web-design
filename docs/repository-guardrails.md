@@ -49,7 +49,8 @@ fail-closed behavior.
 
 `Codex Review` converts native Codex review evidence into a head-bound check:
 
-1. an `OWNER`, `MEMBER`, or `COLLABORATOR` posts `@codex review`;
+1. an `OWNER`, `MEMBER`, or `COLLABORATOR` posts
+   `@codex review <current-full-head-sha>`;
 2. the trusted default-branch request policy records the current PR head SHA in
    a `github-actions[bot]` marker;
 3. the gate accepts evidence only from `chatgpt-codex-connector[bot]`, only after
@@ -66,14 +67,15 @@ out from the default branch. The proposed copy is used only when installing the
 gate for the first time; after merge, `repository-guard` also prevents any of
 the gate's required workflows, scripts, or regression tests from being removed.
 Because the marker workflow cannot run before it exists on the default branch,
-that one installation PR binds directly to a trusted `@codex review` source
+that one installation PR binds directly to a trusted, head-bound
+`@codex review <current-full-head-sha>` source
 comment and rejects it if the head changes afterward. Normal PRs require the
 persistent `github-actions[bot]` marker.
 
 Native review also requires a Codex cloud environment connected to this
 repository. If it is missing, the Codex bot posts an environment-setup link
 instead of review evidence and the gate correctly remains red. After creating
-the environment, post a new `@codex review` on the current head. For this
+the environment, post a new `@codex review <current-full-head-sha>`. For this
 one-time installation PR, then rerun its existing `Codex Review (pull_request)`
 check from the PR's **Checks** tab. The trusted result-event rerun policy is
 not available on the default branch until the installation itself has merged,

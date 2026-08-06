@@ -4,12 +4,6 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isTrustedCodexLogin } from "./codex-review-helpers.mjs";
 
-const RERUNNABLE_CONCLUSIONS = new Set([
-  "failure",
-  "cancelled",
-  "timed_out",
-  "action_required"
-]);
 const ACTIVE_STATUSES = new Set([
   "queued",
   "in_progress",
@@ -35,15 +29,8 @@ export function selectCodexReviewRun(runs = [], headSha) {
   const activeRun = matchingRuns.find((run) => ACTIVE_STATUSES.has(run.status));
   if (activeRun) return { action: "already_running", run: activeRun };
 
-  const rerunnableRun = matchingRuns.find((run) =>
-    run.status === "completed" && RERUNNABLE_CONCLUSIONS.has(run.conclusion)
-  );
+  const rerunnableRun = matchingRuns.find((run) => run.status === "completed");
   if (rerunnableRun) return { action: "rerun", run: rerunnableRun };
-
-  const successfulRun = matchingRuns.find((run) =>
-    run.status === "completed" && run.conclusion === "success"
-  );
-  if (successfulRun) return { action: "already_success", run: successfulRun };
 
   return { action: "not_found", run: null };
 }
@@ -99,7 +86,6 @@ export async function rerunCodexReviewForHead({
   const runId = selected.run?.id ? ` run ${selected.run.id}` : "";
   const messages = {
     already_running: `Codex Review is already running for ${headSha}${runId}.`,
-    already_success: `Codex Review already passed for ${headSha}${runId}.`,
     not_found: `No completed Codex Review pull_request run found for ${headSha}.`
   };
   return { ...selected, message: messages[selected.action] };

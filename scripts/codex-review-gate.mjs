@@ -145,7 +145,7 @@ if (outcome === "pass") {
 }
 
 const next = outcome === "missing_marker"
-  ? "A trusted OWNER, MEMBER, or COLLABORATOR must post '@codex review' on this PR."
+  ? "A trusted OWNER, MEMBER, or COLLABORATOR must post '@codex review <current-full-head-sha>' on this PR."
   : outcome === "fail"
     ? "Resolve all P0-P2 findings, push fixes if needed, and request a new current-head review."
     : "Wait for Codex evidence; its review event will rerun this gate automatically.";

@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   createCodexReviewRequestMarkerBody,
-  hasHeadUpdateBetweenTimestamps,
   isCodexReviewCommand,
+  isCodexReviewCommandForHead,
   isTrustedAssociation
 } from "./codex-review-helpers.mjs";
 import { rerunCodexReviewForHead } from "./codex-review-rerun.mjs";
@@ -45,23 +45,12 @@ async function main() {
     return text ? JSON.parse(text) : null;
   }
 
-  async function listPaginated(path) {
-    const items = [];
-    const separator = path.includes("?") ? "&" : "?";
-    for (let page = 1; ; page += 1) {
-      const batch = await request(`${path}${separator}per_page=100&page=${page}`);
-      items.push(...batch);
-      if (batch.length < 100) return items;
-    }
-  }
-
   const pull = await request(`/repos/${owner}/${repo}/pulls/${event.issue.number}`);
   const headSha = pull.head?.sha;
-  const requestedAt = comment.created_at || new Date().toISOString();
-  const timeline = await listPaginated(`/repos/${owner}/${repo}/issues/${event.issue.number}/timeline`);
-  if (hasHeadUpdateBetweenTimestamps(timeline, requestedAt, new Date().toISOString())) {
-    throw new Error("The pull request head changed after this @codex review request.");
+  if (!isCodexReviewCommandForHead(comment.body, headSha)) {
+    throw new Error("The @codex review command must include the current full PR head SHA.");
   }
+  const requestedAt = comment.created_at || new Date().toISOString();
   const markerBody = createCodexReviewRequestMarkerBody({
     headSha,
     requestId: `${comment.id}-${String(headSha).slice(0, 12)}`,

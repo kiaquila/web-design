@@ -13,6 +13,13 @@ export function isCodexReviewCommand(body) {
   return /(?:^|\s)@codex\s+review\b/i.test(String(body || ""));
 }
 
+export function isCodexReviewCommandForHead(body, headSha) {
+  const requestedHead = String(body || "").match(
+    /(?:^|\s)@codex\s+review\s+`?([a-f0-9]{40})`?\b/i
+  )?.[1];
+  return Boolean(requestedHead) && normalize(requestedHead) === normalize(headSha);
+}
+
 export function isTrustedCodexLogin(login) {
   return normalize(login) === CODEX_REVIEW_LOGIN;
 }
@@ -84,13 +91,11 @@ export function latestCodexReviewRequestMarker(comments = [], headSha) {
 }
 
 export function latestTrustedCodexReviewCommand(comments = [], timeline = [], headSha) {
-  const now = new Date().toISOString();
   return comments
     .filter((comment) =>
       comment?.user?.type !== "Bot" &&
       isTrustedAssociation(comment?.author_association) &&
-      isCodexReviewCommand(comment?.body) &&
-      !hasHeadUpdateBetweenTimestamps(timeline, comment?.created_at, now)
+      isCodexReviewCommandForHead(comment?.body, headSha)
     )
     .sort((left, right) =>
       Date.parse(right.created_at || "") - Date.parse(left.created_at || "")
