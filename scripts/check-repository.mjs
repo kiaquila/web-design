@@ -141,10 +141,10 @@ if (
     }
 
     const stageRoot = join(root, stage.rootDirectory);
-    const wranglerPath = join(stageRoot, "wrangler.jsonc");
+    const wranglerPath = join(stageRoot, "wrangler.json");
     const packagePath = join(stageRoot, "package.json");
     if (!existsSync(wranglerPath)) {
-      fail(`Stage project ${project} is missing website/wrangler.jsonc`);
+      fail(`Stage project ${project} is missing website/wrangler.json`);
       continue;
     }
     if (!existsSync(packagePath)) {

@@ -38,7 +38,7 @@ subdomain and version are assigned by Cloudflare and must not be hard-coded.
 1. In **Workers & Pages**, choose **Create application**, then **Import a
    repository**, and connect `kiaquila/web-design`.
 2. Name the Worker exactly `design-chaijana`. Cloudflare requires the dashboard
-   name to match `name` in `chaijana/website/wrangler.jsonc`.
+   name to match `name` in `chaijana/website/wrangler.json`.
 3. Enter the root, build, production deploy, and non-production deploy values
    from the table above.
 4. Under **Settings → Build → Branch control**, keep `main` as production and
@@ -57,7 +57,7 @@ After this one-time connection, normal work needs no deployment command:
 ## Add another project
 
 1. Keep the site in `<slug>/website` and give it its own lockfile and build.
-2. Add `<slug>/website/wrangler.jsonc` with `name: design-<slug>`, its Worker
+2. Add `<slug>/website/wrangler.json` with `name: design-<slug>`, its Worker
    entry point, a pinned compatibility date, `workers_dev: true`, and
    `preview_urls: true`.
 3. Add `stage:deploy` and `stage:preview` scripts matching the Chaijaná package.

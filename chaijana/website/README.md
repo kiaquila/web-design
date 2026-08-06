@@ -33,7 +33,7 @@ on previously generated HTML.
 
 ## Temporary stage
 
-Cloudflare Workers Builds uses [`wrangler.jsonc`](./wrangler.jsonc) as the
+Cloudflare Workers Builds uses [`wrangler.json`](./wrangler.json) as the
 deploy contract. From this directory it runs:
 
 ```bash

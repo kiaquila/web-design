@@ -117,7 +117,7 @@ test("accepts a project with the temporary stage contract", () => {
     );
     write(
       root,
-      "demo/website/wrangler.jsonc",
+      "demo/website/wrangler.json",
       JSON.stringify({
         name: "design-demo",
         main: "./worker/index.ts",
@@ -166,7 +166,7 @@ test("rejects a stage Worker whose name breaks the design convention", () => {
     );
     write(
       root,
-      "demo/website/wrangler.jsonc",
+      "demo/website/wrangler.json",
       JSON.stringify({
         name: "web-design-demo",
         main: "./worker/index.ts",
