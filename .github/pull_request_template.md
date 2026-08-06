@@ -22,3 +22,10 @@
 ## Validation evidence
 
 <!-- Commands, screenshots, URLs, or a concise explanation of anything not run. -->
+
+<!--
+If Codex materially assisted with this pull request, append this as the final
+line of the description (outside this comment):
+
+Co-authored-by: Codex <codex@openai.com>
+-->
