@@ -168,6 +168,14 @@ test("native Codex reviews are current-head and P0-P2 blocking", () => {
     body: "![P2 Badge] Blocking issue",
     user: codexUser
   }], headSha), "fail");
+  assert.equal(classifyCodexNativeReview({
+    ...review,
+    state: "APPROVED"
+  }, [{
+    pull_request_review_id: 20,
+    body: "![P2 Badge] Blocking issue",
+    user: codexUser
+  }], headSha), "fail", "approved reviews must still inspect inline findings");
   assert.equal(classifyCodexNativeReview(review, [{
     pull_request_review_id: 20,
     body: "Unclassified finding",

@@ -33,6 +33,11 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
 
       - name: Rerun gate for trusted Codex evidence
-        run: node scripts/codex-review-rerun.mjs
+        run: |
+          if [ ! -f scripts/codex-review-rerun.mjs ]; then
+            echo "Codex Review bootstrap is not installed on the default branch yet; the pull-request gate handles this installation PR."
+            exit 0
+          fi
+          node scripts/codex-review-rerun.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}

@@ -120,20 +120,19 @@ export function classifyCodexNativeReview(review, reviewComments = [], headSha) 
   if (!review || review.commit_id !== headSha) return null;
   if (!isTrustedCodexLogin(review.user?.login)) return null;
   if (containsBlockingCodexSeverity(review.body)) return "fail";
-
-  if (review.state === "APPROVED") return "pass";
   if (review.state === "CHANGES_REQUESTED") return "fail";
-  if (review.state !== "COMMENTED") return null;
 
   const commentsForReview = reviewComments.filter((comment) =>
     comment.pull_request_review_id === review.id &&
     isTrustedCodexLogin(comment.user?.login)
   );
-  if (commentsForReview.length === 0) return "pass";
+  if (commentsForReview.length > 0) {
+    const priorities = commentsForReview.map((comment) => extractCodexPriority(comment.body));
+    if (priorities.some((priority) => priority === null)) return "fail";
+    if (Math.min(...priorities) <= 2) return "fail";
+  }
 
-  const priorities = commentsForReview.map((comment) => extractCodexPriority(comment.body));
-  if (priorities.some((priority) => priority === null)) return "fail";
-  return Math.min(...priorities) <= 2 ? "fail" : "pass";
+  return review.state === "APPROVED" || review.state === "COMMENTED" ? "pass" : null;
 }
 
 export function latestCodexNativeReviewResult(reviews = [], reviewComments = [], headSha) {
