@@ -334,6 +334,24 @@ for (const workflow of workflows) {
   }
 }
 
+const codexReviewWorkflow = ".github/workflows/codex-review.yml";
+if (files.includes(codexReviewWorkflow)) {
+  const text = readFileSync(join(root, codexReviewWorkflow), "utf8");
+  const requiredFragments = [
+    "name: Codex Review",
+    "pull_request:",
+    "name: Checkout trusted Codex review gate",
+    "ref: ${{ github.event.repository.default_branch }}",
+    "path: .codex-review-trusted",
+    'node "$script_root/scripts/codex-review-gate.mjs"'
+  ];
+  for (const fragment of requiredFragments) {
+    if (!text.includes(fragment)) {
+      fail(`Codex Review workflow is missing trusted gate invariant: ${fragment}`);
+    }
+  }
+}
+
 if (failures.length) {
   console.error("Repository guard failed:");
   for (const message of failures) console.error(`- ${message}`);

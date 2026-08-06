@@ -52,14 +52,24 @@ function makeFixture() {
     ".github/workflows/codex-review.yml",
     [
       "name: Codex Review",
-      "on: pull_request",
+      "on:",
+      "  pull_request:",
       "permissions:",
       "  contents: read",
       "jobs:",
-      "  review:",
+      "  codex-review:",
+      "    name: Codex Review",
       "    runs-on: ubuntu-latest",
       "    steps:",
       `      - uses: actions/checkout@${checkoutSha}`,
+      "      - name: Checkout trusted Codex review gate",
+      `        uses: actions/checkout@${checkoutSha}`,
+      "        with:",
+      "          ref: ${{ github.event.repository.default_branch }}",
+      "          path: .codex-review-trusted",
+      "      - run: |",
+      "          script_root=\"$GITHUB_WORKSPACE/.codex-review-trusted\"",
+      "          node \"$script_root/scripts/codex-review-gate.mjs\"",
       ""
     ].join("\n")
   );
@@ -292,5 +302,32 @@ test("rejects removal of the Codex review gate", () => {
     const result = runGuard(root);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Missing required repository file: scripts\/codex-review-gate\.mjs/);
+  });
+});
+
+test("rejects a Codex Review workflow without its trusted gate", () => {
+  withFixture((root) => {
+    write(
+      root,
+      ".github/workflows/codex-review.yml",
+      [
+        "name: Codex Review",
+        "on:",
+        "  pull_request:",
+        "permissions:",
+        "  contents: read",
+        "jobs:",
+        "  codex-review:",
+        "    name: Codex Review",
+        "    runs-on: ubuntu-latest",
+        "    steps:",
+        "      - run: true",
+        ""
+      ].join("\n")
+    );
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Codex Review workflow is missing trusted gate invariant/);
   });
 });
