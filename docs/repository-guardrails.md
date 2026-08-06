@@ -62,8 +62,22 @@ stack. Do not add placeholder checks that always pass.
 
 ## GitHub settings after merge
 
-Repository settings are not changed by this PR. After the workflows exist on
-`main`, protect `main` with:
+The repository preserves AI co-author attribution across each supported merge
+method:
+
+- regular merge commits use the pull request title and body as their commit
+  title and message, so a final
+  `Co-authored-by: Codex <codex@openai.com>` trailer is retained;
+- squash merges use the source commit messages, which retain the required
+  `Co-authored-by: OpenAI Codex <codex@openai.com>` commit trailers;
+- rebase merges retain the source commits and their trailers directly.
+
+The regular-merge settings are repository metadata rather than versioned files.
+Verify them with
+`gh api repos/kiaquila/web-design --jq '[.merge_commit_title, .merge_commit_message]'`;
+the expected values are `["PR_TITLE","PR_BODY"]`.
+
+After the workflows exist on `main`, protect `main` with:
 
 - pull requests required before merge;
 - required checks `repository-guard`, `chaijana-menu`, `chaijana-website`, and

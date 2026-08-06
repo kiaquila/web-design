@@ -63,6 +63,11 @@ must not weaken the repository-wide safety rules below.
 
 - Use a focused branch and pull request; do not push directly to `main`.
 - Keep unrelated project changes out of the same PR.
+- When Codex materially assists with a commit, end the commit message after a
+  blank line with `Co-authored-by: OpenAI Codex <codex@openai.com>`.
+- When Codex materially assists with a pull request, end the PR description
+  with `Co-authored-by: Codex <codex@openai.com>` so GitHub can preserve the
+  attribution in the merge commit description.
 - Do not commit dependency directories, caches, local tooling state, or generated
   build output unless a project README explicitly identifies that output as a
   versioned deliverable.
