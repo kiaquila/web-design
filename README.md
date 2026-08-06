@@ -1,4 +1,4 @@
-# Web design
+# Design
 
 Private, version-controlled workspace for designs and redesigns of existing
 businesses: landing pages, compact websites, and adjacent digital deliverables.
@@ -41,6 +41,12 @@ repository rather than turning this workspace into a menu monorepo.
    business or implementation.
 4. Add the slug to `projects` in [`.repo-guard.json`](./.repo-guard.json).
 5. Add the project to this index and run `node scripts/check-repository.mjs`.
+
+If the project needs a temporary customer-facing stage, follow
+[`docs/stage-hosting.md`](./docs/stage-hosting.md). Active stages are listed in
+`stageProjects` in [`.repo-guard.json`](./.repo-guard.json); each uses a
+`design-<business-slug>` Cloudflare Worker, a stable `main` deployment, and an
+isolated public preview for every pull request.
 
 ## Guardrails
 

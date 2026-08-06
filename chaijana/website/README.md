@@ -30,3 +30,19 @@ load images, fonts, or scripts from third-party CDNs.
 source in `../menu/`, then copies it into `public/menu/`. The website and menu
 therefore deploy together without duplicating their source of truth or relying
 on previously generated HTML.
+
+## Temporary stage
+
+Cloudflare Workers Builds uses [`wrangler.jsonc`](./wrangler.jsonc) as the
+deploy contract. From this directory it runs:
+
+```bash
+npm run build
+npm run stage:deploy   # main: update the stable workers.dev stage
+npm run stage:preview  # PR branch: upload an isolated preview version
+```
+
+The build must complete before either stage command. Cloudflare runs the build
+and deploy commands as separate steps. The one-time Git connection, monorepo
+watch path, and offboarding procedure are documented in
+[`../../docs/stage-hosting.md`](../../docs/stage-hosting.md).

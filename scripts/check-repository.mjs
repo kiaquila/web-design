@@ -50,6 +50,7 @@ const requiredRootFiles = [
   "CLAUDE.md",
   "README.md",
   "docs/repository-guardrails.md",
+  "docs/stage-hosting.md",
   "scripts/check-repository.mjs",
   "tests/repository-guard.test.mjs",
   "third-party-notices.md"
@@ -95,6 +96,110 @@ if (!Array.isArray(config.projects) || config.projects.length === 0) {
     }
     if (!rootReadme.includes(`](./${project}/)`)) {
       fail(`Root README.md must link to ./${project}/`);
+    }
+  }
+}
+
+const stageProjects = config.stageProjects ?? {};
+if (
+  typeof stageProjects !== "object" ||
+  stageProjects === null ||
+  Array.isArray(stageProjects)
+) {
+  fail(".repo-guard.json stageProjects must be an object");
+} else {
+  for (const [project, stage] of Object.entries(stageProjects)) {
+    if (!config.projects?.includes(project)) {
+      fail(`Stage project is not listed in projects: ${project}`);
+      continue;
+    }
+    if (typeof stage !== "object" || stage === null || Array.isArray(stage)) {
+      fail(`Stage configuration must be an object: ${project}`);
+      continue;
+    }
+
+    const expectedRootPrefix = `${project}/`;
+    const expectedWatchPath = `${project}/*`;
+    const expectedWorkerName = `design-${project}`;
+
+    if (
+      typeof stage.rootDirectory !== "string" ||
+      !stage.rootDirectory.startsWith(expectedRootPrefix) ||
+      stage.rootDirectory.includes("..")
+    ) {
+      fail(
+        `Stage rootDirectory for ${project} must stay inside ${project}/, ` +
+          `received ${JSON.stringify(stage.rootDirectory)}`
+      );
+      continue;
+    }
+    if (stage.watchPath !== expectedWatchPath) {
+      fail(
+        `Stage watchPath for ${project} must be ${expectedWatchPath}, ` +
+          `received ${JSON.stringify(stage.watchPath)}`
+      );
+    }
+
+    const stageRoot = join(root, stage.rootDirectory);
+    const wranglerPath = join(stageRoot, "wrangler.jsonc");
+    const packagePath = join(stageRoot, "package.json");
+    if (!existsSync(wranglerPath)) {
+      fail(`Stage project ${project} is missing website/wrangler.jsonc`);
+      continue;
+    }
+    if (!existsSync(packagePath)) {
+      fail(`Stage project ${project} is missing website/package.json`);
+      continue;
+    }
+
+    let wrangler;
+    let packageJson;
+    try {
+      wrangler = JSON.parse(readFileSync(wranglerPath, "utf8"));
+    } catch (error) {
+      fail(`Invalid stage Wrangler config for ${project}: ${error.message}`);
+      continue;
+    }
+    try {
+      packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+    } catch (error) {
+      fail(`Invalid stage package.json for ${project}: ${error.message}`);
+      continue;
+    }
+
+    if (wrangler.name !== expectedWorkerName) {
+      fail(
+        `Stage Worker for ${project} must be named ${expectedWorkerName}, ` +
+          `received ${JSON.stringify(wrangler.name)}`
+      );
+    }
+    if (typeof wrangler.main !== "string" || !wrangler.main.trim()) {
+      fail(`Stage Worker for ${project} must define a main entry point`);
+    } else {
+      const entryPoint = resolve(stageRoot, wrangler.main);
+      if (!entryPoint.startsWith(`${resolve(stageRoot)}${sep}`) || !existsSync(entryPoint)) {
+        fail(`Stage Worker entry point does not exist inside ${project}: ${wrangler.main}`);
+      }
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(wrangler.compatibility_date ?? "")) {
+      fail(`Stage Worker for ${project} must pin a compatibility_date`);
+    }
+    if (wrangler.workers_dev !== true) {
+      fail(`Stage Worker for ${project} must enable workers_dev`);
+    }
+    if (wrangler.preview_urls !== true) {
+      fail(`Stage Worker for ${project} must enable preview_urls`);
+    }
+
+    const scripts = packageJson.scripts ?? {};
+    if (typeof scripts.build !== "string" || !scripts.build.trim()) {
+      fail(`Stage project ${project} must define an npm build script`);
+    }
+    if (!/(?:^|\s)wrangler deploy(?:\s|$)/.test(scripts["stage:deploy"] ?? "")) {
+      fail(`Stage project ${project} must deploy with wrangler deploy`);
+    }
+    if (!/(?:^|\s)wrangler versions upload(?:\s|$)/.test(scripts["stage:preview"] ?? "")) {
+      fail(`Stage project ${project} must preview with wrangler versions upload`);
     }
   }
 }

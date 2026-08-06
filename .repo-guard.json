@@ -6,5 +6,11 @@
   ],
   "projects": [
     "chaijana"
-  ]
+  ],
+  "stageProjects": {
+    "chaijana": {
+      "rootDirectory": "chaijana/website",
+      "watchPath": "chaijana/*"
+    }
+  }
 }
