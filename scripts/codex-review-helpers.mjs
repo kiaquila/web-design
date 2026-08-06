@@ -153,38 +153,12 @@ export function latestCodexNativeReviewResult(reviews = [], reviewComments = [],
     )[0]?.result || null;
 }
 
-export function isAcceptableCodexSummaryComment(comment, headSha, requestMarker) {
+export function isAcceptableCodexSummaryComment(comment, headSha) {
   const body = String(comment?.body || "").trim();
   if (!isTrustedCodexLogin(comment?.user?.login)) return false;
   if (!/^Codex Review:/i.test(body)) return false;
   if (!/did(?:\s+not|\s*n['’]?t)\s+find\s+any\s+major\s+issues/i.test(body)) return false;
 
   const shortSha = String(headSha || "").slice(0, 10);
-  if (shortSha && (body.includes(headSha) || body.includes(shortSha))) return true;
-
-  if (!requestMarker || requestMarker.sha !== headSha) return false;
-  const requestedAt = Date.parse(
-    requestMarker.sourceCommentCreatedAt ||
-    requestMarker.requestedAt ||
-    requestMarker.commentCreatedAt ||
-    ""
-  );
-  const createdAt = Date.parse(comment?.created_at || "");
-  return Number.isFinite(requestedAt) && Number.isFinite(createdAt) && createdAt >= requestedAt;
-}
-
-export function hasHeadUpdateBetweenTimestamps(timeline = [], startCreatedAt, endCreatedAt) {
-  const startTime = Date.parse(startCreatedAt || "");
-  const endTime = Date.parse(endCreatedAt || "");
-  if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || startTime > endTime) {
-    return true;
-  }
-
-  return timeline.some((event) => {
-    if (event.event !== "committed" && event.event !== "head_ref_force_pushed") {
-      return false;
-    }
-    const eventTime = Date.parse(event.created_at || event.committer?.date || "");
-    return Number.isFinite(eventTime) && eventTime > startTime && eventTime <= endTime;
-  });
+  return Boolean(shortSha) && (body.includes(headSha) || body.includes(shortSha));
 }

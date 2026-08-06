@@ -2,7 +2,6 @@
 
 import { appendFileSync } from "node:fs";
 import {
-  hasHeadUpdateBetweenTimestamps,
   isAcceptableCodexSummaryComment,
   latestCodexNativeReviewResult,
   latestCodexReviewRequestMarker,
@@ -98,14 +97,9 @@ async function fetchEvidence() {
   );
   if (nativeResult) return nativeResult;
 
-  timeline ||= await listPaginated(`/repos/${owner}/${repo}/issues/${prNumber}/timeline`);
-  const triggerAt = requestMarker.sourceCommentCreatedAt ||
-    requestMarker.requestedAt ||
-    requestMarker.commentCreatedAt;
-  const summaryAccepted = comments.some((comment) => {
-    if (!isAcceptableCodexSummaryComment(comment, headSha, requestMarker)) return false;
-    return !hasHeadUpdateBetweenTimestamps(timeline, triggerAt, comment.created_at);
-  });
+  const summaryAccepted = comments.some((comment) =>
+    isAcceptableCodexSummaryComment(comment, headSha)
+  );
   return summaryAccepted ? "pass" : "pending";
 }
 

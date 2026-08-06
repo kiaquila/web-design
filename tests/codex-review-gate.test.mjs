@@ -4,7 +4,6 @@ import {
   classifyCodexNativeReview,
   createCodexReviewRequestMarkerBody,
   extractCodexReviewRequestMarker,
-  hasHeadUpdateBetweenTimestamps,
   isAcceptableCodexSummaryComment,
   isCodexReviewCommand,
   isCodexReviewCommandForHead,
@@ -102,56 +101,28 @@ test("the installation PR can bind directly to a trusted request comment", () =>
   );
 });
 
-test("Codex summaries require the trusted bot and marker-bound timing", () => {
-  const marker = {
-    sha: headSha,
-    sourceCommentCreatedAt: "2026-08-05T12:00:00Z",
-    requestedAt: "2026-08-05T12:00:00Z"
-  };
+test("Codex summaries require the trusted bot and an explicit current head", () => {
   const summary = {
-    body: "Codex Review: Didn't find any major issues.",
+    body: `Codex Review: Didn't find any major issues for ${headSha}.`,
     created_at: "2026-08-05T12:01:00Z",
     user: codexUser
   };
 
-  assert.equal(isAcceptableCodexSummaryComment(summary, headSha, marker), true);
+  assert.equal(isAcceptableCodexSummaryComment(summary, headSha), true);
   assert.equal(
     isAcceptableCodexSummaryComment(
-      { ...summary, created_at: "2026-08-05T11:59:59Z" },
-      headSha,
-      marker
+      { ...summary, body: "Codex Review: Didn't find any major issues." },
+      headSha
     ),
     false
   );
   assert.equal(
     isAcceptableCodexSummaryComment(
       { ...summary, user: { login: "codex-fan" } },
-      headSha,
-      marker
+      headSha
     ),
     false
   );
-  assert.equal(
-    isAcceptableCodexSummaryComment(
-      { ...summary, body: `Codex Review: Didn't find any major issues for ${headSha}.` },
-      headSha,
-      null
-    ),
-    true,
-    "an explicit current SHA is independently head-bound"
-  );
-});
-
-test("summary fallback is rejected when the head moved after the request", () => {
-  const trigger = "2026-08-05T12:00:00Z";
-  const summary = "2026-08-05T12:02:00Z";
-  assert.equal(hasHeadUpdateBetweenTimestamps([], trigger, summary), false);
-  assert.equal(hasHeadUpdateBetweenTimestamps([
-    { event: "committed", created_at: "2026-08-05T12:01:00Z" }
-  ], trigger, summary), true);
-  assert.equal(hasHeadUpdateBetweenTimestamps([
-    { event: "head_ref_force_pushed", created_at: "2026-08-05T12:01:00Z" }
-  ], trigger, summary), true);
 });
 
 test("native Codex reviews are current-head and P0-P2 blocking", () => {
