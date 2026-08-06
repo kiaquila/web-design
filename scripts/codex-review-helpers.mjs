@@ -152,13 +152,3 @@ export function latestCodexNativeReviewResult(reviews = [], reviewComments = [],
       Date.parse(left.review.submitted_at || "")
     )[0]?.result || null;
 }
-
-export function isAcceptableCodexSummaryComment(comment, headSha) {
-  const body = String(comment?.body || "").trim();
-  if (!isTrustedCodexLogin(comment?.user?.login)) return false;
-  if (!/^Codex Review:/i.test(body)) return false;
-  if (!/did(?:\s+not|\s*n['’]?t)\s+find\s+any\s+major\s+issues/i.test(body)) return false;
-
-  const shortSha = String(headSha || "").slice(0, 10);
-  return Boolean(shortSha) && (body.includes(headSha) || body.includes(shortSha));
-}

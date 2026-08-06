@@ -56,6 +56,8 @@ fail-closed behavior.
 3. the gate accepts evidence only from `chatgpt-codex-connector[bot]`, only after
    that request, and only for the recorded head;
 4. P0, P1, and P2 findings fail the gate; P3-only or no-findings reviews pass;
+   an unqualified `Codex Review:` issue comment can trigger a rerun but never
+   passes the gate because it does not identify a reviewed commit;
 5. a new commit invalidates old evidence, while trusted result events wait for
    an active gate to finish and then rerun its check automatically;
 6. missing markers, missing results, unclassified inline findings, untrusted

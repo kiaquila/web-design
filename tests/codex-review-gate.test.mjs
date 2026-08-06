@@ -17,7 +17,6 @@ const {
   classifyCodexNativeReview,
   createCodexReviewRequestMarkerBody,
   extractCodexReviewRequestMarker,
-  isAcceptableCodexSummaryComment,
   isCodexReviewCommand,
   isCodexReviewCommandForHead,
   isTrustedAssociation,
@@ -111,30 +110,6 @@ test("the installation PR can bind directly to a trusted request comment", () =>
       installationHeadSha
     ),
     null
-  );
-});
-
-test("Codex summaries require the trusted bot and an explicit current head", () => {
-  const summary = {
-    body: `Codex Review: Didn't find any major issues for ${headSha}.`,
-    created_at: "2026-08-05T12:01:00Z",
-    user: codexUser
-  };
-
-  assert.equal(isAcceptableCodexSummaryComment(summary, headSha), true);
-  assert.equal(
-    isAcceptableCodexSummaryComment(
-      { ...summary, body: "Codex Review: Didn't find any major issues." },
-      headSha
-    ),
-    false
-  );
-  assert.equal(
-    isAcceptableCodexSummaryComment(
-      { ...summary, user: { login: "codex-fan" } },
-      headSha
-    ),
-    false
   );
 });
 
