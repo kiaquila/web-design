@@ -5,6 +5,7 @@
     "tests"
   ],
   "projects": [
+    "alphacentr",
     "chaijana"
   ]
 }

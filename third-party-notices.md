@@ -1,5 +1,17 @@
 # Third-party notices
 
+## Fonts
+
+**Inter** (`alphacentr/site/assets/fonts/inter-*.woff2`) — SIL Open Font License
+1.1, © The Inter Project Authors. Cyrillic and Latin subsets are self-hosted; the
+licence text is kept beside the files as `OFL-Inter.txt`.
+
+**Cormorant Garamond** (`chaijana/menu/assets/fonts/`, `chaijana/website/public/fonts/`)
+— SIL Open Font License 1.1, © the Cormorant Project Authors. Licence text is
+kept beside the files as `OFL.txt`.
+
+## Repository policy
+
 Parts of the repository-policy and workflow design were adapted from
 [Unicorn Hub](https://github.com/kiaquila/unicorn-hub), retrieved at commit
 `1a3a22a5f800d2a7b221b3f97e41f04d6e4b73cf`.

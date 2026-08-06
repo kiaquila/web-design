@@ -25,6 +25,8 @@ truth instead of maintaining a second copy.
 
 ## Projects
 
+- [`alphacentr/`](./alphacentr/) — Alpha-Centr hypnosis practice website and
+  audio-session catalogue, redesigned under the **Alpha Lumen** concept.
 - [`chaijana/`](./chaijana/) — Chaijaná restaurant website and multilingual
   menu, redesigned under the **Chaijaná Noir** concept.
 
