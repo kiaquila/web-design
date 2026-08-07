@@ -40,3 +40,15 @@ jobs:
 
       - name: Test repository policy
         run: node --test tests/repository-guard.test.mjs
+
+      - name: Test trusted Codex gate regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f .guard-trusted/tests/codex-review-gate.test.mjs ]; then
+            WEB_DESIGN_REPOSITORY_ROOT="$GITHUB_WORKSPACE" \
+              node --test .guard-trusted/tests/codex-review-gate.test.mjs
+          else
+            echo "Trusted Codex gate tests are not on the default branch yet; using the bootstrap copy."
+            node --test tests/codex-review-gate.test.mjs
+          fi

@@ -38,10 +38,73 @@ function makeFixture() {
   write(root, "demo/README.md");
   write(root, "docs/repository-guardrails.md");
   write(root, "docs/stage-hosting.md");
+  write(root, "scripts/codex-review-gate.mjs");
+  write(root, "scripts/codex-review-helpers.mjs");
+  write(root, "scripts/codex-review-request.mjs");
+  write(root, "scripts/codex-review-rerun.mjs");
+  write(root, "tests/codex-review-gate.test.mjs");
   write(root, "tests/repository-guard.test.mjs");
   write(root, "third-party-notices.md");
   mkdirSync(join(root, "scripts"), { recursive: true });
   cpSync(guardScript, join(root, "scripts/check-repository.mjs"));
+  write(
+    root,
+    ".github/workflows/codex-review.yml",
+    [
+      "name: Codex Review",
+      "on:",
+      "  pull_request:",
+      "permissions:",
+      "  contents: read",
+      "jobs:",
+      "  codex-review:",
+      "    name: Codex Review",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`,
+      "      - name: Checkout trusted Codex review gate",
+      `        uses: actions/checkout@${checkoutSha}`,
+      "        with:",
+      "          ref: ${{ github.event.repository.default_branch }}",
+      "          path: .codex-review-trusted",
+      "      - run: |",
+      "          script_root=\"$GITHUB_WORKSPACE/.codex-review-trusted\"",
+      "          node \"$script_root/scripts/codex-review-gate.mjs\"",
+      ""
+    ].join("\n")
+  );
+  write(
+    root,
+    ".github/workflows/codex-review-request.yml",
+    [
+      "name: Codex Review Request",
+      "on: issue_comment",
+      "permissions:",
+      "  contents: read",
+      "jobs:",
+      "  request:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`,
+      ""
+    ].join("\n")
+  );
+  write(
+    root,
+    ".github/workflows/codex-review-rerun.yml",
+    [
+      "name: Codex Review Rerun",
+      "on: pull_request_review",
+      "permissions:",
+      "  contents: read",
+      "jobs:",
+      "  rerun:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`,
+      ""
+    ].join("\n")
+  );
   write(
     root,
     ".github/workflows/repository-guard.yml",
@@ -229,5 +292,60 @@ test("rejects unclassified top-level directories", () => {
     const result = runGuard(root);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Unclassified top-level directory/);
+  });
+});
+
+test("rejects removal of the Codex review gate", () => {
+  withFixture((root) => {
+    rmSync(join(root, "scripts/codex-review-gate.mjs"));
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Missing required repository file: scripts\/codex-review-gate\.mjs/);
+  });
+});
+
+test("rejects a Codex Review workflow without its trusted gate", () => {
+  withFixture((root) => {
+    write(
+      root,
+      ".github/workflows/codex-review.yml",
+      [
+        "name: Codex Review",
+        "on:",
+        "  pull_request:",
+        "permissions:",
+        "  contents: read",
+        "jobs:",
+        "  codex-review:",
+        "    name: Codex Review",
+        "    runs-on: ubuntu-latest",
+        "    steps:",
+        "      - run: true",
+        ""
+      ].join("\n")
+    );
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Codex Review workflow is missing trusted gate invariant/);
+  });
+});
+
+test("rejects commented-out Codex Review gate invariants", () => {
+  withFixture((root) => {
+    write(root, ".github/workflows/codex-review.yml", [
+      "name: Codex Review", "on:", "  pull_request:", "permissions:",
+      "  contents: read", "jobs:", "  codex-review:", "    name: Codex Review",
+      "    runs-on: ubuntu-latest", "    steps:", "      - run: true",
+      "# name: Checkout trusted Codex review gate",
+      "# ref: ${{ github.event.repository.default_branch }}",
+      "# path: .codex-review-trusted",
+      "# node \"$script_root/scripts/codex-review-gate.mjs\"", ""
+    ].join("\n"));
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Codex Review workflow is missing trusted gate invariant/);
   });
 });

@@ -45,13 +45,21 @@ const failures = [];
 const requiredRootFiles = [
   ".gitignore",
   ".repo-guard.json",
+  ".github/workflows/codex-review.yml",
+  ".github/workflows/codex-review-request.yml",
+  ".github/workflows/codex-review-rerun.yml",
   ".github/workflows/repository-guard.yml",
   "AGENTS.md",
   "CLAUDE.md",
   "README.md",
   "docs/repository-guardrails.md",
   "docs/stage-hosting.md",
+  "scripts/codex-review-gate.mjs",
+  "scripts/codex-review-helpers.mjs",
+  "scripts/codex-review-request.mjs",
+  "scripts/codex-review-rerun.mjs",
   "scripts/check-repository.mjs",
+  "tests/codex-review-gate.test.mjs",
   "tests/repository-guard.test.mjs",
   "third-party-notices.md"
 ];
@@ -322,6 +330,28 @@ for (const workflow of workflows) {
     const ref = separator === -1 ? "" : action.slice(separator + 1);
     if (!/^[a-f0-9]{40}$/.test(ref)) {
       fail(`GitHub Action is not pinned to a full commit SHA in ${workflow}: ${action}`);
+    }
+  }
+}
+
+const codexReviewWorkflow = ".github/workflows/codex-review.yml";
+if (files.includes(codexReviewWorkflow)) {
+  const text = readFileSync(join(root, codexReviewWorkflow), "utf8");
+  const executableYaml = text
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
+  const requiredFragments = [
+    "name: Codex Review",
+    "pull_request:",
+    "name: Checkout trusted Codex review gate",
+    "ref: ${{ github.event.repository.default_branch }}",
+    "path: .codex-review-trusted",
+    'node "$script_root/scripts/codex-review-gate.mjs"'
+  ];
+  for (const fragment of requiredFragments) {
+    if (!executableYaml.includes(fragment)) {
+      fail(`Codex Review workflow is missing trusted gate invariant: ${fragment}`);
     }
   }
 }

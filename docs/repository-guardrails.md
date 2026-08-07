@@ -3,8 +3,8 @@
 This repository uses a small, project-shaped subset of the practices in
 [`kiaquila/unicorn-hub`](https://github.com/kiaquila/unicorn-hub). It keeps the
 parts that protect a multi-project design workspace and intentionally omits the
-portable bootstrap system, Spec Kit feature memory, AI-review routing,
-multi-agent orchestration, package-manager migration, and generic stack profiles.
+portable bootstrap system, Spec Kit feature memory, multi-agent orchestration,
+review-vendor switching, package-manager migration, and generic stack profiles.
 
 ## Instruction hierarchy
 
@@ -44,6 +44,68 @@ Changes that intentionally relax a trusted requirement therefore use two PRs:
 first update the policy while keeping the old requirement satisfied; after that
 policy is on `main`, remove the no-longer-required item. This is deliberate
 fail-closed behavior.
+
+## Codex review gate
+
+`Codex Review` converts native Codex review evidence into a head-bound check:
+
+1. an `OWNER`, `MEMBER`, or `COLLABORATOR` posts
+   `@codex review <current-full-head-sha>`;
+2. the trusted default-branch request policy records the current PR head SHA in
+   a `github-actions[bot]` marker;
+3. the gate accepts evidence only from `chatgpt-codex-connector[bot]`, only after
+   that request, and only for the recorded head;
+4. P0, P1, and P2 findings fail the gate; P3-only or no-findings reviews pass;
+   an unqualified `Codex Review:` issue comment can trigger a rerun but never
+   passes the gate because it does not identify a reviewed commit;
+5. a new commit invalidates old evidence, while trusted result events wait for
+   an active gate to finish and then rerun its check automatically;
+6. missing markers, missing results, unclassified inline findings, untrusted
+   authors, and API errors all fail closed.
+
+The gate polls briefly to close event-order races between the initial PR run,
+the trusted request marker, and the native Codex result. Gate code is checked
+out from the default branch. The proposed copy is used only when installing the
+gate for the first time; after merge, `repository-guard` also prevents any of
+the gate's required workflows, scripts, or regression tests from being removed.
+Because the marker workflow cannot run before it exists on the default branch,
+that one installation PR binds directly to a trusted, head-bound
+`@codex review <current-full-head-sha>` source
+comment and rejects it if the head changes afterward. Normal PRs require the
+persistent `github-actions[bot]` marker.
+
+Native review also requires a Codex cloud environment connected to this
+repository. If it is missing, the Codex bot posts an environment-setup link
+instead of review evidence and the gate correctly remains red. After creating
+the environment, post a new `@codex review <current-full-head-sha>`. The first
+installation PR cannot receive this new `pull_request` check automatically
+because its workflow is not yet on the default branch; verify it locally and
+through the native Codex review, then merge it so later PRs receive the
+required gate. The trusted result-event policy becomes available only after
+that merge and intentionally never executes proposed helper code with a
+write-capable token.
+
+## Audit of omitted Unicorn Hub controls
+
+The omitted-control audit was repeated against Unicorn Hub commit
+`1a3a22a5f800d2a7b221b3f97e41f04d6e4b73cf` when the Codex gate was added.
+
+- The important standalone omission was the head-bound AI review gate. It is
+  now adapted above without implementation-agent routing or Claude/Gemini
+  switching.
+- Unicorn Hub's baseline, workflow-trust, CI, vulnerability, dependency-cooldown,
+  instruction-hierarchy, and branch-protection controls were already retained
+  in repository-shaped form.
+- `check-feature-memory.mjs` and the feature-substance portion of
+  `check-context-budget.mjs` require Spec Kit's per-feature `spec.md`, `plan.md`,
+  and `tasks.md` contract. This workspace instead keeps durable business evidence
+  in each project's `README.md`, `AGENTS.md`, and source-audit documents, so those
+  checks remain intentionally excluded rather than acting as empty ceremony.
+- The context-budget line limit, portable bootstrap/profile baseline, pnpm
+  release-age policy, local hook installer, multi-agent workflow, and agent
+  switchers are tooling conventions rather than independent merge-safety gates
+  for this repository. Existing pinned lockfiles, Dependabot cooldown, CI, OSV,
+  and repository policy cover their relevant safety properties here.
 
 ## Project checks
 
@@ -91,8 +153,8 @@ the expected values are `["PR_TITLE","PR_BODY"]`.
 After the workflows exist on `main`, protect `main` with:
 
 - pull requests required before merge;
-- required checks `repository-guard`, `chaijana-menu`, `chaijana-website`, and
-  `osv-scan`;
+- required checks `repository-guard`, `chaijana-menu`, `chaijana-website`,
+  `osv-scan`, and `Codex Review`;
 - stale approvals dismissed after new commits;
 - conversation resolution required;
 - administrator enforcement enabled;
@@ -102,13 +164,19 @@ For a solo-maintainer repository, zero mandatory human approvals is reasonable
 as long as checks and conversation resolution remain required. Increase the
 approval count when another maintainer is available.
 
+GitHub currently does not offer branch protection for this private repository
+on its active plan. Until the plan or visibility changes, the workflows still
+produce fail-closed evidence but cannot technically prevent a maintainer from
+merging a red PR. Configure the required checks above as soon as GitHub exposes
+the setting.
+
 ## Local check
 
 Run before publishing any PR:
 
 ```bash
 node scripts/check-repository.mjs
-node --test tests/repository-guard.test.mjs
+node --test tests/repository-guard.test.mjs tests/codex-review-gate.test.mjs
 ```
 
 Then run the affected project's commands from its `AGENTS.md` or `README.md`.
