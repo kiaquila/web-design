@@ -1,0 +1,103 @@
+/* Alpha Lumen — design tokens.
+   Warm greige surfaces, deep forest green, sage accents; a single grotesque
+   voice with tight tracking on display sizes. */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./fonts/inter-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* Surfaces — the page sits on warm greige, content on soft paper. */
+  --shell: #d9d2c8;
+  --paper: #efede7;
+  --cream: #f7f5f0;
+  --card: #ffffff;
+  --sand: #e6e1d6;
+
+  /* Ink — near-black for text, forest green for headings. */
+  --ink: #26261f;
+  --ink-strong: #16160f;
+  --ink-muted: #56564c;
+  --ink-soft: #67675b;
+
+  /* Green family. */
+  --forest: #3d5232;
+  --forest-deep: #2c3c24;
+  --sage: #93a585;
+  --sage-deep: #4d6040;
+  --sage-pale: #c8d1bd;
+  --sage-wash: #e4e8dc;
+
+  /* Lines and shadows. */
+  --line: #ddd7cb;
+  --line-strong: #c3bbab;
+  --shadow-sm: 0 1px 2px rgba(38, 38, 31, 0.05);
+  --shadow-md: 0 18px 40px -24px rgba(38, 38, 31, 0.4);
+  --shadow-lg: 0 40px 80px -40px rgba(38, 38, 31, 0.45);
+
+  /* Typography — one family, weight and tracking do the work. */
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-body);
+
+  --step--1: clamp(0.8rem, 0.78rem + 0.1vw, 0.86rem);
+  --step-0: clamp(0.95rem, 0.92rem + 0.16vw, 1.03rem);
+  --step-1: clamp(1.08rem, 1.02rem + 0.3vw, 1.26rem);
+  --step-2: clamp(1.3rem, 1.16rem + 0.62vw, 1.7rem);
+  --step-3: clamp(1.7rem, 1.4rem + 1.35vw, 2.6rem);
+  --step-4: clamp(2.2rem, 1.6rem + 2.7vw, 4rem);
+  --step-5: clamp(3rem, 1.7rem + 5.8vw, 7rem);
+
+  /* Tracking — the grotesque tightens as it grows. */
+  --track-display: -0.035em;
+  --track-heading: -0.022em;
+  --track-eyebrow: 0.16em;
+
+  /* Space — generous by default; this design is about air. */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2.5rem;
+  --space-xl: 4rem;
+  --space-2xl: 6.5rem;
+  --space-3xl: 9.5rem;
+
+  /* Shape. */
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+
+  /* Layout. */
+  --measure: 66ch;
+  --width-page: 1320px;
+  --width-narrow: 780px;
+
+  --ease: cubic-bezier(0.32, 0.72, 0.28, 1);
+  --duration: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration: 1ms;
+  }
+}
