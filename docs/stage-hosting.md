@@ -18,7 +18,7 @@ Chaijaná uses this contract:
 
 | Setting | Value |
 | --- | --- |
-| Worker name | `design-chaijana` |
+| Worker name | `chaijana` |
 | Repository | `kiaquila/web-design` |
 | Production branch | `main` |
 | Root directory | `chaijana/website` |
@@ -27,17 +27,16 @@ Chaijaná uses this contract:
 | Non-production deploy command | `npm run stage:preview` |
 | Included build watch path | `chaijana/*` |
 
-With the account's Workers subdomain configured, the stable URL is
-`https://design-chaijana.<account-subdomain>.workers.dev`. A pull request gets a
-versioned URL shaped like
-`https://<version>-design-chaijana.<account-subdomain>.workers.dev`. The exact
-subdomain and version are assigned by Cloudflare and must not be hard-coded.
+The stable URL is `https://chaijana.ks-design.workers.dev`. A pull request gets
+a versioned URL shaped like
+`https://<version>-chaijana.ks-design.workers.dev`. The version prefix is
+assigned by Cloudflare and must not be hard-coded.
 
 ## One-time Cloudflare connection
 
 1. In **Workers & Pages**, choose **Create application**, then **Import a
    repository**, and connect `kiaquila/web-design`.
-2. Name the Worker exactly `design-chaijana`. Cloudflare requires the dashboard
+2. Name the Worker exactly `chaijana`. Cloudflare requires the dashboard
    name to match `name` in `chaijana/website/wrangler.json`.
 3. Enter the root, build, production deploy, and non-production deploy values
    from the table above.
@@ -57,13 +56,14 @@ After this one-time connection, normal work needs no deployment command:
 ## Add another project
 
 1. Keep the site in `<slug>/website` and give it its own lockfile and build.
-2. Add `<slug>/website/wrangler.json` with `name: design-<slug>`, its Worker
+2. Add `<slug>/website/wrangler.json` with `name: <slug>`, its Worker
    entry point, a pinned compatibility date, `workers_dev: true`, and
    `preview_urls: true`.
 3. Add `stage:deploy` and `stage:preview` scripts matching the Chaijaná package.
 4. Add the project to `stageProjects` in `.repo-guard.json` with root
    `<slug>/website` and watch path `<slug>/*`.
 5. Create and connect a same-named Worker using the one-time procedure above.
+   Its stable stage URL will be `https://<slug>.ks-design.workers.dev`.
 6. Run `node scripts/check-repository.mjs` plus that project's own checks.
 
 Each site stays independent. There is no central path router and no coupling
