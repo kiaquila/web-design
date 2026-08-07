@@ -16,6 +16,12 @@ The website build synchronizes the generated menu into its public output. Edit
 menu content only in `menu/src/menu-data.ts`, run `npm run check` in `menu/`,
 then run `npm test` in `website/` before publishing.
 
+The temporary customer stage is deployed as the `design-chaijana` Cloudflare
+Worker. Merges to `main` update its stable `workers.dev` URL; non-production
+branches upload isolated preview versions without replacing the stable stage.
+Repository-wide setup and retirement instructions live in
+[`../docs/stage-hosting.md`](../docs/stage-hosting.md).
+
 Both share one design system — **Chaijaná Noir**: warm near-black ground, a
 gold-leaf accent ramp, self-hosted Cormorant Garamond for display, and inline
 SVG arabesque ornaments.

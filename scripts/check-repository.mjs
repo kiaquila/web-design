@@ -45,12 +45,21 @@ const failures = [];
 const requiredRootFiles = [
   ".gitignore",
   ".repo-guard.json",
+  ".github/workflows/codex-review.yml",
+  ".github/workflows/codex-review-request.yml",
+  ".github/workflows/codex-review-rerun.yml",
   ".github/workflows/repository-guard.yml",
   "AGENTS.md",
   "CLAUDE.md",
   "README.md",
   "docs/repository-guardrails.md",
+  "docs/stage-hosting.md",
+  "scripts/codex-review-gate.mjs",
+  "scripts/codex-review-helpers.mjs",
+  "scripts/codex-review-request.mjs",
+  "scripts/codex-review-rerun.mjs",
   "scripts/check-repository.mjs",
+  "tests/codex-review-gate.test.mjs",
   "tests/repository-guard.test.mjs",
   "third-party-notices.md"
 ];
@@ -95,6 +104,110 @@ if (!Array.isArray(config.projects) || config.projects.length === 0) {
     }
     if (!rootReadme.includes(`](./${project}/)`)) {
       fail(`Root README.md must link to ./${project}/`);
+    }
+  }
+}
+
+const stageProjects = config.stageProjects ?? {};
+if (
+  typeof stageProjects !== "object" ||
+  stageProjects === null ||
+  Array.isArray(stageProjects)
+) {
+  fail(".repo-guard.json stageProjects must be an object");
+} else {
+  for (const [project, stage] of Object.entries(stageProjects)) {
+    if (!config.projects?.includes(project)) {
+      fail(`Stage project is not listed in projects: ${project}`);
+      continue;
+    }
+    if (typeof stage !== "object" || stage === null || Array.isArray(stage)) {
+      fail(`Stage configuration must be an object: ${project}`);
+      continue;
+    }
+
+    const expectedRootPrefix = `${project}/`;
+    const expectedWatchPath = `${project}/*`;
+    const expectedWorkerName = `design-${project}`;
+
+    if (
+      typeof stage.rootDirectory !== "string" ||
+      !stage.rootDirectory.startsWith(expectedRootPrefix) ||
+      stage.rootDirectory.includes("..")
+    ) {
+      fail(
+        `Stage rootDirectory for ${project} must stay inside ${project}/, ` +
+          `received ${JSON.stringify(stage.rootDirectory)}`
+      );
+      continue;
+    }
+    if (stage.watchPath !== expectedWatchPath) {
+      fail(
+        `Stage watchPath for ${project} must be ${expectedWatchPath}, ` +
+          `received ${JSON.stringify(stage.watchPath)}`
+      );
+    }
+
+    const stageRoot = join(root, stage.rootDirectory);
+    const wranglerPath = join(stageRoot, "wrangler.json");
+    const packagePath = join(stageRoot, "package.json");
+    if (!existsSync(wranglerPath)) {
+      fail(`Stage project ${project} is missing website/wrangler.json`);
+      continue;
+    }
+    if (!existsSync(packagePath)) {
+      fail(`Stage project ${project} is missing website/package.json`);
+      continue;
+    }
+
+    let wrangler;
+    let packageJson;
+    try {
+      wrangler = JSON.parse(readFileSync(wranglerPath, "utf8"));
+    } catch (error) {
+      fail(`Invalid stage Wrangler config for ${project}: ${error.message}`);
+      continue;
+    }
+    try {
+      packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+    } catch (error) {
+      fail(`Invalid stage package.json for ${project}: ${error.message}`);
+      continue;
+    }
+
+    if (wrangler.name !== expectedWorkerName) {
+      fail(
+        `Stage Worker for ${project} must be named ${expectedWorkerName}, ` +
+          `received ${JSON.stringify(wrangler.name)}`
+      );
+    }
+    if (typeof wrangler.main !== "string" || !wrangler.main.trim()) {
+      fail(`Stage Worker for ${project} must define a main entry point`);
+    } else {
+      const entryPoint = resolve(stageRoot, wrangler.main);
+      if (!entryPoint.startsWith(`${resolve(stageRoot)}${sep}`) || !existsSync(entryPoint)) {
+        fail(`Stage Worker entry point does not exist inside ${project}: ${wrangler.main}`);
+      }
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(wrangler.compatibility_date ?? "")) {
+      fail(`Stage Worker for ${project} must pin a compatibility_date`);
+    }
+    if (wrangler.workers_dev !== true) {
+      fail(`Stage Worker for ${project} must enable workers_dev`);
+    }
+    if (wrangler.preview_urls !== true) {
+      fail(`Stage Worker for ${project} must enable preview_urls`);
+    }
+
+    const scripts = packageJson.scripts ?? {};
+    if (typeof scripts.build !== "string" || !scripts.build.trim()) {
+      fail(`Stage project ${project} must define an npm build script`);
+    }
+    if (!/(?:^|\s)wrangler deploy(?:\s|$)/.test(scripts["stage:deploy"] ?? "")) {
+      fail(`Stage project ${project} must deploy with wrangler deploy`);
+    }
+    if (!/(?:^|\s)wrangler versions upload(?:\s|$)/.test(scripts["stage:preview"] ?? "")) {
+      fail(`Stage project ${project} must preview with wrangler versions upload`);
     }
   }
 }
@@ -217,6 +330,28 @@ for (const workflow of workflows) {
     const ref = separator === -1 ? "" : action.slice(separator + 1);
     if (!/^[a-f0-9]{40}$/.test(ref)) {
       fail(`GitHub Action is not pinned to a full commit SHA in ${workflow}: ${action}`);
+    }
+  }
+}
+
+const codexReviewWorkflow = ".github/workflows/codex-review.yml";
+if (files.includes(codexReviewWorkflow)) {
+  const text = readFileSync(join(root, codexReviewWorkflow), "utf8");
+  const executableYaml = text
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
+  const requiredFragments = [
+    "name: Codex Review",
+    "pull_request:",
+    "name: Checkout trusted Codex review gate",
+    "ref: ${{ github.event.repository.default_branch }}",
+    "path: .codex-review-trusted",
+    'node "$script_root/scripts/codex-review-gate.mjs"'
+  ];
+  for (const fragment of requiredFragments) {
+    if (!executableYaml.includes(fragment)) {
+      fail(`Codex Review workflow is missing trusted gate invariant: ${fragment}`);
     }
   }
 }
