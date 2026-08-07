@@ -356,6 +356,17 @@ if (files.includes(codexReviewWorkflow)) {
   }
 }
 
+const codexReviewRequestWorkflow = ".github/workflows/codex-review-request.yml";
+if (files.includes(codexReviewRequestWorkflow)) {
+  const executableYaml = readFileSync(join(root, codexReviewRequestWorkflow), "utf8")
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
+  if (!/^\s*pull-requests:\s*write\s*$/m.test(executableYaml)) {
+    fail("Codex Review Request workflow must grant pull-requests: write for trusted request markers.");
+  }
+}
+
 if (failures.length) {
   console.error("Repository guard failed:");
   for (const message of failures) console.error(`- ${message}`);

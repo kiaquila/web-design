@@ -81,6 +81,7 @@ function makeFixture() {
       "on: issue_comment",
       "permissions:",
       "  contents: read",
+      "  pull-requests: write",
       "jobs:",
       "  request:",
       "    runs-on: ubuntu-latest",
@@ -347,5 +348,20 @@ test("rejects commented-out Codex Review gate invariants", () => {
     const result = runGuard(root);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Codex Review workflow is missing trusted gate invariant/);
+  });
+});
+
+test("rejects a Codex Review Request workflow without pull-request write access", () => {
+  withFixture((root) => {
+    write(root, ".github/workflows/codex-review-request.yml", [
+      "name: Codex Review Request", "on: issue_comment", "permissions:",
+      "  contents: read", "  # pull-requests: write", "jobs:",
+      "  request:", "    runs-on: ubuntu-latest", "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`, ""
+    ].join("\n"));
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Codex Review Request workflow must grant pull-requests: write/);
   });
 });
