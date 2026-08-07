@@ -7,8 +7,8 @@ on:
 permissions:
   actions: write
   contents: read
-  issues: write
-  pull-requests: read
+  # GITHUB_TOKEN rejects PR issue-comment creation with issues: write alone.
+  pull-requests: write
 
 jobs:
   codex-review-request:
