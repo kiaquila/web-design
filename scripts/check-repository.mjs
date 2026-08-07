@@ -362,7 +362,10 @@ if (files.includes(codexReviewRequestWorkflow)) {
     .split("\n")
     .filter((line) => !line.trimStart().startsWith("#"))
     .join("\n");
-  if (!/^\s*pull-requests:\s*write\s*$/m.test(executableYaml)) {
+  const topLevelPermissions = executableYaml.match(
+    /^permissions:\s*\n((?: {2}[^\n]*(?:\n|$))*)/m
+  )?.[1] || "";
+  if (!/^ {2}pull-requests:\s*write\s*$/m.test(topLevelPermissions)) {
     fail("Codex Review Request workflow must grant pull-requests: write for trusted request markers.");
   }
 }

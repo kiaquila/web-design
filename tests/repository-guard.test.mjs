@@ -351,12 +351,12 @@ test("rejects commented-out Codex Review gate invariants", () => {
   });
 });
 
-test("rejects a Codex Review Request workflow without pull-request write access", () => {
+test("requires pull-request write access in top-level Codex Review Request permissions", () => {
   withFixture((root) => {
     write(root, ".github/workflows/codex-review-request.yml", [
       "name: Codex Review Request", "on: issue_comment", "permissions:",
-      "  contents: read", "  # pull-requests: write", "jobs:",
-      "  request:", "    runs-on: ubuntu-latest", "    steps:",
+      "  contents: read", "jobs:", "  request:", "    permissions:",
+      "      pull-requests: write", "    runs-on: ubuntu-latest", "    steps:",
       `      - uses: actions/checkout@${checkoutSha}`, ""
     ].join("\n"));
     git(root, "add", "-A");
