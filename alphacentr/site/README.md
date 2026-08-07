@@ -124,7 +124,8 @@ HSTS, `X-Frame-Options` и прочее) — их пайплайн ассето�
 
 | Настройка | Значение |
 | --- | --- |
-| Имя Worker | `design-alphacentr` |
+| Имя Worker | `alphacentr` |
+| Стабильный URL | `https://alphacentr.ks-design.workers.dev` |
 | Корневой каталог | `alphacentr/site` |
 | Команда сборки | `npm run build` |
 | Деплой стабильного стенда | `npm run stage:deploy` |

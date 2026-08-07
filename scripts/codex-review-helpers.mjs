@@ -5,11 +5,22 @@ function normalize(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function compareCommentIds(left, right) {
+function compareNumericIds(left, right) {
   if (!/^\d+$/.test(String(left || "")) || !/^\d+$/.test(String(right || ""))) return 0;
   const leftId = BigInt(left);
   const rightId = BigInt(right);
   return leftId === rightId ? 0 : leftId > rightId ? 1 : -1;
+}
+
+export function isStrictlyAfterCodexReviewRequest(value, requestMarker) {
+  const valueTime = Date.parse(value || "");
+  const requestedAt = Date.parse(
+    requestMarker?.sourceCommentCreatedAt ||
+    requestMarker?.requestedAt ||
+    requestMarker?.commentCreatedAt ||
+    ""
+  );
+  return Number.isFinite(valueTime) && Number.isFinite(requestedAt) && valueTime > requestedAt;
 }
 
 export function isTrustedAssociation(value) {
@@ -94,7 +105,7 @@ export function latestCodexReviewRequestMarker(comments = [], headSha) {
     .sort((left, right) => {
       const byRequestTime = Date.parse(right.sourceCommentCreatedAt || right.requestedAt || "") -
         Date.parse(left.sourceCommentCreatedAt || left.requestedAt || "");
-      return byRequestTime || compareCommentIds(right.sourceCommentId, left.sourceCommentId);
+      return byRequestTime || compareNumericIds(right.sourceCommentId, left.sourceCommentId);
     })[0] || null;
 }
 
@@ -155,10 +166,11 @@ export function latestCodexNativeReviewResult(reviews = [], reviewComments = [],
       result: classifyCodexNativeReview(review, reviewComments, headSha)
     }))
     .filter((entry) => entry.result !== null)
-    .sort((left, right) =>
-      Date.parse(right.review.submitted_at || "") -
-      Date.parse(left.review.submitted_at || "")
-    )[0]?.result || null;
+    .sort((left, right) => {
+      const bySubmissionTime = Date.parse(right.review.submitted_at || "") -
+        Date.parse(left.review.submitted_at || "");
+      return bySubmissionTime || compareNumericIds(right.review.id, left.review.id);
+    })[0]?.result || null;
 }
 
 export function isAcceptableCodexSummaryComment(comment, headSha, requestedAt, sourceCommentId) {
@@ -167,7 +179,7 @@ export function isAcceptableCodexSummaryComment(comment, headSha, requestedAt, s
   const commentCreatedAt = Date.parse(comment?.created_at || "");
   const requestTime = Date.parse(requestedAt || "");
   const ordering = commentCreatedAt === requestTime
-    ? compareCommentIds(comment?.id, sourceCommentId) > 0
+    ? compareNumericIds(comment?.id, sourceCommentId) > 0
     : commentCreatedAt > requestTime;
   const isAfterRequest = !requestedAt ||
     (Number.isFinite(commentCreatedAt) && Number.isFinite(requestTime) && ordering);

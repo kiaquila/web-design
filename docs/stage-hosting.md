@@ -20,7 +20,7 @@ Each project below needs its own Worker and its own one-time connection.
 
 | Setting | Value |
 | --- | --- |
-| Worker name | `design-alphacentr` |
+| Worker name | `alphacentr` |
 | Repository | `kiaquila/web-design` |
 | Production branch | `main` |
 | Root directory | `alphacentr/site` |
@@ -33,13 +33,16 @@ The site is static, so Cloudflare serves it with Workers Static Assets from
 `dist/`. `alphacentr/site/worker/index.ts` exists only to attach the security
 headers the asset pipeline does not set on its own.
 
+The stable URL is `https://alphacentr.ks-design.workers.dev`. Pull-request
+previews use the same versioned URL shape documented for Chaijana below.
+
 ### Chaijaná
 
 Chaijaná uses this contract:
 
 | Setting | Value |
 | --- | --- |
-| Worker name | `design-chaijana` |
+| Worker name | `chaijana` |
 | Repository | `kiaquila/web-design` |
 | Production branch | `main` |
 | Root directory | `chaijana/website` |
@@ -48,11 +51,10 @@ Chaijaná uses this contract:
 | Non-production deploy command | `npm run stage:preview` |
 | Included build watch path | `chaijana/*` |
 
-With the account's Workers subdomain configured, the stable URL is
-`https://design-chaijana.<account-subdomain>.workers.dev`. A pull request gets a
-versioned URL shaped like
-`https://<version>-design-chaijana.<account-subdomain>.workers.dev`. The exact
-subdomain and version are assigned by Cloudflare and must not be hard-coded.
+The stable URL is `https://chaijana.ks-design.workers.dev`. A pull request gets
+a versioned URL shaped like
+`https://<version>-chaijana.ks-design.workers.dev`. The version prefix is
+assigned by Cloudflare and must not be hard-coded.
 
 ## One-time Cloudflare connection
 
@@ -63,9 +65,9 @@ GitHub Actions.
 
 1. In **Workers & Pages**, choose **Create application**, then **Import a
    repository**, and connect `kiaquila/web-design`.
-2. Name the Worker exactly as the table says (`design-alphacentr` or
-   `design-chaijana`). Cloudflare requires the dashboard name to match `name`
-   in that project's `wrangler.json`.
+2. Name the Worker exactly as the project slug (`alphacentr` or `chaijana`).
+   Cloudflare requires the dashboard name to match `name` in that project's
+   `wrangler.json`.
 3. Enter the root, build, production deploy, and non-production deploy values
    from the table above.
 4. Under **Settings → Build → Branch control**, keep `main` as production and
@@ -84,13 +86,14 @@ After this one-time connection, normal work needs no deployment command:
 ## Add another project
 
 1. Keep the site in `<slug>/website` and give it its own lockfile and build.
-2. Add `<slug>/website/wrangler.json` with `name: design-<slug>`, its Worker
+2. Add `<slug>/website/wrangler.json` with `name: <slug>`, its Worker
    entry point, a pinned compatibility date, `workers_dev: true`, and
    `preview_urls: true`.
 3. Add `stage:deploy` and `stage:preview` scripts matching the Chaijaná package.
 4. Add the project to `stageProjects` in `.repo-guard.json` with root
    `<slug>/website` and watch path `<slug>/*`.
 5. Create and connect a same-named Worker using the one-time procedure above.
+   Its stable stage URL will be `https://<slug>.ks-design.workers.dev`.
 6. Run `node scripts/check-repository.mjs` plus that project's own checks.
 
 Each site stays independent. There is no central path router and no coupling

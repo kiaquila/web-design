@@ -3,6 +3,7 @@
 import { appendFileSync } from "node:fs";
 import {
   isAcceptableCodexSummaryComment,
+  isStrictlyAfterCodexReviewRequest,
   latestCodexNativeReviewResult,
   latestCodexReviewRequestMarker,
   latestTrustedCodexReviewCommand
@@ -61,17 +62,6 @@ async function currentHeadMatches() {
   return pull.head?.sha === headSha;
 }
 
-function isAfterRequest(value, requestMarker) {
-  const valueTime = Date.parse(value || "");
-  const requestedAt = Date.parse(
-    requestMarker?.sourceCommentCreatedAt ||
-    requestMarker?.requestedAt ||
-    requestMarker?.commentCreatedAt ||
-    ""
-  );
-  return Number.isFinite(valueTime) && Number.isFinite(requestedAt) && valueTime >= requestedAt;
-}
-
 async function fetchEvidence() {
   if (!await currentHeadMatches()) return "stale";
 
@@ -89,7 +79,7 @@ async function fetchEvidence() {
     listPaginated(`/repos/${owner}/${repo}/pulls/${prNumber}/comments`)
   ]);
   const reviewsAfterRequest = reviews.filter((review) =>
-    isAfterRequest(review.submitted_at, requestMarker)
+    isStrictlyAfterCodexReviewRequest(review.submitted_at, requestMarker)
   );
   const nativeResult = latestCodexNativeReviewResult(
     reviewsAfterRequest,
