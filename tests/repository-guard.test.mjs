@@ -198,7 +198,53 @@ test("accepts a project with the temporary stage contract", () => {
   });
 });
 
-test("rejects a stage Worker whose name breaks the design convention", () => {
+test("accepts a project-named Worker during the stage naming migration", () => {
+  withFixture((root) => {
+    write(
+      root,
+      ".repo-guard.json",
+      JSON.stringify({
+        infrastructureDirectories: ["docs", "scripts", "tests"],
+        projects: ["demo"],
+        stageProjects: {
+          demo: {
+            rootDirectory: "demo/website",
+            watchPath: "demo/*"
+          }
+        }
+      })
+    );
+    write(
+      root,
+      "demo/website/package.json",
+      JSON.stringify({
+        scripts: {
+          build: "vite build",
+          "stage:deploy": "wrangler deploy",
+          "stage:preview": "wrangler versions upload"
+        }
+      })
+    );
+    write(
+      root,
+      "demo/website/wrangler.json",
+      JSON.stringify({
+        name: "demo",
+        main: "./worker/index.ts",
+        compatibility_date: "2026-08-05",
+        workers_dev: true,
+        preview_urls: true
+      })
+    );
+    write(root, "demo/website/worker/index.ts");
+    git(root, "add", "-A");
+
+    const result = runGuard(root);
+    assert.equal(result.status, 0, result.stderr);
+  });
+});
+
+test("rejects a stage Worker whose name breaks the migration convention", () => {
   withFixture((root) => {
     write(
       root,
@@ -243,7 +289,7 @@ test("rejects a stage Worker whose name breaks the design convention", () => {
 
     const result = runGuard(root);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /must be named design-demo/);
+    assert.match(result.stderr, /must be named demo \(legacy design-demo is temporarily accepted\)/);
   });
 });
 
