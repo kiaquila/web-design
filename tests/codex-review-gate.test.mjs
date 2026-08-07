@@ -17,6 +17,7 @@ const {
   classifyCodexNativeReview,
   createCodexReviewRequestMarkerBody,
   extractCodexReviewRequestMarker,
+  isAcceptableCodexSummaryComment,
   isCodexReviewCommand,
   isCodexReviewCommandForHead,
   isTrustedAssociation,
@@ -151,6 +152,16 @@ test("native Codex reviews are current-head and P0-P2 blocking", () => {
     classifyCodexNativeReview({ ...review, user: { login: "fake-codex[bot]" } }, [], headSha),
     null
   );
+});
+
+test("Codex no-findings summaries must name the reviewed head", () => {
+  const summary = {
+    body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+    user: codexUser
+  };
+  assert.equal(isAcceptableCodexSummaryComment(summary, headSha), true);
+  assert.equal(isAcceptableCodexSummaryComment({ ...summary, body: "Codex Review: Didn't find any major issues." }, headSha), false);
+  assert.equal(isAcceptableCodexSummaryComment({ ...summary, body: summary.body.replace(headSha.slice(0, 10), "0000000000") }, headSha), false);
 });
 
 test("the latest current-head native Codex result wins", () => {

@@ -2,6 +2,7 @@
 
 import { appendFileSync } from "node:fs";
 import {
+  isAcceptableCodexSummaryComment,
   latestCodexNativeReviewResult,
   latestCodexReviewRequestMarker,
   latestTrustedCodexReviewCommand
@@ -97,7 +98,9 @@ async function fetchEvidence() {
   );
   if (nativeResult) return nativeResult;
 
-  return "pending";
+  return comments.some((comment) => isAcceptableCodexSummaryComment(comment, headSha))
+    ? "pass"
+    : "pending";
 }
 
 if (Number.isFinite(debounceMs) && debounceMs > 0) {

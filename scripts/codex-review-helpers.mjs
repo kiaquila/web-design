@@ -152,3 +152,12 @@ export function latestCodexNativeReviewResult(reviews = [], reviewComments = [],
       Date.parse(left.review.submitted_at || "")
     )[0]?.result || null;
 }
+
+export function isAcceptableCodexSummaryComment(comment, headSha) {
+  const body = String(comment?.body || "");
+  const shortSha = String(headSha || "").slice(0, 10);
+  return isTrustedCodexLogin(comment?.user?.login) &&
+    /^Codex Review:\s*Didn't find any major issues\./im.test(body) &&
+    Boolean(shortSha) &&
+    new RegExp(`\\*\\*Reviewed commit:\\*\\*\\s*\\\`${shortSha}\\\``, "i").test(body);
+}
