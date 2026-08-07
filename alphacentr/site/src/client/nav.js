@@ -11,7 +11,7 @@
   var nav = document.getElementById("primary-nav");
   var toggle = document.querySelector(".nav-toggle");
   var menus = Array.prototype.slice.call(document.querySelectorAll(".nav-menu"));
-  var mobile = window.matchMedia("(max-width: 900px)");
+  var mobile = window.matchMedia("(max-width: 960px)");
 
   function closeMenus(except) {
     menus.forEach(function (menu) {

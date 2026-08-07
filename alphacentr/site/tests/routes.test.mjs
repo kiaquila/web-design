@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -191,7 +191,17 @@ test("every referenced image file exists", () => {
 
 test("internal links in rendered HTML resolve", () => {
   const missing = new Set();
+  const legacyHosts = new Set();
   for (const route of routes) {
+    for (const match of route.html.matchAll(/href="([^"]+)"/g)) {
+      if (
+        /^https?:\/\/(?:alf\.mwi\.me|gipnos\.alphacentr\.ru)(?:\/|$)/.test(
+          match[1]
+        )
+      ) {
+        legacyHosts.add(`${match[1]} (from ${route.path})`);
+      }
+    }
     for (const match of route.html.matchAll(/href="(\/[^"#?]*)"/g)) {
       const href = match[1];
       if (href.startsWith("/assets/")) continue;
@@ -199,5 +209,19 @@ test("internal links in rendered HTML resolve", () => {
       if (!byPath.has(href)) missing.add(`${href} (from ${route.path})`);
     }
   }
+  assert.deepEqual(
+    [...legacyHosts],
+    [],
+    "legacy Alpha-Centr links must be local"
+  );
   assert.deepEqual([...missing], [], "dangling internal links");
+});
+
+test("mobile navigation uses the CSS breakpoint", () => {
+  const sourceRoot = join(import.meta.dirname, "..", "src");
+  const nav = readFileSync(join(sourceRoot, "client", "nav.js"), "utf8");
+  const layout = readFileSync(join(sourceRoot, "styles", "layout.css"), "utf8");
+
+  assert.match(nav, /matchMedia\("\(max-width: 960px\)"\)/);
+  assert.match(layout, /@media \(max-width: 960px\)/);
 });

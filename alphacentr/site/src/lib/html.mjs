@@ -55,6 +55,58 @@ export function paragraphs(text) {
   return raw(blocks.map((block) => `<p>${escapeHtml(block)}</p>`).join(""));
 }
 
+const LEGACY_ALPHA_CENTR_PATHS = new Map([
+  [
+    "/auxpage_instrukciya/",
+    "/o-magazine/instruktsiya-po-primeneniyu-audio-gipnoza/"
+  ],
+  [
+    "/auxpage_10-preimushestv-pokupki-audio-gipnoza/",
+    "/o-magazine/10-preimushchestv-pokupki-audio-gipnoza/"
+  ],
+  [
+    "/product/audio-gipnoz-ot-straha-publichnyh-vystuplenii/",
+    "/catalog/rabota_i_dengi/286/"
+  ],
+  [
+    "/product/charisma/",
+    "/catalog/samorazvitie_i_lichnostnyy_rost/585/"
+  ],
+  [
+    "/product/dostizhenie-celej-50-min/",
+    "/catalog/samorazvitie_i_lichnostnyy_rost/243/"
+  ],
+  [
+    "/product/ot-straxa-pered-neizvestnym/",
+    "/catalog/trevoga_i_panika/386/"
+  ],
+  [
+    "/product/razvitie-intuicii/",
+    "/catalog/samorazvitie_i_lichnostnyy_rost/288/"
+  ],
+  [
+    "/product/razvitie-kreativnosti/",
+    "/catalog/samorazvitie_i_lichnostnyy_rost/"
+  ],
+  [
+    "/product/umenie-vesti-peregovory-skoro-pojavitsja-dlja-skachivanija/",
+    "/catalog/rabota_i_dengi/"
+  ],
+  [
+    "/product/universalnoe-iscelenie-vnutrennij-celitel/",
+    "/catalog/krasota_i_zdorove/359/"
+  ]
+]);
+
+function localizeLegacyAlphaCentrHref(href) {
+  const match = href.match(
+    /^https?:\/\/(?:alf\.mwi\.me|gipnos\.alphacentr\.ru)(\/[^?#]*)?(?:[?#].*)?$/
+  );
+  if (!match) return href;
+  const path = match[1] || "/";
+  return LEGACY_ALPHA_CENTR_PATHS.get(path) ?? path;
+}
+
 /**
  * Render a lightweight block list used by the content data modules.
  * Each block is `{ type, ... }`; unknown types throw so a typo in content
@@ -110,10 +162,12 @@ export function inline(text) {
   let out = escapeHtml(text);
   out = out.replace(
     /\[([^\]]+)\]\(([^)\s]+)\)/g,
-    (match, label, href) =>
-      `<a href="${href}"${
-        href.startsWith("http") ? ' rel="noopener"' : ""
-      }>${label}</a>`
+    (match, label, href) => {
+      const localizedHref = localizeLegacyAlphaCentrHref(href);
+      return `<a href="${localizedHref}"${
+        localizedHref.startsWith("http") ? ' rel="noopener"' : ""
+      }>${label}</a>`;
+    }
   );
   out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   return raw(out);
