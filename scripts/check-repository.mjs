@@ -368,6 +368,17 @@ if (files.includes(codexReviewRequestWorkflow)) {
   if (!/^ {2}pull-requests:\s*write\s*$/m.test(topLevelPermissions)) {
     fail("Codex Review Request workflow must grant pull-requests: write for trusted request markers.");
   }
+  const requestJobMatch = /^ {2}codex-review-request:\s*$/m.exec(executableYaml);
+  const requestJobTail = requestJobMatch
+    ? executableYaml.slice(requestJobMatch.index + requestJobMatch[0].length)
+    : "";
+  const nextJobOffset = requestJobTail.search(/^ {2}[A-Za-z0-9_-]+:\s*$/m);
+  const requestJob = nextJobOffset === -1
+    ? requestJobTail
+    : requestJobTail.slice(0, nextJobOffset);
+  if (!requestJobMatch || /^ {4}permissions:/m.test(requestJob)) {
+    fail("Codex Review Request job must not override its trusted workflow permissions.");
+  }
 }
 
 if (failures.length) {
