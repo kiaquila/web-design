@@ -30,6 +30,9 @@ and project-specific test commands. It should not repeat the entire root file.
 - explicit least-privilege workflow permissions;
 - commit-SHA pinning for external GitHub Actions;
 - absence of the high-risk `pull_request_target` trigger.
+- consistency of active temporary stages: `design-<slug>` Worker names,
+  project-local Wrangler configuration, public preview URLs, and standard deploy
+  scripts.
 
 The PR workflow checks out policy code from the default branch and runs that
 trusted copy against the proposed PR tree. On the first installation only, when
@@ -51,6 +54,11 @@ CI currently validates both Chaijaná deliverables:
 
 When a new project is added, extend Project CI with a focused job for its actual
 stack. Do not add placeholder checks that always pass.
+
+Temporary customer stages use the separate contract in
+[`stage-hosting.md`](./stage-hosting.md). The `stageProjects` map in
+`.repo-guard.json` is an inventory of stages that should currently exist; it is
+not a permanent requirement for every project in the repository.
 
 ## Supply-chain protection
 

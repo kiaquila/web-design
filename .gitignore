@@ -20,4 +20,5 @@ coverage/
 # tooling state
 .omc/
 .claude/
+worktrees/
 tsconfig.tsbuildinfo

@@ -37,6 +37,7 @@ function makeFixture() {
   write(root, "demo/AGENTS.md");
   write(root, "demo/README.md");
   write(root, "docs/repository-guardrails.md");
+  write(root, "docs/stage-hosting.md");
   write(root, "tests/repository-guard.test.mjs");
   write(root, "third-party-notices.md");
   mkdirSync(join(root, "scripts"), { recursive: true });
@@ -82,6 +83,104 @@ test("accepts a minimal conforming project", () => {
     const result = runGuard(root);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Repository guard passed/);
+  });
+});
+
+test("accepts a project with the temporary stage contract", () => {
+  withFixture((root) => {
+    write(
+      root,
+      ".repo-guard.json",
+      JSON.stringify({
+        infrastructureDirectories: ["docs", "scripts", "tests"],
+        projects: ["demo"],
+        stageProjects: {
+          demo: {
+            rootDirectory: "demo/website",
+            watchPath: "demo/*"
+          }
+        }
+      })
+    );
+    write(
+      root,
+      "demo/website/package.json",
+      JSON.stringify({
+        scripts: {
+          build: "vite build",
+          "stage:deploy":
+            "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy",
+          "stage:preview":
+            "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler versions upload"
+        }
+      })
+    );
+    write(
+      root,
+      "demo/website/wrangler.json",
+      JSON.stringify({
+        name: "design-demo",
+        main: "./worker/index.ts",
+        compatibility_date: "2026-08-05",
+        compatibility_flags: ["nodejs_compat"],
+        workers_dev: true,
+        preview_urls: true
+      })
+    );
+    write(root, "demo/website/worker/index.ts");
+    git(root, "add", "-A");
+
+    const result = runGuard(root);
+    assert.equal(result.status, 0, result.stderr);
+  });
+});
+
+test("rejects a stage Worker whose name breaks the design convention", () => {
+  withFixture((root) => {
+    write(
+      root,
+      ".repo-guard.json",
+      JSON.stringify({
+        infrastructureDirectories: ["docs", "scripts", "tests"],
+        projects: ["demo"],
+        stageProjects: {
+          demo: {
+            rootDirectory: "demo/website",
+            watchPath: "demo/*"
+          }
+        }
+      })
+    );
+    write(
+      root,
+      "demo/website/package.json",
+      JSON.stringify({
+        scripts: {
+          build: "vite build",
+          "stage:deploy":
+            "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy",
+          "stage:preview":
+            "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler versions upload"
+        }
+      })
+    );
+    write(
+      root,
+      "demo/website/wrangler.json",
+      JSON.stringify({
+        name: "web-design-demo",
+        main: "./worker/index.ts",
+        compatibility_date: "2026-08-05",
+        compatibility_flags: ["nodejs_compat"],
+        workers_dev: true,
+        preview_urls: true
+      })
+    );
+    git(root, "add", "-A");
+
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /must be named design-demo/);
   });
 });
 
