@@ -1,7 +1,12 @@
 import { blocks, each, html } from "../lib/html.mjs";
 import { crumbs, layout } from "../templates/layout.mjs";
 import { frame, pageHead, section } from "../templates/blocks.mjs";
-import { aliasSections, articleSections, excerpt } from "../data/articles.mjs";
+import {
+  aliasSections,
+  articleSections,
+  excerpt,
+  titleOnlyArticles
+} from "../data/articles.mjs";
 import { articleImage } from "../data/media.mjs";
 
 /** First article in a section that has artwork represents it in listings. */
@@ -242,6 +247,36 @@ function aliasRoutes() {
   });
 }
 
+function titleOnlyRoutes() {
+  return titleOnlyArticles.map((article) => {
+    const body = html`${crumbs([
+      { label: "Статьи", href: "/stati/" },
+      { label: article.sectionName, href: article.sectionPath },
+      { label: article.title }
+    ])}
+      ${pageHead({ eyebrow: "Архивная страница", title: article.title })}
+      ${section({
+        body: html`<aside class="notice">
+          <p>
+            На исходном сайте для этой страницы опубликован только заголовок;
+            текст отсутствует.
+          </p>
+        </aside>`
+      })}`;
+
+    return {
+      path: article.path,
+      html: layout({
+        path: article.path,
+        navId: "articles",
+        title: article.title,
+        description: article.title,
+        body
+      })
+    };
+  });
+}
+
 export function articleRoutes() {
   const routes = [articlesIndexRoute()];
 
@@ -258,5 +293,5 @@ export function articleRoutes() {
     }
   }
 
-  return [...routes, ...aliasRoutes()];
+  return [...routes, ...aliasRoutes(), ...titleOnlyRoutes()];
 }

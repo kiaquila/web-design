@@ -3,8 +3,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { articleImages, sessionImages } from "../src/data/media.mjs";
-
 import { buildRoutes } from "../src/routes.mjs";
 import { categories, sessionsById } from "../src/data/catalog-categories.mjs";
 import { aliasSections, articleSections } from "../src/data/articles.mjs";
@@ -157,6 +155,13 @@ test("alternative URLs of the original site are preserved", () => {
   for (const item of press) {
     assert.ok(byPath.has(item.href), `lost press URL: ${item.href}`);
   }
+  for (const path of [
+    "/stati/gipnoterapiya_trevogi/trevoga/",
+    "/stati/lechenie_fobii_gipnozom/fobiya_kak_spravitsya_s_fobiey_s_pomoshchyu_gipnoza/",
+    "/stati/obshchenie_vzaimootnosheniya/obshchenie_vzaimootnosheniya/"
+  ]) {
+    assert.ok(byPath.has(path), `lost title-only article URL: ${path}`);
+  }
 });
 
 test("every page declares exactly one canonical URL", () => {
@@ -179,14 +184,14 @@ test("every referenced image file exists", () => {
     .filter((path) => path !== "/assets/nav.js")
     .filter((path) => !existsSync(join(assets, path.replace("/assets/", ""))));
   assert.deepEqual(missing, [], "referenced assets are missing on disk");
+});
 
-  /* Photography is the point of this design: most sessions must have a cover. */
-  const covered = Object.keys(sessionImages).length;
-  assert.ok(
-    covered >= 250,
-    `only ${covered} of ${sessionsById.size} sessions have a cover`
-  );
-  assert.ok(Object.keys(articleImages).length >= 100);
+test("unverified photography is excluded", () => {
+  const media = join(import.meta.dirname, "..", "assets", "media");
+  assert.equal(existsSync(media), false, "unverified media directory is public");
+  for (const route of routes) {
+    assert.doesNotMatch(route.html, /\/assets\/media\//, route.path);
+  }
 });
 
 test("internal links in rendered HTML resolve", () => {

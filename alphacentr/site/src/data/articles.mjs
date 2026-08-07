@@ -50,6 +50,7 @@ export const sectionBySlug = new Map(
    them already lives in one of the seven canonical sections; these entries only
    preserve the old URLs. */
 export const aliasSections = readJson("alias-sections.json");
+export const titleOnlyArticles = readJson("title-only-articles.json");
 
 export const allArticles = articleSections.flatMap((section) =>
   section.articles.map((article) => ({ ...article, section }))

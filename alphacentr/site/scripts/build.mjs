@@ -67,10 +67,6 @@ async function main() {
   await cp(join(root, "assets/fonts"), join(dist, "assets/fonts"), {
     recursive: true
   });
-  await cp(join(root, "assets/media"), join(dist, "assets/media"), {
-    recursive: true
-  });
-
   await writeFile(join(dist, "sitemap.xml"), sitemap(routes));
   await writeFile(
     join(dist, "robots.txt"),
