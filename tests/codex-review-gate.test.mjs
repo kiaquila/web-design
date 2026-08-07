@@ -20,6 +20,7 @@ const {
   isAcceptableCodexSummaryComment,
   isCodexReviewCommand,
   isCodexReviewCommandForHead,
+  isStrictlyAfterCodexReviewRequest,
   isTrustedAssociation,
   latestCodexNativeReviewResult,
   latestCodexReviewRequestMarker,
@@ -181,6 +182,16 @@ test("native Codex reviews are current-head and P0-P2 blocking", () => {
   );
 });
 
+test("native reviews require a strictly later request timestamp", () => {
+  const request = { sourceCommentCreatedAt: "2026-08-05T12:00:00Z" };
+  assert.equal(isStrictlyAfterCodexReviewRequest("2026-08-05T12:00:01Z", request), true);
+  assert.equal(
+    isStrictlyAfterCodexReviewRequest("2026-08-05T12:00:00Z", request),
+    false,
+    "same-second reviews cannot be attributed unambiguously to the latest request"
+  );
+});
+
 test("Codex no-findings summaries must name the reviewed head", () => {
   const summary = {
     body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
@@ -231,6 +242,18 @@ test("the latest current-head native Codex result wins", () => {
     body: "P1 regression",
     user: codexUser
   }], headSha), "fail");
+  assert.equal(
+    latestCodexNativeReviewResult([
+      { ...olderPass, submitted_at: "2026-08-05T12:03:00Z" },
+      { ...newerFail, submitted_at: "2026-08-05T12:03:00Z" }
+    ], [{
+      pull_request_review_id: 2,
+      body: "P1 regression",
+      user: codexUser
+    }], headSha),
+    "fail",
+    "a higher native review ID wins a same-second tie"
+  );
 });
 
 test("rerun routing accepts only exact trusted Codex evidence", () => {
