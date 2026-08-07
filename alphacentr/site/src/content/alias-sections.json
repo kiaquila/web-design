@@ -1,0 +1,192 @@
+[
+ {
+  "slug": "gipnoterapiya_trevogi",
+  "name": "Гипнотерапия тревоги",
+  "articles": [
+   {
+    "alias": "/stati/gipnoterapiya_trevogi/trevozhnost_vidy_trevogi/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/trevozhnost_vidy_trevogi/"
+   },
+   {
+    "alias": "/stati/gipnoterapiya_trevogi/trevoga_s_tochki_zreniya_psikhologii/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/trevoga_s_tochki_zreniya_psikhologii/"
+   },
+   {
+    "alias": "/stati/gipnoterapiya_trevogi/panicheskie_ataki_panika_i_agorafobiya/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/panicheskie_ataki_panika_i_agorafobiya/"
+   }
+  ]
+ },
+ {
+  "slug": "gipnoz_dlya_snyatiya_stressa",
+  "name": "Гипноз для снятия стресса",
+  "articles": [
+   {
+    "alias": "/stati/gipnoz_dlya_snyatiya_stressa/stress/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/stress/"
+   },
+   {
+    "alias": "/stati/gipnoz_dlya_snyatiya_stressa/upravlenie_stressom/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/upravlenie_stressom/"
+   },
+   {
+    "alias": "/stati/gipnoz_dlya_snyatiya_stressa/emotsii_i_vliyanie_emotsiy_v_zhizni_cheloveka/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/emotsii_i_vliyanie_emotsiy_v_zhizni_cheloveka/"
+   }
+  ]
+ },
+ {
+  "slug": "gipnoz_ot_pereedaniya",
+  "name": "Гипноз от переедания",
+  "articles": [
+   {
+    "alias": "/stati/gipnoz_ot_pereedaniya/kak_sbrosit_lishniy_ves_psikhologiya_problemy_lishnego_vesa/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/kak_sbrosit_lishniy_ves_psikhologiya_problemy_lishnego_vesa/"
+   },
+   {
+    "alias": "/stati/gipnoz_ot_pereedaniya/lishniy_ves_novyy_vzglyad_na_snizhenie_vesa/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/lishniy_ves_novyy_vzglyad_na_snizhenie_vesa/"
+   },
+   {
+    "alias": "/stati/gipnoz_ot_pereedaniya/lishniy_ves_kak_izbavitsya_ot_lishnego_vesa_navsegda/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/lishniy_ves_kak_izbavitsya_ot_lishnego_vesa_navsegda/"
+   },
+   {
+    "alias": "/stati/gipnoz_ot_pereedaniya/gipnoz_dlya_pokhudeniya_kak_pokhudet_bez_diet/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/gipnoz_dlya_pokhudeniya_kak_pokhudet_bez_diet/"
+   }
+  ]
+ },
+ {
+  "slug": "gore_i_utrata",
+  "name": "Горе и утрата",
+  "articles": [
+   {
+    "alias": "/stati/gore_i_utrata/proshloe_ne_budet_vnov/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/proshloe_ne_budet_vnov/"
+   },
+   {
+    "alias": "/stati/gore_i_utrata/kak_spravitsya_s_gorem_s_pomoshchyu_gipnoza2/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/kak_spravitsya_s_gorem_s_pomoshchyu_gipnoza2/"
+   },
+   {
+    "alias": "/stati/gore_i_utrata/kak_spravitsya_s_gorem/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/kak_spravitsya_s_gorem/"
+   }
+  ]
+ },
+ {
+  "slug": "kak_brosit_kurit_pod_gipnozom",
+  "name": "Как бросить курить под гипнозом",
+  "articles": [
+   {
+    "alias": "/stati/kak_brosit_kurit_pod_gipnozom/brosit_kurit_s_pomoshchyu_gipnoza_legko/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/brosit_kurit_s_pomoshchyu_gipnoza_legko/"
+   },
+   {
+    "alias": "/stati/kak_brosit_kurit_pod_gipnozom/brosayte_kurit_s_gipnozom/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/brosayte_kurit_s_gipnozom/"
+   }
+  ]
+ },
+ {
+  "slug": "lechenie_depressii_gipnozom",
+  "name": "Лечение депрессии гипнозом",
+  "articles": [
+   {
+    "alias": "/stati/lechenie_depressii_gipnozom/depressiya_chto_eto_simptomy_i_priznaki_depressii/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/depressiya_chto_eto_simptomy_i_priznaki_depressii/"
+   },
+   {
+    "alias": "/stati/lechenie_depressii_gipnozom/antidepressanty/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/antidepressanty/"
+   }
+  ]
+ },
+ {
+  "slug": "lechenie_fobii_gipnozom",
+  "name": "Лечение фобий гипнозом",
+  "articles": [
+   {
+    "alias": "/stati/lechenie_fobii_gipnozom/fobiya_izuchite_svoy_strakh/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/fobiya_izuchite_svoy_strakh/"
+   }
+  ]
+ },
+ {
+  "slug": "obshchenie_vzaimootnosheniya",
+  "name": "Общение, взаимоотношения",
+  "articles": [
+   {
+    "alias": "/stati/obshchenie_vzaimootnosheniya/lyubovnaya_zavisimost_kak_razlyubit_cheloveka/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/lyubovnaya_zavisimost_kak_razlyubit_cheloveka/"
+   },
+   {
+    "alias": "/stati/obshchenie_vzaimootnosheniya/razlyubit_lyubimogo_kak_izbavitsya_ot_lyubovnoy_zavisimosti/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/razlyubit_lyubimogo_kak_izbavitsya_ot_lyubovnoy_zavisimosti/"
+   },
+   {
+    "alias": "/stati/obshchenie_vzaimootnosheniya/komplimenty/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/komplimenty/"
+   },
+   {
+    "alias": "/stati/obshchenie_vzaimootnosheniya/konfliktologiya/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/konfliktologiya/"
+   },
+   {
+    "alias": "/stati/obshchenie_vzaimootnosheniya/emotsionalnyy_intellekt_emotsii_v_zhizni_cheloveka/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/emotsionalnyy_intellekt_emotsii_v_zhizni_cheloveka/"
+   },
+   {
+    "alias": "/stati/obshchenie_vzaimootnosheniya/kak_obresti_lyubov/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/kak_obresti_lyubov/"
+   },
+   {
+    "alias": "/stati/obshchenie_vzaimootnosheniya/kak_raspolozhit_k_sebe_cheloveka/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/kak_raspolozhit_k_sebe_cheloveka/"
+   },
+   {
+    "alias": "/stati/obshchenie_vzaimootnosheniya/razvod/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/razvod/"
+   }
+  ]
+ },
+ {
+  "slug": "zdorove_i_dolgoletie",
+  "name": "Здоровье и долголетие",
+  "articles": [
+   {
+    "alias": "/stati/zdorove_i_dolgoletie/tekhnika_glubokogo_dykhaniya/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/tekhnika_glubokogo_dykhaniya/"
+   },
+   {
+    "alias": "/stati/zdorove_i_dolgoletie/umenie_sravlyatsya_s_protsessom_vyzdorovleniya_gipnoterapiya_prikhodit_na_pomoshch/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/umenie_sravlyatsya_s_protsessom_vyzdorovleniya_gipnoterapiya_prikhodit_na_pomoshch/"
+   },
+   {
+    "alias": "/stati/zdorove_i_dolgoletie/ozdorovlenie_organizma/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/ozdorovlenie_organizma/"
+   },
+   {
+    "alias": "/stati/zdorove_i_dolgoletie/lechenie_gipnozom_gipnoterapiya_psikhosomaticheskikh_zabolevaniy2/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/lechenie_gipnozom_gipnoterapiya_psikhosomaticheskikh_zabolevaniy2/"
+   },
+   {
+    "alias": "/stati/zdorove_i_dolgoletie/bessonnitsa_gipnoz_pomogaet_vernut_zdorovyy_son2/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/bessonnitsa_gipnoz_pomogaet_vernut_zdorovyy_son2/"
+   },
+   {
+    "alias": "/stati/zdorove_i_dolgoletie/izbavtes_ot_golovnoy_boli_s_gipnozom2/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/izbavtes_ot_golovnoy_boli_s_gipnozom2/"
+   },
+   {
+    "alias": "/stati/zdorove_i_dolgoletie/gipnoz_kak_alternativa_obezbolivayushchim_lekarstvam2/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/gipnoz_kak_alternativa_obezbolivayushchim_lekarstvam2/"
+   },
+   {
+    "alias": "/stati/zdorove_i_dolgoletie/gipnoz_zameshchaet_zubnuyu_anesteziyu2/",
+    "canonical": "/stati/lechenie_zabolevaniy_gipnozom/gipnoz_zameshchaet_zubnuyu_anesteziyu2/"
+   }
+  ]
+ }
+]

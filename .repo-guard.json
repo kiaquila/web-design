@@ -5,9 +5,14 @@
     "tests"
   ],
   "projects": [
+    "alphacentr",
     "chaijana"
   ],
   "stageProjects": {
+    "alphacentr": {
+      "rootDirectory": "alphacentr/site",
+      "watchPath": "alphacentr/*"
+    },
     "chaijana": {
       "rootDirectory": "chaijana/website",
       "watchPath": "chaijana/*"

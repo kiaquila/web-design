@@ -12,7 +12,31 @@ The repository remains the source of truth for the Worker name and runtime
 configuration. Cloudflare owns the Git connection and build credentials, so no
 Cloudflare token is stored in GitHub or committed here.
 
-## Current stage
+## Current stages
+
+Each project below needs its own Worker and its own one-time connection.
+
+### Alpha-Centr
+
+| Setting | Value |
+| --- | --- |
+| Worker name | `alphacentr` |
+| Repository | `kiaquila/web-design` |
+| Production branch | `main` |
+| Root directory | `alphacentr/site` |
+| Build command | `npm run build` |
+| Production deploy command | `npm run stage:deploy` |
+| Non-production deploy command | `npm run stage:preview` |
+| Included build watch path | `alphacentr/*` |
+
+The site is static, so Cloudflare serves it with Workers Static Assets from
+`dist/`. `alphacentr/site/worker/index.ts` exists only to attach the security
+headers the asset pipeline does not set on its own.
+
+The stable URL is `https://alphacentr.ks-design.workers.dev`. Pull-request
+previews use the same versioned URL shape documented for Chaijana below.
+
+### Chaijaná
 
 Chaijaná uses this contract:
 
@@ -34,16 +58,22 @@ assigned by Cloudflare and must not be hard-coded.
 
 ## One-time Cloudflare connection
 
+Repeat these steps once per project, using that project's row from the tables
+above. Only the account owner can do this: the build credentials and the Git
+connection live in Cloudflare, and no token is stored in this repository or in
+GitHub Actions.
+
 1. In **Workers & Pages**, choose **Create application**, then **Import a
    repository**, and connect `kiaquila/web-design`.
-2. Name the Worker exactly `chaijana`. Cloudflare requires the dashboard
-   name to match `name` in `chaijana/website/wrangler.json`.
+2. Name the Worker exactly as the project slug (`alphacentr` or `chaijana`).
+   Cloudflare requires the dashboard name to match `name` in that project's
+   `wrangler.json`.
 3. Enter the root, build, production deploy, and non-production deploy values
    from the table above.
 4. Under **Settings → Build → Branch control**, keep `main` as production and
    enable builds for non-production branches.
 5. Under **Settings → Build → Build watch paths**, replace the default include
-   path with `chaijana/*` and leave excludes empty.
+   path with the project's watch path and leave excludes empty.
 6. Save and deploy. If the connection is added after a pull request was opened,
    push a new commit or retry its build to produce the first preview comment.
 
@@ -51,7 +81,7 @@ After this one-time connection, normal work needs no deployment command:
 
 - push a PR branch to refresh its public preview;
 - merge the PR to refresh the stable stage;
-- changes outside `chaijana/*` do not consume a Chaijaná build.
+- changes outside a project's watch path do not consume that project's build.
 
 ## GitHub deployment history
 
