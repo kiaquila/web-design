@@ -80,6 +80,33 @@ test("request markers bind a GitHub Actions comment to the current head", () => 
     "a user-authored forged marker must not be accepted"
   );
   assert.equal(latestCodexReviewRequestMarker([trusted], "new-head"), null);
+  const olderRequestPublishedLater = {
+    ...trusted,
+    body: createCodexReviewRequestMarkerBody({
+      headSha,
+      requestId: "20-abc123def456",
+      sourceCommentId: "20",
+      sourceCommentCreatedAt: "2026-08-05T12:00:00Z",
+      requestedAt: "2026-08-05T12:00:00Z"
+    }),
+    created_at: "2026-08-05T12:00:02Z"
+  };
+  const laterRequestPublishedFirst = {
+    ...trusted,
+    body: createCodexReviewRequestMarkerBody({
+      headSha,
+      requestId: "21-abc123def456",
+      sourceCommentId: "21",
+      sourceCommentCreatedAt: "2026-08-05T12:00:01Z",
+      requestedAt: "2026-08-05T12:00:01Z"
+    }),
+    created_at: "2026-08-05T12:00:01Z"
+  };
+  assert.equal(
+    latestCodexReviewRequestMarker([olderRequestPublishedLater, laterRequestPublishedFirst], headSha)?.sourceCommentId,
+    "21",
+    "markers are ordered by their source request, not delayed marker publication"
+  );
 });
 
 test("the installation PR can bind directly to a trusted request comment", () => {
@@ -158,6 +185,7 @@ test("Codex no-findings summaries must name the reviewed head", () => {
   const summary = {
     body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
     created_at: "2026-08-05T12:01:00Z",
+    id: "31",
     user: codexUser
   };
   assert.equal(isAcceptableCodexSummaryComment(summary, headSha), true);
@@ -170,6 +198,16 @@ test("Codex no-findings summaries must name the reviewed head", () => {
     isAcceptableCodexSummaryComment(summary, headSha, "2026-08-05T12:02:00Z"),
     false,
     "an older summary cannot satisfy a newer review request"
+  );
+  assert.equal(
+    isAcceptableCodexSummaryComment(summary, headSha, "2026-08-05T12:01:00Z", "30"),
+    true,
+    "a same-second summary posted after the request is acceptable"
+  );
+  assert.equal(
+    isAcceptableCodexSummaryComment(summary, headSha, "2026-08-05T12:01:00Z", "32"),
+    false,
+    "a same-second summary posted before the request is rejected"
   );
   assert.equal(isAcceptableCodexSummaryComment({ ...summary, body: "Codex Review: Didn't find any major issues." }, headSha), false);
   assert.equal(isAcceptableCodexSummaryComment({ ...summary, body: summary.body.replace(headSha.slice(0, 10), "0000000000") }, headSha), false);

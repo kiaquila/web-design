@@ -5,6 +5,13 @@ function normalize(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function compareCommentIds(left, right) {
+  if (!/^\d+$/.test(String(left || "")) || !/^\d+$/.test(String(right || ""))) return 0;
+  const leftId = BigInt(left);
+  const rightId = BigInt(right);
+  return leftId === rightId ? 0 : leftId > rightId ? 1 : -1;
+}
+
 export function isTrustedAssociation(value) {
   return TRUSTED_ASSOCIATIONS.has(String(value || "").toUpperCase());
 }
@@ -84,10 +91,11 @@ export function latestCodexReviewRequestMarker(comments = [], headSha) {
     .filter((marker) =>
       marker && marker.author === "github-actions[bot]" && marker.sha === headSha
     )
-    .sort((left, right) =>
-      Date.parse(right.commentCreatedAt || right.requestedAt || "") -
-      Date.parse(left.commentCreatedAt || left.requestedAt || "")
-    )[0] || null;
+    .sort((left, right) => {
+      const byRequestTime = Date.parse(right.sourceCommentCreatedAt || right.requestedAt || "") -
+        Date.parse(left.sourceCommentCreatedAt || left.requestedAt || "");
+      return byRequestTime || compareCommentIds(right.sourceCommentId, left.sourceCommentId);
+    })[0] || null;
 }
 
 export function latestTrustedCodexReviewCommand(comments = [], timeline = [], headSha) {
@@ -153,13 +161,16 @@ export function latestCodexNativeReviewResult(reviews = [], reviewComments = [],
     )[0]?.result || null;
 }
 
-export function isAcceptableCodexSummaryComment(comment, headSha, requestedAt) {
+export function isAcceptableCodexSummaryComment(comment, headSha, requestedAt, sourceCommentId) {
   const body = String(comment?.body || "");
   const shortSha = String(headSha || "").slice(0, 10);
   const commentCreatedAt = Date.parse(comment?.created_at || "");
   const requestTime = Date.parse(requestedAt || "");
+  const ordering = commentCreatedAt === requestTime
+    ? compareCommentIds(comment?.id, sourceCommentId) > 0
+    : commentCreatedAt > requestTime;
   const isAfterRequest = !requestedAt ||
-    (Number.isFinite(commentCreatedAt) && Number.isFinite(requestTime) && commentCreatedAt >= requestTime);
+    (Number.isFinite(commentCreatedAt) && Number.isFinite(requestTime) && ordering);
   return isAfterRequest &&
     isTrustedCodexLogin(comment?.user?.login) &&
     /^Codex Review:\s*Didn't find any major issues\./im.test(body) &&

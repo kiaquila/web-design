@@ -101,7 +101,8 @@ async function fetchEvidence() {
   return comments.some((comment) => isAcceptableCodexSummaryComment(
     comment,
     headSha,
-    requestMarker.sourceCommentCreatedAt || requestMarker.requestedAt || requestMarker.commentCreatedAt
+    requestMarker.sourceCommentCreatedAt || requestMarker.requestedAt || requestMarker.commentCreatedAt,
+    requestMarker.sourceCommentId
   ))
     ? "pass"
     : "pending";
