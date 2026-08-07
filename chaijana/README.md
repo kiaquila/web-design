@@ -20,7 +20,7 @@ then run `npm test` in `website/` before publishing.
 the `image-size` 2.0.2 runtime with local guards against malformed HEIF, ICNS,
 and JXL input while upstream has no fixed release. Its provenance, license, and
 removal condition are documented in that directory and in
-[`third-party-notices.md`](./third-party-notices.md).
+[`third-party-notices.md`](../third-party-notices.md).
 
 The temporary customer stage is deployed as the `chaijana` Cloudflare Worker at
 `https://chaijana.ks-design.workers.dev`. Merges to `main` update the stable
