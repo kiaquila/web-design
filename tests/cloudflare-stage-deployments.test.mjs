@@ -1,13 +1,30 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import {
+  changedFiles,
   configuredStages,
   matchingCloudflareCheck,
   registerSuccessfulDeployment,
   selectChangedStages,
   waitForSuccessfulCloudflareCheck
 } from "../scripts/register-cloudflare-stage-deployments.mjs";
+
+function git(root, ...args) {
+  const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.trim();
+}
 
 test("derives a permanent environment and URL for each configured stage", () => {
   assert.deepEqual(
@@ -43,6 +60,36 @@ test("selects only stages whose project paths changed", () => {
     [stages[1]]
   );
   assert.deepEqual(selectChangedStages(stages, ["docs/stage-hosting.md"]), []);
+});
+
+test("keeps the source path when a staged file is renamed elsewhere", () => {
+  const root = mkdtempSync(join(tmpdir(), "web-design-stage-diff-"));
+  try {
+    git(root, "init", "-q");
+    git(root, "config", "user.name", "Test");
+    git(root, "config", "user.email", "test@example.com");
+    mkdirSync(join(root, "chaijana"));
+    mkdirSync(join(root, "docs"));
+    writeFileSync(join(root, "chaijana", "page.html"), "stage\n");
+    git(root, "add", ".");
+    git(root, "commit", "-qm", "Add stage file");
+    const before = git(root, "rev-parse", "HEAD");
+
+    renameSync(
+      join(root, "chaijana", "page.html"),
+      join(root, "docs", "page.html")
+    );
+    git(root, "add", "-A");
+    git(root, "commit", "-qm", "Move stage file");
+    const after = git(root, "rev-parse", "HEAD");
+
+    assert.deepEqual(changedFiles(root, before, after), [
+      "chaijana/page.html",
+      "docs/page.html"
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("matches only the newest check from the Cloudflare app", () => {

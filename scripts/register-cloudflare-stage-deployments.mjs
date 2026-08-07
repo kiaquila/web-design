@@ -49,12 +49,19 @@ export function matchingCloudflareCheck(checks, checkName) {
     .sort((left, right) => Number(right.id) - Number(left.id))[0];
 }
 
-function changedFiles(root, beforeSha, targetSha) {
+export function changedFiles(root, beforeSha, targetSha) {
   if (!beforeSha || ZERO_SHA.test(beforeSha)) return null;
 
   const result = spawnSync(
     "git",
-    ["diff", "--name-only", "--diff-filter=ACMRD", beforeSha, targetSha],
+    [
+      "diff",
+      "--no-renames",
+      "--name-only",
+      "--diff-filter=ACMRD",
+      beforeSha,
+      targetSha
+    ],
     { cwd: root, encoding: "utf8" }
   );
 
