@@ -1,0 +1,25 @@
+{
+  "name": "image-size",
+  "version": "2.0.3-patched.1",
+  "description": "Security-patched local runtime for vinext metadata image dimensions",
+  "type": "module",
+  "main": "./runtime/index.cjs",
+  "module": "./runtime/index.mjs",
+  "types": "./runtime/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./runtime/index.d.ts",
+        "default": "./runtime/index.mjs"
+      },
+      "require": {
+        "types": "./runtime/index.d.ts",
+        "default": "./runtime/index.cjs"
+      }
+    }
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "MIT"
+}

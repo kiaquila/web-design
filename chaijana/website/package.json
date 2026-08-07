@@ -6,7 +6,8 @@
     "node": ">=22.18.0"
   },
   "overrides": {
-    "undici": "7.29.0"
+    "undici": "7.29.0",
+    "image-size": "$image-size"
   },
   "scripts": {
     "dev": "npm run sync:menu && WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
@@ -15,7 +16,7 @@
     "stage:deploy": "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy",
     "stage:preview": "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler versions upload",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .wrangler"
   },
   "dependencies": {
@@ -32,6 +33,7 @@
     "@vitejs/plugin-rsc": "0.5.32",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.0",
+    "image-size": "file:vendor/image-size",
     "react-server-dom-webpack": "19.2.8",
     "typescript": "5.9.3",
     "vinext": "0.2.1",
