@@ -225,3 +225,11 @@ test("mobile navigation uses the CSS breakpoint", () => {
   assert.match(nav, /matchMedia\("\(max-width: 960px\)"\)/);
   assert.match(layout, /@media \(max-width: 960px\)/);
 });
+
+test("static assets pass through the security-header Worker", () => {
+  const wrangler = JSON.parse(
+    readFileSync(join(import.meta.dirname, "..", "wrangler.json"), "utf8")
+  );
+
+  assert.equal(wrangler.assets.run_worker_first, true);
+});
