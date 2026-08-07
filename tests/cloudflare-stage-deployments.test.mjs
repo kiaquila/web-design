@@ -5,6 +5,7 @@ import {
   mkdtempSync,
   renameSync,
   rmSync,
+  symlinkSync,
   writeFileSync
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -87,6 +88,31 @@ test("keeps the source path when a staged file is renamed elsewhere", () => {
       "chaijana/page.html",
       "docs/page.html"
     ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("includes staged files whose Git type changed", () => {
+  const root = mkdtempSync(join(tmpdir(), "web-design-stage-type-change-"));
+  try {
+    git(root, "init", "-q");
+    git(root, "config", "user.name", "Test");
+    git(root, "config", "user.email", "test@example.com");
+    mkdirSync(join(root, "chaijana"));
+    writeFileSync(join(root, "target.html"), "target\n");
+    writeFileSync(join(root, "chaijana", "page.html"), "stage\n");
+    git(root, "add", ".");
+    git(root, "commit", "-qm", "Add stage file");
+    const before = git(root, "rev-parse", "HEAD");
+
+    rmSync(join(root, "chaijana", "page.html"));
+    symlinkSync("../target.html", join(root, "chaijana", "page.html"));
+    git(root, "add", "-A");
+    git(root, "commit", "-qm", "Change stage file to a symlink");
+    const after = git(root, "rev-parse", "HEAD");
+
+    assert.deepEqual(changedFiles(root, before, after), ["chaijana/page.html"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

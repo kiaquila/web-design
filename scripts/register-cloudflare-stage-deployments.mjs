@@ -58,7 +58,7 @@ export function changedFiles(root, beforeSha, targetSha) {
       "diff",
       "--no-renames",
       "--name-only",
-      "--diff-filter=ACMRD",
+      "--diff-filter=ACMRTD",
       beforeSha,
       targetSha
     ],

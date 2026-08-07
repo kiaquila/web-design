@@ -16,6 +16,12 @@ The website build synchronizes the generated menu into its public output. Edit
 menu content only in `menu/src/menu-data.ts`, run `npm run check` in `menu/`,
 then run `npm test` in `website/` before publishing.
 
+`website/vendor/image-size/` is a deliberately versioned dependency: it vendors
+the `image-size` 2.0.2 runtime with local guards against malformed HEIF, ICNS,
+and JXL input while upstream has no fixed release. Its provenance, license, and
+removal condition are documented in that directory and in
+[`third-party-notices.md`](./third-party-notices.md).
+
 The temporary customer stage is deployed as the `chaijana` Cloudflare Worker at
 `https://chaijana.ks-design.workers.dev`. Merges to `main` update the stable
 stage; non-production branches upload isolated preview versions without
