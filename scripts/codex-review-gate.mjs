@@ -15,6 +15,7 @@ const maxWaitMs = Number(process.env.CODEX_REVIEW_WAIT_MS || 30000);
 const pollMs = Number(process.env.CODEX_REVIEW_POLL_MS || 5000);
 const debounceMs = Number(process.env.CODEX_REVIEW_DEBOUNCE_MS || 5000);
 const bootstrap = process.env.CODEX_REVIEW_BOOTSTRAP === "true";
+const requireHeadMatch = process.env.CODEX_REVIEW_REQUIRE_HEAD_MATCH === "true";
 
 if (!token || !repository || !prNumber) {
   console.error("GITHUB_TOKEN, GITHUB_REPOSITORY, and CODEX_REVIEW_PR_NUMBER are required.");
@@ -103,6 +104,10 @@ if (Number.isFinite(debounceMs) && debounceMs > 0) {
   await new Promise((resolve) => setTimeout(resolve, debounceMs));
 }
 if (!await currentHeadMatches()) {
+  if (requireHeadMatch) {
+    console.error(`Codex Review failed: selected ref ${headSha} is not the current head of PR #${prNumber}.`);
+    process.exit(1);
+  }
   console.log(`Codex Review skipped stale run for ${headSha}; PR head changed during debounce.`);
   process.exit(0);
 }

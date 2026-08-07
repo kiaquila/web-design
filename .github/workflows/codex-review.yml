@@ -41,7 +41,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CODEX_REVIEW_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
-          CODEX_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CODEX_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CODEX_REVIEW_REQUIRE_HEAD_MATCH: ${{ github.event_name == 'workflow_dispatch' }}
           CODEX_REVIEW_WAIT_MS: "30000"
           CODEX_REVIEW_POLL_MS: "5000"
           CODEX_REVIEW_DEBOUNCE_MS: "5000"
