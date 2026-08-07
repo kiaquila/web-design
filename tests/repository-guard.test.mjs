@@ -81,8 +81,9 @@ function makeFixture() {
       "on: issue_comment",
       "permissions:",
       "  contents: read",
+      "  pull-requests: write",
       "jobs:",
-      "  request:",
+      "  codex-review-request:",
       "    runs-on: ubuntu-latest",
       "    steps:",
       `      - uses: actions/checkout@${checkoutSha}`,
@@ -347,5 +348,53 @@ test("rejects commented-out Codex Review gate invariants", () => {
     const result = runGuard(root);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Codex Review workflow is missing trusted gate invariant/);
+  });
+});
+
+test("rejects a Codex Review Request job that overrides trusted workflow permissions", () => {
+  withFixture((root) => {
+    write(root, ".github/workflows/codex-review-request.yml", [
+      "name: Codex Review Request", "on: issue_comment", "permissions:",
+      "  contents: read", "  pull-requests: write", "jobs:", "  codex-review-request:",
+      "    name: Trusted request", "    permissions:", "      contents: read",
+      "    runs-on: ubuntu-latest", "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`, ""
+    ].join("\n"));
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Codex Review Request job must not override its trusted workflow permissions/);
+  });
+});
+
+test("rejects a Codex Review Request job with a quoted permission override key", () => {
+  withFixture((root) => {
+    write(root, ".github/workflows/codex-review-request.yml", [
+      "name: Codex Review Request", "on: issue_comment", "permissions:",
+      "  contents: read", "  pull-requests: write", "jobs:", "  codex-review-request:",
+      "    name: Trusted request", '    "permissions":', "      contents: read",
+      "    runs-on: ubuntu-latest", "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`, ""
+    ].join("\n"));
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Codex Review Request job must not override its trusted workflow permissions/);
+  });
+});
+
+test("rejects a Codex Review Request job with a spaced permission-key colon", () => {
+  withFixture((root) => {
+    write(root, ".github/workflows/codex-review-request.yml", [
+      "name: Codex Review Request", "on: issue_comment", "permissions:",
+      "  contents: read", "  pull-requests: write", "jobs:", "  codex-review-request:",
+      "    name: Trusted request", "    permissions :", "      contents: read",
+      "    runs-on: ubuntu-latest", "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`, ""
+    ].join("\n"));
+    git(root, "add", "-A");
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Codex Review Request job must not override its trusted workflow permissions/);
   });
 });
