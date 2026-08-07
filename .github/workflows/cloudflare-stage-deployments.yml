@@ -1,0 +1,45 @@
+name: Cloudflare Stage Deployments
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Project slug from .repo-guard.json, or all
+        required: true
+        default: all
+        type: string
+      deployment_sha:
+        description: Commit SHA already deployed by Cloudflare; defaults to current main
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  checks: read
+  deployments: write
+
+concurrency:
+  group: cloudflare-stage-deployments-${{ inputs.deployment_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  register-stages:
+    name: Register permanent stages
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for Cloudflare and register successful deployments
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ inputs.deployment_sha || github.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          STAGE_PROJECT: ${{ inputs.project }}
+        run: node scripts/register-cloudflare-stage-deployments.mjs

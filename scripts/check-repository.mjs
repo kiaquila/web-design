@@ -48,6 +48,7 @@ const requiredRootFiles = [
   ".github/workflows/codex-review.yml",
   ".github/workflows/codex-review-request.yml",
   ".github/workflows/codex-review-rerun.yml",
+  ".github/workflows/cloudflare-stage-deployments.yml",
   ".github/workflows/repository-guard.yml",
   "AGENTS.md",
   "CLAUDE.md",
@@ -58,7 +59,9 @@ const requiredRootFiles = [
   "scripts/codex-review-helpers.mjs",
   "scripts/codex-review-request.mjs",
   "scripts/codex-review-rerun.mjs",
+  "scripts/register-cloudflare-stage-deployments.mjs",
   "scripts/check-repository.mjs",
+  "tests/cloudflare-stage-deployments.test.mjs",
   "tests/codex-review-gate.test.mjs",
   "tests/repository-guard.test.mjs",
   "third-party-notices.md"

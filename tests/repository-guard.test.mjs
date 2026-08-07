@@ -42,6 +42,8 @@ function makeFixture() {
   write(root, "scripts/codex-review-helpers.mjs");
   write(root, "scripts/codex-review-request.mjs");
   write(root, "scripts/codex-review-rerun.mjs");
+  write(root, "scripts/register-cloudflare-stage-deployments.mjs");
+  write(root, "tests/cloudflare-stage-deployments.test.mjs");
   write(root, "tests/codex-review-gate.test.mjs");
   write(root, "tests/repository-guard.test.mjs");
   write(root, "third-party-notices.md");
@@ -100,6 +102,23 @@ function makeFixture() {
       "  contents: read",
       "jobs:",
       "  rerun:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`,
+      ""
+    ].join("\n")
+  );
+  write(
+    root,
+    ".github/workflows/cloudflare-stage-deployments.yml",
+    [
+      "name: Cloudflare Stage Deployments",
+      "on: push",
+      "permissions:",
+      "  contents: read",
+      "  deployments: write",
+      "jobs:",
+      "  register:",
       "    runs-on: ubuntu-latest",
       "    steps:",
       `      - uses: actions/checkout@${checkoutSha}`,
