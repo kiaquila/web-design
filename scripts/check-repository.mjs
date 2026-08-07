@@ -376,7 +376,7 @@ if (files.includes(codexReviewRequestWorkflow)) {
   const requestJob = nextJobOffset === -1
     ? requestJobTail
     : requestJobTail.slice(0, nextJobOffset);
-  if (!requestJobMatch || /^ {4}(?:permissions|["']permissions["']):/m.test(requestJob)) {
+  if (!requestJobMatch || /^ {4}(?:permissions|["']permissions["'])[ \t]*:/m.test(requestJob)) {
     fail("Codex Review Request job must not override its trusted workflow permissions.");
   }
 }
