@@ -128,7 +128,9 @@ if (
 
     const expectedRootPrefix = `${project}/`;
     const expectedWatchPath = `${project}/*`;
-    const expectedWorkerName = `design-${project}`;
+    const preferredWorkerName = project;
+    const legacyWorkerName = `design-${project}`;
+    const acceptedWorkerNames = [preferredWorkerName, legacyWorkerName];
 
     if (
       typeof stage.rootDirectory !== "string" ||
@@ -175,9 +177,10 @@ if (
       continue;
     }
 
-    if (wrangler.name !== expectedWorkerName) {
+    if (!acceptedWorkerNames.includes(wrangler.name)) {
       fail(
-        `Stage Worker for ${project} must be named ${expectedWorkerName}, ` +
+        `Stage Worker for ${project} must be named ${preferredWorkerName} ` +
+          `(legacy ${legacyWorkerName} is temporarily accepted), ` +
           `received ${JSON.stringify(wrangler.name)}`
       );
     }
