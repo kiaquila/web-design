@@ -30,11 +30,9 @@ and project-specific test commands. It should not repeat the entire root file.
 - explicit least-privilege workflow permissions;
 - commit-SHA pinning for external GitHub Actions;
 - absence of the high-risk `pull_request_target` trigger.
-- consistency of active temporary stages: project-local Worker names and
-  Wrangler configuration, public preview URLs, and standard deploy scripts.
-  During the move from `design-<slug>` to `<slug>`, the guard temporarily
-  accepts both names. A follow-up change will remove the legacy form after the
-  Cloudflare Worker and repository configuration move together.
+- consistency of active temporary stages: every Worker name must match its
+  project slug, with project-local Wrangler configuration, public preview URLs,
+  and standard deploy scripts.
 
 The PR workflow checks out policy code from the default branch and runs that
 trusted copy against the proposed PR tree. On the first installation only, when
