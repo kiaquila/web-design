@@ -153,10 +153,15 @@ export function latestCodexNativeReviewResult(reviews = [], reviewComments = [],
     )[0]?.result || null;
 }
 
-export function isAcceptableCodexSummaryComment(comment, headSha) {
+export function isAcceptableCodexSummaryComment(comment, headSha, requestedAt) {
   const body = String(comment?.body || "");
   const shortSha = String(headSha || "").slice(0, 10);
-  return isTrustedCodexLogin(comment?.user?.login) &&
+  const commentCreatedAt = Date.parse(comment?.created_at || "");
+  const requestTime = Date.parse(requestedAt || "");
+  const isAfterRequest = !requestedAt ||
+    (Number.isFinite(commentCreatedAt) && Number.isFinite(requestTime) && commentCreatedAt >= requestTime);
+  return isAfterRequest &&
+    isTrustedCodexLogin(comment?.user?.login) &&
     /^Codex Review:\s*Didn't find any major issues\./im.test(body) &&
     Boolean(shortSha) &&
     new RegExp(`\\*\\*Reviewed commit:\\*\\*\\s*\\\`${shortSha}\\\``, "i").test(body);

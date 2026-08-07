@@ -157,9 +157,20 @@ test("native Codex reviews are current-head and P0-P2 blocking", () => {
 test("Codex no-findings summaries must name the reviewed head", () => {
   const summary = {
     body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+    created_at: "2026-08-05T12:01:00Z",
     user: codexUser
   };
   assert.equal(isAcceptableCodexSummaryComment(summary, headSha), true);
+  assert.equal(
+    isAcceptableCodexSummaryComment(summary, headSha, "2026-08-05T12:00:00Z"),
+    true,
+    "a current-head summary posted after the request is acceptable"
+  );
+  assert.equal(
+    isAcceptableCodexSummaryComment(summary, headSha, "2026-08-05T12:02:00Z"),
+    false,
+    "an older summary cannot satisfy a newer review request"
+  );
   assert.equal(isAcceptableCodexSummaryComment({ ...summary, body: "Codex Review: Didn't find any major issues." }, headSha), false);
   assert.equal(isAcceptableCodexSummaryComment({ ...summary, body: summary.body.replace(headSha.slice(0, 10), "0000000000") }, headSha), false);
 });

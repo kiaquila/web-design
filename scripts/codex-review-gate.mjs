@@ -98,7 +98,11 @@ async function fetchEvidence() {
   );
   if (nativeResult) return nativeResult;
 
-  return comments.some((comment) => isAcceptableCodexSummaryComment(comment, headSha))
+  return comments.some((comment) => isAcceptableCodexSummaryComment(
+    comment,
+    headSha,
+    requestMarker.sourceCommentCreatedAt || requestMarker.requestedAt || requestMarker.commentCreatedAt
+  ))
     ? "pass"
     : "pending";
 }
