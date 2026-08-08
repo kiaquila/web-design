@@ -29,6 +29,16 @@ async function renderUrl(pathname) {
   );
 }
 
+function rootTokens(stylesheet) {
+  const rootBlock = stylesheet.match(/:root\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+  return Object.fromEntries(
+    [...rootBlock.matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map(([, name, value]) => [
+      name,
+      value.trim(),
+    ]),
+  );
+}
+
 test("server-renders the complete Spanish restaurant website", async () => {
   const response = await render();
   assert.equal(response.status, 200);
@@ -57,6 +67,25 @@ test("server-renders the complete Spanish restaurant website", async () => {
   assert.equal((html.match(/class="event-card"/g) ?? []).length, 3);
   assert.equal((html.match(/class="gallery-band__item/g) ?? []).length, 4);
   assert.equal((html.match(/class="gallery-duo"/g) ?? []).length, 1);
+});
+
+test("keeps the shared tracking scale synchronized with the standalone menu", async () => {
+  const [menuStylesheet, websiteStylesheet] = await Promise.all([
+    readFile(new URL("../menu/src/styles.css", root), "utf8"),
+    readFile(new URL("app/globals.css", root), "utf8"),
+  ]);
+  const menuTokens = rootTokens(menuStylesheet);
+  const websiteTokens = rootTokens(websiteStylesheet);
+  const trackingTokens = ["--track-display", "--track-title", "--track-body", "--track-label"];
+
+  for (const token of trackingTokens) {
+    assert.ok(menuTokens[token], `${token} must exist in the menu stylesheet`);
+    assert.equal(websiteTokens[token], menuTokens[token], `${token} must match the menu stylesheet`);
+  }
+
+  assert.match(websiteStylesheet, /letter-spacing:\s*var\(--track-body\)/);
+  assert.match(websiteStylesheet, /letter-spacing:\s*var\(--track-display\)/);
+  assert.match(websiteStylesheet, /letter-spacing:\s*var\(--track-label\)/);
 });
 
 test("renders complete English and Russian variants with localized menu paths", async () => {
