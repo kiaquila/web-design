@@ -86,7 +86,7 @@ export function masthead(page) {
       </nav>
 
       <div class="masthead__actions">
-        <a class="masthead__phone" href="${site.phoneHref}">${site.phone}</a>
+        <a class="masthead__contact" href="mailto:${site.email}">${site.email}</a>
       </div>
     </div>
   </header>`;

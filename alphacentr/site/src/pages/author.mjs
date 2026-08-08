@@ -193,10 +193,6 @@ function contactsRoute() {
                 </dd>
               </div>
               <div>
-                <dt>Телефон</dt>
-                <dd><a href="${site.phoneHref}">${site.phone}</a></dd>
-              </div>
-              <div>
                 <dt>Режим работы</dt>
                 <dd>${site.hours}</dd>
               </div>
@@ -220,7 +216,7 @@ function contactsRoute() {
       path: "/avtor/kontakty/",
       navId: "contacts",
       title: "Контакты",
-      description: `Связаться с автором проекта: ${site.email}, ${site.phone}, ${site.hours}.`,
+      description: `Связаться с автором проекта: ${site.email}, ${site.hours}.`,
       body
     })
   };
