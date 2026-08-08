@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { access, readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
+const execFileAsync = promisify(execFile);
 
 async function render(lang = "es") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -158,6 +162,17 @@ test("ships the official optimized restaurant asset set", async () => {
       access(new URL(`public/images/restaurant/restaurant-gallery-${String(index + 1).padStart(2, "0")}.webp`, root)),
     ),
   ]);
+});
+
+test("font sync removes retired files from incremental builds", async () => {
+  const staleFont = new URL("public/fonts/cormorant-garamond-latin.woff2", root);
+  await writeFile(staleFont, "retired font fixture");
+
+  await execFileAsync(process.execPath, [fileURLToPath(new URL("scripts/sync-menu.mjs", root))], {
+    cwd: fileURLToPath(root),
+  });
+
+  await assert.rejects(access(staleFont), { code: "ENOENT" });
 });
 
 test("embeds the standalone multilingual menu at the public menu route", async () => {

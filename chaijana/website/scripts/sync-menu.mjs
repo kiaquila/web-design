@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const websiteRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const menuRoot = join(websiteRoot, "..", "menu");
 const destination = join(websiteRoot, "public", "menu");
+const fontDestination = join(websiteRoot, "public", "fonts");
 
 await rm(destination, { force: true, recursive: true });
 await mkdir(destination, { recursive: true });
@@ -19,9 +20,12 @@ for (const file of ["index.html", "en.html", "ru.html"]) {
 await cp(join(menuRoot, "assets"), join(destination, "assets"), { recursive: true });
 
 // The site loads the same display face as the menu. Serve one copy, generated
-// here, instead of committing the five woff2 binaries a second time — two
+// here, instead of committing the eight WOFF2 binaries a second time — two
 // tracked copies drift and double the cache keys in production.
-await cp(join(menuRoot, "assets", "fonts"), join(websiteRoot, "public", "fonts"), {
+// Clear the generated directory so retired font files cannot survive an
+// incremental build after the source inventory changes.
+await rm(fontDestination, { force: true, recursive: true });
+await cp(join(menuRoot, "assets", "fonts"), fontDestination, {
   force: true,
   recursive: true,
 });
