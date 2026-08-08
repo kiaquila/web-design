@@ -19,7 +19,7 @@ const sectionImages = {
   desayunos: "assets/dishes/draniki-salmon.webp",
   ensaladas: "assets/dishes/crispy-eggplant.webp",
   horno: "assets/dishes/adjarian-khachapuri.webp",
-  sopas: "assets/dishes/suyru-lagman.webp",
+  sopas: "assets/dishes/borscht.webp",
   parrilla: "assets/dishes/lula-kebab.webp",
   casa: "assets/dishes/uzbek-plov.webp",
   vapor: "assets/dishes/manti.webp",
@@ -35,6 +35,7 @@ const sectionImages = {
 const sectionImageAlts = {
   desayunos: ["Draniky o bliny con salmón", "Draniki or bliny with salmon", "Драники или блины с лососем"],
   horno: ["Khachapuri estilo Adjarian", "Adjarian khachapuri", "Хачапури по-аджарски"],
+  sopas: ["Borscht", "Borscht", "Борщ"],
   casa: ["Plov uzbeko", "Uzbek plov", "Узбекский плов"],
   vapor: ["Manti", "Manti", "Манты"],
   infantil: ["Medallones de pollo al vapor", "Steamed chicken medallions", "Куриные котлетки на пару"],

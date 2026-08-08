@@ -1,7 +1,8 @@
 {
   "current": {
-    "source": "Client-supplied photography, delivered 2026-08-07",
+    "source": "Client-supplied photography, delivered 2026-08-07 and 2026-08-08",
     "note": "Square 1254 x 1254 PNG masters, re-shot/re-rendered by the client to replace the low-resolution extracts previously pulled from the printed PDF. Converted to WebP with cwebp -q 82..86; the PNG masters are not tracked here.",
+    "medallion_fit": "The medallion crops each square to its inscribed circle and then lays an inner vignette over the outer rim, so the dish has to stay inside roughly 0.90 of the frame radius. Measured across this set the dish reaches 0.72-0.90 of the radius; anything at or above 1.0 is clipped.",
     "exports": [
       {
         "file": "chaijana-experiences.webp",
@@ -17,7 +18,14 @@
       {
         "file": "adjarian-khachapuri.webp",
         "dish_or_section": "Khachapuri estilo Adjarian",
-        "shows": "Boat-shaped khachapuri with cheese and egg yolk"
+        "shows": "Boat-shaped khachapuri with cheese and egg yolk",
+        "note": "Re-exported 2026-08-08 with breathing room. As delivered, the boat lay corner to corner and reached 1.012 of the frame radius, so the circular medallion sliced off its lower-right tip on both the menu and the site's carta strip. The framing is unchanged apart from scale: the master was scaled to 0.85 about its centre and the surrounding dark ground extended to the original edge (magick -virtual-pixel edge -distort SRT '0.85 0'), putting the dish at 0.86 of the radius, level with manti.webp. Nothing was retouched, recoloured, or recomposed."
+      },
+      {
+        "file": "borscht.webp",
+        "dish_or_section": "Borscht",
+        "shows": "Bowl of borscht with beef, dill and shredded beetroot, with Borodinsky rye, garlic and sour cream alongside",
+        "note": "Supplied by the project owner on 2026-08-08 in the same 1254 x 1254 format as the 2026-08-07 set. Used as delivered: the dish sits at 0.85 of the frame radius, inside the medallion crop. This is the first photograph for the soups section, which had been running without a medallion."
       },
       {
         "file": "uzbek-plov.webp",
@@ -73,7 +81,7 @@
     },
     {
       "file": "suyru-lagman.webp",
-      "reason": "The official soup-page noodle photo may depict Suyru lagman or Lagman espeso; the PDF does not uniquely tie it to one item."
+      "reason": "The official soup-page noodle photo may depict Suyru lagman or Lagman espeso; the PDF does not uniquely tie it to one item. No longer a build hook: the soups medallion is borscht.webp as of 2026-08-08. Restoring a lagman photo means deciding which of the two lagmans it shows and choosing which dish carries the section."
     },
     {
       "file": "lula-kebab.webp",
