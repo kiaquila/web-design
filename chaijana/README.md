@@ -3,8 +3,8 @@
 **Chaijaná Noir** is the approved redesign concept for Chaijaná: an intimate,
 nocturnal expression of the restaurant's Central Asian identity, built around
 warm near-black surfaces, restrained gold-leaf detail, editorial food imagery,
-and Cormorant Garamond display typography. The concept name and direction apply
-to both deliverables in this directory.
+and Playfair Display typography over a Manrope text face. The concept name and
+direction apply to both deliverables in this directory.
 
 This directory keeps the two Chaijaná deliverables separate while publishing
 them as one experience:
@@ -30,8 +30,8 @@ Repository-wide setup and retirement instructions live in
 [`../docs/stage-hosting.md`](../docs/stage-hosting.md).
 
 Both share one design system — **Chaijaná Noir**: warm near-black ground, a
-gold-leaf accent ramp, self-hosted Cormorant Garamond for display, and inline
-SVG arabesque ornaments.
+gold-leaf accent ramp, self-hosted Playfair Display for display and Manrope for
+text, and inline SVG arabesque ornaments.
 
 **The two stylesheets are synchronised by hand, on purpose.** `menu/` must open
 straight from a clone with no build step and no network, so it cannot import

@@ -6,9 +6,17 @@
 1.1, © The Inter Project Authors. Cyrillic and Latin subsets are self-hosted; the
 licence text is kept beside the files as `OFL-Inter.txt`.
 
-**Cormorant Garamond** (`chaijana/menu/assets/fonts/`, `chaijana/website/public/fonts/`)
-— SIL Open Font License 1.1, © the Cormorant Project Authors. Licence text is
-kept beside the files as `OFL.txt`.
+**Playfair Display** (`chaijana/menu/assets/fonts/playfair-display-*.woff2`,
+`chaijana/website/public/fonts/`) — SIL Open Font License 1.1, © The Playfair
+Display Project Authors, with Reserved Font Name "Playfair Display". Licence
+text is kept beside the files as `OFL-PlayfairDisplay.txt`.
+
+**Manrope** (`chaijana/menu/assets/fonts/manrope-*.woff2`,
+`chaijana/website/public/fonts/`) — SIL Open Font License 1.1, © The Manrope
+Project Authors. Licence text is kept beside the files as `OFL-Manrope.txt`.
+
+Playfair Display and Manrope replaced Cormorant Garamond, which is no longer
+shipped.
 
 ## Software
 

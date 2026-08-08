@@ -103,8 +103,9 @@ test("ships the official optimized restaurant asset set", async () => {
   assert.doesNotMatch(packageJson, /tailwindcss/);
   assert.match(stylesheet, /grid-area: navigation/);
   assert.match(stylesheet, /\.primary-nav::-webkit-scrollbar/);
-  // the site shares the carta's self-hosted display face; no remote font CSS
-  assert.match(stylesheet, /font-family: "Cormorant Garamond"/);
+  // the site shares the carta's self-hosted faces; no remote font CSS
+  assert.match(stylesheet, /font-family: "Playfair Display"/);
+  assert.match(stylesheet, /font-family: Manrope/);
   assert.doesNotMatch(stylesheet, /@import|fonts\.googleapis|fonts\.gstatic/);
 
   await Promise.all([
@@ -115,12 +116,15 @@ test("ships the official optimized restaurant asset set", async () => {
     access(new URL("public/images/restaurant/event-live-music.webp", root)),
     access(new URL("public/images/restaurant/social-preview.webp", root)),
     ...[
-      "cyrillic",
-      "latin",
-      "latin-ext",
-      "italic-cyrillic",
-      "italic-latin",
-    ].map((subset) => access(new URL(`public/fonts/cormorant-garamond-${subset}.woff2`, root))),
+      "playfair-display-cyrillic",
+      "playfair-display-latin",
+      "playfair-display-latin-ext",
+      "playfair-display-italic-cyrillic",
+      "playfair-display-italic-latin",
+      "manrope-cyrillic",
+      "manrope-latin",
+      "manrope-latin-ext",
+    ].map((file) => access(new URL(`public/fonts/${file}.woff2`, root))),
     ...Array.from({ length: 8 }, (_, index) =>
       access(new URL(`public/images/restaurant/restaurant-gallery-${String(index + 1).padStart(2, "0")}.webp`, root)),
     ),
@@ -145,7 +149,8 @@ test("embeds the standalone multilingual menu at the public menu route", async (
   await access(new URL("public/menu/assets/dishes/uzbek-plov.webp", root));
   await access(new URL("public/menu/assets/chaijana-wordmark.svg", root));
   await access(new URL("public/menu/assets/bonpunto-logo.svg", root));
-  await access(new URL("public/menu/assets/fonts/cormorant-garamond-latin.woff2", root));
+  await access(new URL("public/menu/assets/fonts/playfair-display-latin.woff2", root));
+  await access(new URL("public/menu/assets/fonts/manrope-latin.woff2", root));
 });
 
 test("every local asset the rendered pages reference is actually shipped", async () => {

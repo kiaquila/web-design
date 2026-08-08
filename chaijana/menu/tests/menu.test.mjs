@@ -204,12 +204,34 @@ test("stylesheet has no remote dependency and stays compact", async () => {
   assert.ok((await stat(cssPath)).size < 40_000);
 });
 
-test("display typeface is self-hosted and subsetted per script", async () => {
+test("typefaces are self-hosted and subsetted per script", async () => {
   const css = await readFile(join(root, "assets", "menu.css"), "utf8");
-  for (const subset of ["cyrillic", "latin", "latin-ext", "italic-cyrillic", "italic-latin"]) {
-    const file = join(root, "assets", "fonts", `cormorant-garamond-${subset}.woff2`);
-    assert.ok(existsSync(file), `missing self-hosted subset ${subset}`);
-    assert.match(css, new RegExp(`fonts/cormorant-garamond-${subset}\\.woff2`));
+  const families = {
+    // display face: needs an italic cut for the subtitles and section intros
+    "playfair-display": ["cyrillic", "latin", "latin-ext", "italic-cyrillic", "italic-latin"],
+    // text/UI face: upright only
+    manrope: ["cyrillic", "latin", "latin-ext"],
+  };
+  for (const [family, subsets] of Object.entries(families)) {
+    for (const subset of subsets) {
+      const file = join(root, "assets", "fonts", `${family}-${subset}.woff2`);
+      assert.ok(existsSync(file), `missing self-hosted subset ${family}-${subset}`);
+      assert.match(css, new RegExp(`fonts/${family}-${subset}\\.woff2`));
+    }
   }
   assert.match(css, /unicode-range: U\+0301, U\+0400-045F/);
+});
+
+test("each page preloads only the subsets its own script needs", async () => {
+  for (const [file, script, otherScript] of [
+    ["index.html", "latin", "cyrillic"],
+    ["en.html", "latin", "cyrillic"],
+    ["ru.html", "cyrillic", "latin"],
+  ]) {
+    const html = await readFile(join(root, file), "utf8");
+    for (const family of ["playfair-display", "manrope"]) {
+      assert.match(html, new RegExp(`rel="preload"[^>]*${family}-${script}\\.woff2`));
+      assert.doesNotMatch(html, new RegExp(`rel="preload"[^>]*${family}-${otherScript}\\.woff2`));
+    }
+  }
 });
