@@ -43,11 +43,12 @@ category rail use.
 
 ## Loading
 
-Each page loads only the subsets its own script needs — the ES and EN pages
-never fetch the Cyrillic files, and vice versa. The `unicode-range`
-declarations that drive this live at the top of `chaijana/menu/src/styles.css`;
-`scripts/build.mjs` preloads the matching pair per locale, and
-`tests/menu.test.mjs` asserts both halves.
+Each page preloads only the subsets needed above the fold. ES and EN preload
+the Latin files; RU preloads both Cyrillic and Latin because its address,
+hours, prices, percentages, and language switch contain ASCII. The
+`unicode-range` declarations that drive this live at the top of
+`chaijana/menu/src/styles.css`; `scripts/build.mjs` emits the locale-specific
+preloads, and `tests/menu.test.mjs` asserts the complete matrix.
 
 ## Licence
 

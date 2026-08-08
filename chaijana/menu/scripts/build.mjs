@@ -308,6 +308,17 @@ function inlineScript(lang) {
 function renderPage(lang) {
   const config = languages[lang];
   const copy = ui[lang];
+  // Russian pages also render ASCII addresses, hours, prices, percentages and
+  // the language switch above the fold, so they need both script subsets.
+  const preloadScripts = lang === "ru" ? ["cyrillic", "latin"] : ["latin"];
+  const fontPreloads = preloadScripts
+    .flatMap((script) =>
+      ["playfair-display", "manrope"].map(
+        (family) =>
+          `<link rel="preload" as="font" type="font/woff2" href="assets/fonts/${family}-${script}.woff2" crossorigin>`,
+      ),
+    )
+    .join("\n  ");
   return `<!doctype html>
 <html lang="${lang}" dir="ltr">
 <head>
@@ -318,8 +329,7 @@ function renderPage(lang) {
   <meta name="description" content="${escapeHtml(copy.heroTitle)} — Chaijaná, ${escapeHtml(copy.address)}">
   <title>${escapeHtml(copy.menu)} · Chaijaná</title>
   <link rel="icon" type="image/png" href="assets/chaijana-logo.png">
-  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/playfair-display-${lang === "ru" ? "cyrillic" : "latin"}.woff2" crossorigin>
-  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/manrope-${lang === "ru" ? "cyrillic" : "latin"}.woff2" crossorigin>
+  ${fontPreloads}
   <link rel="stylesheet" href="assets/menu.css?v=${cssVersion}">
 </head>
 <body>

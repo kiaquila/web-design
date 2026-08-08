@@ -44,9 +44,9 @@ Changing a token means changing both files in the same commit. To check:
 node -e 'const r=p=>{const s=require("fs").readFileSync(p,"utf8"),b=s.slice(s.indexOf(":root {"));return Object.fromEntries([...b.slice(0,b.indexOf("}")).matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map(m=>[m[1],m[2].trim()]))};const a=r("chaijana/menu/src/styles.css"),b=r("chaijana/website/app/globals.css");const d=Object.keys(a).filter(k=>k in b&&a[k]!==b[k]&&k!=="--shell");console.log(d.length?"drifted: "+d:"tokens in sync")'
 ```
 
-The five woff2 subsets live once, in `menu/assets/fonts/` (with their `OFL.txt`).
-`website/scripts/sync-menu.mjs` copies them into the git-ignored
-`website/public/fonts/` at build time.
+The eight WOFF2 subsets live once, in `menu/assets/fonts/`, beside
+`OFL-PlayfairDisplay.txt` and `OFL-Manrope.txt`. `website/scripts/sync-menu.mjs`
+copies them into the git-ignored `website/public/fonts/` at build time.
 
 ## Working documents
 
