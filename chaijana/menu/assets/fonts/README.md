@@ -44,10 +44,10 @@ category rail use.
 ## Loading
 
 Each page preloads only the subsets needed above the fold. ES and EN preload
-Latin Playfair upright and italic plus Latin Manrope. RU preloads Cyrillic
-Playfair upright and italic plus Cyrillic Manrope, as well as the upright Latin
-files needed by its address, hours, prices, percentages, and language switch.
-The `unicode-range` declarations that drive this live at the top of
+upright Latin Playfair and Manrope; their cover has no italic subtitle. RU
+preloads Cyrillic Playfair upright and italic plus Cyrillic Manrope, as well as
+the upright Latin files needed by its address, hours, prices, percentages, and
+language switch. The `unicode-range` declarations that drive this live at the top of
 `chaijana/menu/src/styles.css`; `scripts/build.mjs` emits the locale-specific
 preloads, and `tests/menu.test.mjs` asserts the exact ordered file matrix.
 

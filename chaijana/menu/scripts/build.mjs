@@ -320,7 +320,7 @@ function renderPage(lang) {
           "playfair-display-latin",
           "manrope-latin",
         ]
-      : ["playfair-display-latin", "playfair-display-italic-latin", "manrope-latin"];
+      : ["playfair-display-latin", "manrope-latin"];
   const fontPreloads = preloadFonts
     .map(
       (font) =>

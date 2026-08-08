@@ -226,9 +226,9 @@ test("each page preloads every script subset needed above the fold", async () =>
   for (const [file, expectedPreloads] of [
     [
       "index.html",
-      ["playfair-display-latin", "playfair-display-italic-latin", "manrope-latin"],
+      ["playfair-display-latin", "manrope-latin"],
     ],
-    ["en.html", ["playfair-display-latin", "playfair-display-italic-latin", "manrope-latin"]],
+    ["en.html", ["playfair-display-latin", "manrope-latin"]],
     [
       "ru.html",
       [
