@@ -27,7 +27,6 @@ export function colophon() {
           ${wordmark()}
           <p>${site.description}</p>
           <p>
-            <a href="${site.phoneHref}">${site.phone}</a><br />
             <a href="mailto:${site.email}">${site.email}</a><br />
             ${site.hours}
           </p>

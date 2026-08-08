@@ -1,17 +1,29 @@
-/* Photography stays disabled until the client confirms usage rights. The
-   templates deliberately retain their media frames so approved replacements
-   can be added later without changing page structure. */
+/* Photography migrated from alphacentr.ru.
 
-export const heroPhoto = null;
+   Session covers and article lead images keep their original artwork; the map
+   is generated from the source pages, so a session without artwork on the
+   original simply has no entry here and the template falls back to type. */
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const media = JSON.parse(
+  readFileSync(join(import.meta.dirname, "..", "content", "media.json"), "utf8")
+);
+
+export const sessionImages = media.sessions;
+export const articleImages = media.articles;
+
+export const heroPhoto = "/assets/media/main-photo.webp";
 
 /** Cover for a session, or null when the original had none. */
 export function sessionImage(id) {
-  return null;
+  return sessionImages[id] ?? null;
 }
 
 /** Lead image for an article, or null. */
 export function articleImage(path) {
-  return null;
+  return articleImages[path] ?? null;
 }
 
 /**

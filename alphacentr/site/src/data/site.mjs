@@ -16,8 +16,10 @@ export const site = {
     "от практикующего гипнолога Елены Вальяк.",
   locale: "ru-RU",
 
-  phone: "+7 (495) 227-05-00",
-  phoneHref: "tel:+74952270500",
+  /* No phone number is published. The number in the original markup is
+     commented out in the header and footer and CSS-hidden in the mobile
+     block, so it is not a contact the business actually offers. Restore one
+     only after the author confirms in writing which number to show. */
   email: "gipnosalphacentr@gmail.com",
   /* Second address published on the session-selection page. */
   emailSelection: "ElenaValiak@gmail.com",

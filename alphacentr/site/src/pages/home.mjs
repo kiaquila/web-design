@@ -13,7 +13,7 @@ import { articleImage, heroPhoto, sessionImage } from "../data/media.mjs";
 import { news, testimonials } from "../data/pages.mjs";
 
 /* The original home page opened with a slider of three slogans. Here the
-   promise is stated once in a typographic hero. */
+   promise is stated once, over the site's own photograph. */
 
 function hero() {
   return html`<section class="hero">
@@ -155,7 +155,9 @@ function pick(badge, limit) {
 }
 
 function articleTeasers() {
-  const picks = allArticles.slice(0, 3);
+  const picks = allArticles
+    .filter((article) => articleImage(article.path))
+    .slice(0, 3);
   return html`<div class="grid grid--3">
     ${each(
       picks,

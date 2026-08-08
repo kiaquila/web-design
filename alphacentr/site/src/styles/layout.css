@@ -215,10 +215,9 @@
   flex-shrink: 0;
 }
 
-.masthead__phone {
+.masthead__contact {
   font-size: 0.9rem;
   font-weight: 500;
-  font-variant-numeric: tabular-nums;
   color: var(--ink);
   text-decoration: none;
   white-space: nowrap;
@@ -378,7 +377,7 @@
   .nav-item + .nav-item::before {
     margin-inline: var(--space-xs);
   }
-  .masthead__phone {
+  .masthead__contact {
     display: none;
   }
 }
