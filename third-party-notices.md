@@ -10,6 +10,14 @@ licence text is kept beside the files as `OFL-Inter.txt`.
 — SIL Open Font License 1.1, © the Cormorant Project Authors. Licence text is
 kept beside the files as `OFL.txt`.
 
+## Software
+
+**image-size** (`chaijana/website/vendor/image-size/`) — MIT License, © Aditya
+Yadav and contributors. The vendored top-level runtime comes from version
+2.0.2 and carries a local security patch for malformed HEIF, ICNS, and JXL box
+lengths while the archived upstream has no patched release. The complete MIT
+license text is kept beside the package as `LICENSE`.
+
 ## Repository policy
 
 Parts of the repository-policy and workflow design were adapted from

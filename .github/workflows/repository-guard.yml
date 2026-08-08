@@ -41,6 +41,9 @@ jobs:
       - name: Test repository policy
         run: node --test tests/repository-guard.test.mjs
 
+      - name: Test Cloudflare deployment tracking
+        run: node --test tests/cloudflare-stage-deployments.test.mjs
+
       - name: Test trusted Codex gate regressions
         shell: bash
         run: |

@@ -83,6 +83,27 @@ After this one-time connection, normal work needs no deployment command:
 - merge the PR to refresh the stable stage;
 - changes outside a project's watch path do not consume that project's build.
 
+## GitHub deployment history
+
+Successful permanent-stage builds from `main` are mirrored into GitHub
+Deployments by [`.github/workflows/cloudflare-stage-deployments.yml`](../.github/workflows/cloudflare-stage-deployments.yml).
+The workflow waits for Cloudflare's `Workers Builds: <slug>` check, then records
+the deployed commit, Cloudflare build log, stable stage URL, and completion time
+under the `<slug> / stage` GitHub environment.
+
+Only pushes to `main` run this bridge automatically. Pull-request preview builds
+remain visible in the pull request and Cloudflare, but do not create GitHub
+environments or deployment history. A retried workflow is idempotent for the
+same Cloudflare check, so it does not move a stage's update time forward unless
+a new build actually succeeded.
+
+The workflow discovers permanent stages from `stageProjects` in
+`.repo-guard.json`. Adding or retiring a stage through the documented project
+procedure therefore also updates GitHub tracking without another workflow edit.
+For a one-time history bootstrap, run **Cloudflare Stage Deployments** manually
+with the project slug and the commit SHA from its latest successful production
+build.
+
 ## Add another project
 
 1. Keep the site in `<slug>/website` and give it its own lockfile and build.
@@ -94,7 +115,9 @@ After this one-time connection, normal work needs no deployment command:
    `<slug>/website` and watch path `<slug>/*`.
 5. Create and connect a same-named Worker using the one-time procedure above.
    Its stable stage URL will be `https://<slug>.ks-design.workers.dev`.
-6. Run `node scripts/check-repository.mjs` plus that project's own checks.
+6. Run `node scripts/check-repository.mjs` plus that project's own checks. The
+   next successful `main` build will create its `<slug> / stage` GitHub
+   environment automatically.
 
 Each site stays independent. There is no central path router and no coupling
 between customer projects. The initial `workers.dev` host is free of domain
