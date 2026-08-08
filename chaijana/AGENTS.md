@@ -8,8 +8,8 @@ experience.
 
 - Approved design concept: **Chaijaná Noir**.
 - Direction: warm near-black surfaces, restrained gold-leaf accents,
-  Cormorant Garamond display typography, editorial food imagery, and subtle
-  Central Asian arabesque references.
+  Playfair Display headings over a Manrope text face, editorial food imagery,
+  and subtle Central Asian arabesque references.
 - The tone is intimate, premium, and nocturnal. Avoid generic luxury tropes,
   bright SaaS styling, ornamental overload, and visual changes that obscure
   menu readability.

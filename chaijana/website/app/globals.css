@@ -1,55 +1,90 @@
 /* ==========================================================================
    Chaijaná — website
    Shares the "Chaijaná Noir" system with the standalone carta:
-   warm near-black ground, gold-leaf accents, high-contrast Garamond display.
+   warm near-black ground, gold-leaf accents, high-contrast display serif.
    ========================================================================== */
 
+/* Playfair Display + Manrope, matching chaijana/menu/src/styles.css. The files
+   themselves live in the menu's asset tree and are copied into public/fonts by
+   scripts/sync-menu.mjs, so the two stylesheets must be changed together. */
+
 @font-face {
-  font-family: "Cormorant Garamond";
+  font-family: "Playfair Display";
   font-style: normal;
-  font-weight: 300 700;
+  font-weight: 400 700;
   font-display: swap;
-  src: url("/fonts/cormorant-garamond-cyrillic.woff2") format("woff2");
+  src: url("/fonts/playfair-display-cyrillic.woff2") format("woff2");
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
 @font-face {
-  font-family: "Cormorant Garamond";
+  font-family: "Playfair Display";
   font-style: normal;
-  font-weight: 300 700;
+  font-weight: 400 700;
   font-display: swap;
-  src: url("/fonts/cormorant-garamond-latin-ext.woff2") format("woff2");
+  src: url("/fonts/playfair-display-latin-ext.woff2") format("woff2");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
     U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
     U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
-  font-family: "Cormorant Garamond";
+  font-family: "Playfair Display";
   font-style: normal;
-  font-weight: 300 700;
+  font-weight: 400 700;
   font-display: swap;
-  src: url("/fonts/cormorant-garamond-latin.woff2") format("woff2");
+  src: url("/fonts/playfair-display-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "Cormorant Garamond";
+  font-family: "Playfair Display";
   font-style: italic;
-  font-weight: 300 700;
+  font-weight: 400 600;
   font-display: swap;
-  src: url("/fonts/cormorant-garamond-italic-cyrillic.woff2") format("woff2");
+  src: url("/fonts/playfair-display-italic-cyrillic.woff2") format("woff2");
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
 @font-face {
-  font-family: "Cormorant Garamond";
+  font-family: "Playfair Display";
   font-style: italic;
-  font-weight: 300 700;
+  font-weight: 400 600;
   font-display: swap;
-  src: url("/fonts/cormorant-garamond-italic-latin.woff2") format("woff2");
+  src: url("/fonts/playfair-display-italic-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("/fonts/manrope-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("/fonts/manrope-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: Manrope;
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url("/fonts/manrope-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
@@ -73,8 +108,14 @@
   --rule: rgba(205, 163, 73, 0.26);
   --rule-soft: rgba(205, 163, 73, 0.14);
 
-  --display: "Cormorant Garamond", "Iowan Old Style", Georgia, "Times New Roman", serif;
-  --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --display: "Playfair Display", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --ui: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+  /* Keep this tracking scale byte-identical to the standalone carta. */
+  --track-display: 0.014em;
+  --track-title: 0.02em;
+  --track-body: 0.006em;
+  --track-label: 0.2em;
 
   /* Wider than the carta's 1220px on purpose: the site is a full-width
      editorial layout, the menu is a reading column. Every other token here
@@ -106,7 +147,8 @@ body {
   color: var(--cream);
   font-family: var(--ui);
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.65;
+  letter-spacing: var(--track-body);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -139,9 +181,11 @@ h1,
 h2,
 h3 {
   font-family: var(--display);
-  font-weight: 300;
-  line-height: 1.03;
-  letter-spacing: 0.005em;
+  /* 400 is the display face's lightest cut; its taller x-height and longer
+     descenders also need more leading and more tracking than the old one. */
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: var(--track-display);
   text-wrap: balance;
 }
 
@@ -377,8 +421,8 @@ h3 {
   max-width: 900px;
   margin-top: 26px;
   color: var(--cream);
-  font-size: clamp(54px, 6.6vw, 104px);
-  letter-spacing: 0.002em;
+  font-size: clamp(46px, 5.6vw, 88px);
+  letter-spacing: 0.012em;
 }
 
 .hero__descriptor {
@@ -386,8 +430,9 @@ h3 {
   margin-top: 28px;
   color: var(--cream-soft);
   font-family: var(--display);
-  font-size: clamp(19px, 1.8vw, 27px);
+  font-size: clamp(17px, 1.6vw, 24px);
   font-style: italic;
+  line-height: 1.42;
   letter-spacing: 0.015em;
 }
 
@@ -517,7 +562,7 @@ a.fact:hover {
   color: var(--gold-deep);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 
@@ -619,7 +664,7 @@ a.fact:focus-visible strong {
 .section-heading h2 {
   margin-top: 18px;
   color: var(--cream);
-  font-size: clamp(54px, 6vw, 96px);
+  font-size: clamp(44px, 5.2vw, 80px);
 }
 
 .story {
@@ -640,8 +685,8 @@ a.fact:focus-visible strong {
   gap: 24px;
   color: var(--cream-soft);
   font-family: var(--display);
-  font-size: clamp(19px, 1.6vw, 25px);
-  line-height: 1.55;
+  font-size: clamp(18px, 1.5vw, 23px);
+  line-height: 1.62;
 }
 
 .story__body p:first-child::first-letter {
@@ -831,7 +876,7 @@ a.fact:focus-visible strong {
   color: var(--gold-leaf);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 
@@ -884,8 +929,8 @@ a.fact:focus-visible strong {
   grid-column: 8 / 13;
   color: var(--cream-soft);
   font-family: var(--display);
-  font-size: clamp(19px, 1.8vw, 25px);
-  line-height: 1.5;
+  font-size: clamp(18px, 1.6vw, 23px);
+  line-height: 1.58;
 }
 
 .event-list {
@@ -992,7 +1037,7 @@ a.fact:focus-visible strong {
   color: var(--gold-deep);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 

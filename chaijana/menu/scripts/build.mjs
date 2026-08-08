@@ -153,7 +153,9 @@ function renderSectionHeading(title, intro = "") {
     </div>`;
 }
 
-function renderPhoto(image, alt, width = 960, height = 960) {
+/** The medallion is a CSS-enforced 1:1 crop, so these attributes exist to
+ *  reserve the box before the stylesheet lands, not to describe the file. */
+function renderPhoto(image, alt, width = 1254, height = 1254) {
   return `<figure class="section-photo"><img src="${escapeHtml(image)}" alt="${escapeHtml(alt)}" width="${width}" height="${height}" loading="lazy" decoding="async"></figure>`;
 }
 
@@ -187,7 +189,7 @@ function renderExperiences(lang) {
   return `<section class="menu-section experiences" id="experiences" data-menu-section>
     ${renderSectionHeading(title)}
     <div class="section-body">
-      ${hasImage ? renderPhoto(experienceImage, ui[lang].experiences, 960, 671) : ""}
+      ${hasImage ? renderPhoto(experienceImage, ui[lang].experiences) : ""}
       <div class="menu-grid">${experiences.filter(visibleIn(lang)).map((menuItem) => renderItem(menuItem, lang)).join("")}</div>
     </div>
   </section>`;
@@ -306,6 +308,25 @@ function inlineScript(lang) {
 function renderPage(lang) {
   const config = languages[lang];
   const copy = ui[lang];
+  // The cover uses upright display/text plus an italic display subtitle.
+  // Russian also renders ASCII addresses, hours, prices, percentages and the
+  // language switch above the fold, so it needs the upright Latin files too.
+  const preloadFonts =
+    lang === "ru"
+      ? [
+          "playfair-display-cyrillic",
+          "playfair-display-italic-cyrillic",
+          "manrope-cyrillic",
+          "playfair-display-latin",
+          "manrope-latin",
+        ]
+      : ["playfair-display-latin", "manrope-latin"];
+  const fontPreloads = preloadFonts
+    .map(
+      (font) =>
+        `<link rel="preload" as="font" type="font/woff2" href="assets/fonts/${font}.woff2" crossorigin>`,
+    )
+    .join("\n  ");
   return `<!doctype html>
 <html lang="${lang}" dir="ltr">
 <head>
@@ -316,7 +337,7 @@ function renderPage(lang) {
   <meta name="description" content="${escapeHtml(copy.heroTitle)} — Chaijaná, ${escapeHtml(copy.address)}">
   <title>${escapeHtml(copy.menu)} · Chaijaná</title>
   <link rel="icon" type="image/png" href="assets/chaijana-logo.png">
-  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/cormorant-garamond-${lang === "ru" ? "cyrillic" : "latin"}.woff2" crossorigin>
+  ${fontPreloads}
   <link rel="stylesheet" href="assets/menu.css?v=${cssVersion}">
 </head>
 <body>

@@ -1,70 +1,71 @@
 {
-  "source": "Chaijana Menu esp last.pdf",
-  "exports": [
-    {
-      "file": "chaijana-experiences.webp",
-      "page": 2,
-      "dish_or_section": "Experiencia gourmet",
-      "source_image": "img-011",
-      "note": "Official embedded overhead platter photo used beside the gourmet experience."
-    },
-    {
-      "file": "draniki-salmon.webp",
-      "page": 3,
-      "dish_or_section": "Draniky o Bliny con salmón",
-      "source_image": "img-018 + soft mask img-019"
-    },
-    {
-      "file": "adjarian-khachapuri.webp",
-      "page": 5,
-      "dish_or_section": "Khachapuri estilo Adjarian",
-      "source_image": "img-045 + soft mask img-046"
-    },
-    {
-      "file": "uzbek-plov.webp",
-      "page": 8,
-      "dish_or_section": "Plov uzbeko",
-      "source_image": "img-082 + soft mask img-083"
-    },
-    {
-      "file": "manti.webp",
-      "page": 9,
-      "dish_or_section": "Manti",
-      "source_image": "img-099 + soft mask img-100",
-      "note": "Mapped only to the generic Manti group because the filling is not visually distinguishable."
-    },
-    {
-      "file": "kids-menu.webp",
-      "page": 10,
-      "dish_or_section": "Menú infantil — Medallones de pollo al vapor",
-      "source_image": "img-110 + soft mask img-111"
-    },
-    {
-      "file": "medovik.webp",
-      "page": 11,
-      "dish_or_section": "Medovik",
-      "source_image": "img-125 + soft mask img-126"
-    },
-    {
-      "file": "uzbek-tea.webp",
-      "page": 12,
-      "dish_or_section": "Café y té — servicio de té",
-      "source_image": "img-134 + soft mask img-135",
-      "note": "Official tea-section visual; not asserted as a recipe-specific product shot."
-    },
-    {
-      "file": "fruit-shakes.webp",
-      "page": 13,
-      "dish_or_section": "Shakes de frutas",
-      "source_image": "img-137 + soft mask img-138"
-    },
-    {
-      "file": "hookah.webp",
-      "page": 16,
-      "dish_or_section": "Hookah (Shisha)",
-      "source_image": "img-147"
-    }
-  ],
+  "current": {
+    "source": "Client-supplied photography, delivered 2026-08-07",
+    "note": "Square 1254 x 1254 PNG masters, re-shot/re-rendered by the client to replace the low-resolution extracts previously pulled from the printed PDF. Converted to WebP with cwebp -q 82..86; the PNG masters are not tracked here.",
+    "exports": [
+      {
+        "file": "chaijana-experiences.webp",
+        "dish_or_section": "Sets / Experiencias — section visual",
+        "shows": "Three round steamed dumplings with adjika",
+        "note": "UNCONFIRMED MAPPING. The client sent two dumpling photographs; this one was assigned to the tasting-sets medallion because the Gastronomic set lists 'ассорти манты (3 вида)'. It is used as a section visual, not as a claim about a specific set. Confirm with the client, and swap with manti.webp if the intent was the reverse."
+      },
+      {
+        "file": "draniki-salmon.webp",
+        "dish_or_section": "Draniky o Bliny con salmón",
+        "shows": "Cured salmon with crisp potato rösti, herb cream and cucumber"
+      },
+      {
+        "file": "adjarian-khachapuri.webp",
+        "dish_or_section": "Khachapuri estilo Adjarian",
+        "shows": "Boat-shaped khachapuri with cheese and egg yolk"
+      },
+      {
+        "file": "uzbek-plov.webp",
+        "dish_or_section": "Plov uzbeko",
+        "shows": "Plov with beef, egg, tomato and pickled onion"
+      },
+      {
+        "file": "manti.webp",
+        "dish_or_section": "Al vapor / Steamed — section visual",
+        "shows": "Three crescent-pleated steamed dumplings with sour cream",
+        "note": "UNCONFIRMED MAPPING — see chaijana-experiences.webp. Mapped to the steamed section generically because the filling is not visually distinguishable."
+      },
+      {
+        "file": "kids-menu.webp",
+        "dish_or_section": "Menú infantil — Medallones de pollo al vapor",
+        "shows": "Two chicken medallions with mashed potato, tomato and basil"
+      },
+      {
+        "file": "medovik.webp",
+        "dish_or_section": "Medovik",
+        "shows": "Layered honey cake slice"
+      },
+      {
+        "file": "uzbek-tea.webp",
+        "dish_or_section": "Café y té — servicio de té",
+        "shows": "Blue floral ceramic teapot",
+        "note": "Section visual; not asserted as a recipe-specific product shot."
+      }
+    ]
+  },
+  "legacy_pdf_extracts": {
+    "source": "Chaijana Menu esp last.pdf",
+    "note": "Still in use where the client has not supplied a replacement. Extracted from the printed PDF at 100-130 ppi and visibly soft on retina screens.",
+    "exports": [
+      {
+        "file": "fruit-shakes.webp",
+        "page": 13,
+        "dish_or_section": "Shakes de frutas",
+        "source_image": "img-137 + soft mask img-138"
+      },
+      {
+        "file": "hookah.webp",
+        "page": 16,
+        "dish_or_section": "Hookah (Shisha)",
+        "source_image": "img-147"
+      }
+    ]
+  },
   "omitted_expected_files": [
     {
       "file": "crispy-eggplant.webp",

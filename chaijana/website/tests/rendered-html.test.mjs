@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { access, readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
+const execFileAsync = promisify(execFile);
 
 async function render(lang = "es") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -26,6 +30,16 @@ async function renderUrl(pathname) {
     new Request(`http://localhost${pathname}`, { headers: { accept: "text/html" } }),
     { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
     { waitUntil() {}, passThroughOnException() {} },
+  );
+}
+
+function rootTokens(stylesheet) {
+  const rootBlock = stylesheet.match(/:root\s*\{([\s\S]*?)\}/)?.[1] ?? "";
+  return Object.fromEntries(
+    [...rootBlock.matchAll(/(--[a-z-]+):\s*([^;]+);/g)].map(([, name, value]) => [
+      name,
+      value.trim(),
+    ]),
   );
 }
 
@@ -57,6 +71,25 @@ test("server-renders the complete Spanish restaurant website", async () => {
   assert.equal((html.match(/class="event-card"/g) ?? []).length, 3);
   assert.equal((html.match(/class="gallery-band__item/g) ?? []).length, 4);
   assert.equal((html.match(/class="gallery-duo"/g) ?? []).length, 1);
+});
+
+test("keeps the shared tracking scale synchronized with the standalone menu", async () => {
+  const [menuStylesheet, websiteStylesheet] = await Promise.all([
+    readFile(new URL("../menu/src/styles.css", root), "utf8"),
+    readFile(new URL("app/globals.css", root), "utf8"),
+  ]);
+  const menuTokens = rootTokens(menuStylesheet);
+  const websiteTokens = rootTokens(websiteStylesheet);
+  const trackingTokens = ["--track-display", "--track-title", "--track-body", "--track-label"];
+
+  for (const token of trackingTokens) {
+    assert.ok(menuTokens[token], `${token} must exist in the menu stylesheet`);
+    assert.equal(websiteTokens[token], menuTokens[token], `${token} must match the menu stylesheet`);
+  }
+
+  assert.match(websiteStylesheet, /letter-spacing:\s*var\(--track-body\)/);
+  assert.match(websiteStylesheet, /letter-spacing:\s*var\(--track-display\)/);
+  assert.match(websiteStylesheet, /letter-spacing:\s*var\(--track-label\)/);
 });
 
 test("renders complete English and Russian variants with localized menu paths", async () => {
@@ -103,8 +136,9 @@ test("ships the official optimized restaurant asset set", async () => {
   assert.doesNotMatch(packageJson, /tailwindcss/);
   assert.match(stylesheet, /grid-area: navigation/);
   assert.match(stylesheet, /\.primary-nav::-webkit-scrollbar/);
-  // the site shares the carta's self-hosted display face; no remote font CSS
-  assert.match(stylesheet, /font-family: "Cormorant Garamond"/);
+  // the site shares the carta's self-hosted faces; no remote font CSS
+  assert.match(stylesheet, /font-family: "Playfair Display"/);
+  assert.match(stylesheet, /font-family: Manrope/);
   assert.doesNotMatch(stylesheet, /@import|fonts\.googleapis|fonts\.gstatic/);
 
   await Promise.all([
@@ -115,16 +149,30 @@ test("ships the official optimized restaurant asset set", async () => {
     access(new URL("public/images/restaurant/event-live-music.webp", root)),
     access(new URL("public/images/restaurant/social-preview.webp", root)),
     ...[
-      "cyrillic",
-      "latin",
-      "latin-ext",
-      "italic-cyrillic",
-      "italic-latin",
-    ].map((subset) => access(new URL(`public/fonts/cormorant-garamond-${subset}.woff2`, root))),
+      "playfair-display-cyrillic",
+      "playfair-display-latin",
+      "playfair-display-latin-ext",
+      "playfair-display-italic-cyrillic",
+      "playfair-display-italic-latin",
+      "manrope-cyrillic",
+      "manrope-latin",
+      "manrope-latin-ext",
+    ].map((file) => access(new URL(`public/fonts/${file}.woff2`, root))),
     ...Array.from({ length: 8 }, (_, index) =>
       access(new URL(`public/images/restaurant/restaurant-gallery-${String(index + 1).padStart(2, "0")}.webp`, root)),
     ),
   ]);
+});
+
+test("font sync removes retired files from incremental builds", async () => {
+  const staleFont = new URL("public/fonts/cormorant-garamond-latin.woff2", root);
+  await writeFile(staleFont, "retired font fixture");
+
+  await execFileAsync(process.execPath, [fileURLToPath(new URL("scripts/sync-menu.mjs", root))], {
+    cwd: fileURLToPath(root),
+  });
+
+  await assert.rejects(access(staleFont), { code: "ENOENT" });
 });
 
 test("embeds the standalone multilingual menu at the public menu route", async () => {
@@ -145,7 +193,8 @@ test("embeds the standalone multilingual menu at the public menu route", async (
   await access(new URL("public/menu/assets/dishes/uzbek-plov.webp", root));
   await access(new URL("public/menu/assets/chaijana-wordmark.svg", root));
   await access(new URL("public/menu/assets/bonpunto-logo.svg", root));
-  await access(new URL("public/menu/assets/fonts/cormorant-garamond-latin.woff2", root));
+  await access(new URL("public/menu/assets/fonts/playfair-display-latin.woff2", root));
+  await access(new URL("public/menu/assets/fonts/manrope-latin.woff2", root));
 });
 
 test("every local asset the rendered pages reference is actually shipped", async () => {

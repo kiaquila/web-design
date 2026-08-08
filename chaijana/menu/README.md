@@ -26,9 +26,9 @@ dotted price leaders, and dish photographs as circular medallions that alternate
 sides down the page. Sections without a medallion fall into two columns, the way
 the drink and wine pages read in print.
 
-Everything is local: the display face is a self-hosted, per-script subset of
-Cormorant Garamond in `assets/fonts/` (OFL), ornaments are inline SVG, and the
-page loads nothing from the network. `@media print` flips the whole thing back
+Everything is local: the faces are self-hosted, per-script subsets of Playfair
+Display and Manrope in `assets/fonts/` (both OFL), ornaments are inline SVG, and
+the page loads nothing from the network. `@media print` flips the whole thing back
 to ink on paper.
 
 ## Content provenance

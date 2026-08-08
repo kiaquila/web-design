@@ -204,12 +204,46 @@ test("stylesheet has no remote dependency and stays compact", async () => {
   assert.ok((await stat(cssPath)).size < 40_000);
 });
 
-test("display typeface is self-hosted and subsetted per script", async () => {
+test("typefaces are self-hosted and subsetted per script", async () => {
   const css = await readFile(join(root, "assets", "menu.css"), "utf8");
-  for (const subset of ["cyrillic", "latin", "latin-ext", "italic-cyrillic", "italic-latin"]) {
-    const file = join(root, "assets", "fonts", `cormorant-garamond-${subset}.woff2`);
-    assert.ok(existsSync(file), `missing self-hosted subset ${subset}`);
-    assert.match(css, new RegExp(`fonts/cormorant-garamond-${subset}\\.woff2`));
+  const families = {
+    // display face: needs an italic cut for the subtitles and section intros
+    "playfair-display": ["cyrillic", "latin", "latin-ext", "italic-cyrillic", "italic-latin"],
+    // text/UI face: upright only
+    manrope: ["cyrillic", "latin", "latin-ext"],
+  };
+  for (const [family, subsets] of Object.entries(families)) {
+    for (const subset of subsets) {
+      const file = join(root, "assets", "fonts", `${family}-${subset}.woff2`);
+      assert.ok(existsSync(file), `missing self-hosted subset ${family}-${subset}`);
+      assert.match(css, new RegExp(`fonts/${family}-${subset}\\.woff2`));
+    }
   }
   assert.match(css, /unicode-range: U\+0301, U\+0400-045F/);
+});
+
+test("each page preloads every script subset needed above the fold", async () => {
+  for (const [file, expectedPreloads] of [
+    [
+      "index.html",
+      ["playfair-display-latin", "manrope-latin"],
+    ],
+    ["en.html", ["playfair-display-latin", "manrope-latin"]],
+    [
+      "ru.html",
+      [
+        "playfair-display-cyrillic",
+        "playfair-display-italic-cyrillic",
+        "manrope-cyrillic",
+        "playfair-display-latin",
+        "manrope-latin",
+      ],
+    ],
+  ]) {
+    const html = await readFile(join(root, file), "utf8");
+    const actualPreloads = [...html.matchAll(/rel="preload"[^>]*href="assets\/fonts\/([^"/]+)\.woff2"/g)].map(
+      ([, font]) => font,
+    );
+    assert.deepEqual(actualPreloads, expectedPreloads, `${file}: preload exactly the fonts visible above the fold`);
+  }
 });
