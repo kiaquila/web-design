@@ -308,15 +308,23 @@ function inlineScript(lang) {
 function renderPage(lang) {
   const config = languages[lang];
   const copy = ui[lang];
-  // Russian pages also render ASCII addresses, hours, prices, percentages and
-  // the language switch above the fold, so they need both script subsets.
-  const preloadScripts = lang === "ru" ? ["cyrillic", "latin"] : ["latin"];
-  const fontPreloads = preloadScripts
-    .flatMap((script) =>
-      ["playfair-display", "manrope"].map(
-        (family) =>
-          `<link rel="preload" as="font" type="font/woff2" href="assets/fonts/${family}-${script}.woff2" crossorigin>`,
-      ),
+  // The cover uses upright display/text plus an italic display subtitle.
+  // Russian also renders ASCII addresses, hours, prices, percentages and the
+  // language switch above the fold, so it needs the upright Latin files too.
+  const preloadFonts =
+    lang === "ru"
+      ? [
+          "playfair-display-cyrillic",
+          "playfair-display-italic-cyrillic",
+          "manrope-cyrillic",
+          "playfair-display-latin",
+          "manrope-latin",
+        ]
+      : ["playfair-display-latin", "playfair-display-italic-latin", "manrope-latin"];
+  const fontPreloads = preloadFonts
+    .map(
+      (font) =>
+        `<link rel="preload" as="font" type="font/woff2" href="assets/fonts/${font}.woff2" crossorigin>`,
     )
     .join("\n  ");
   return `<!doctype html>

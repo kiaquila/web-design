@@ -223,21 +223,27 @@ test("typefaces are self-hosted and subsetted per script", async () => {
 });
 
 test("each page preloads every script subset needed above the fold", async () => {
-  for (const [file, scripts, excludedScripts] of [
-    ["index.html", ["latin"], ["cyrillic", "latin-ext"]],
-    ["en.html", ["latin"], ["cyrillic", "latin-ext"]],
-    ["ru.html", ["cyrillic", "latin"], ["latin-ext"]],
+  for (const [file, expectedPreloads] of [
+    [
+      "index.html",
+      ["playfair-display-latin", "playfair-display-italic-latin", "manrope-latin"],
+    ],
+    ["en.html", ["playfair-display-latin", "playfair-display-italic-latin", "manrope-latin"]],
+    [
+      "ru.html",
+      [
+        "playfair-display-cyrillic",
+        "playfair-display-italic-cyrillic",
+        "manrope-cyrillic",
+        "playfair-display-latin",
+        "manrope-latin",
+      ],
+    ],
   ]) {
     const html = await readFile(join(root, file), "utf8");
-    const families = ["playfair-display", "manrope"];
-    assert.equal((html.match(/rel="preload"[^>]*as="font"/g) ?? []).length, families.length * scripts.length);
-    for (const family of families) {
-      for (const script of scripts) {
-        assert.match(html, new RegExp(`rel="preload"[^>]*${family}-${script}\\.woff2`));
-      }
-      for (const script of excludedScripts) {
-        assert.doesNotMatch(html, new RegExp(`rel="preload"[^>]*${family}-${script}\\.woff2`));
-      }
-    }
+    const actualPreloads = [...html.matchAll(/rel="preload"[^>]*href="assets\/fonts\/([^"/]+)\.woff2"/g)].map(
+      ([, font]) => font,
+    );
+    assert.deepEqual(actualPreloads, expectedPreloads, `${file}: preload exactly the fonts visible above the fold`);
   }
 });
