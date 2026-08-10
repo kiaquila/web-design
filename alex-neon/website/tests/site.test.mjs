@@ -4,10 +4,11 @@
 
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { access, readdir, readFile } from "node:fs/promises";
+import { access, readdir, readFile, stat } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import test, { before } from "node:test";
 import { promisify } from "node:util";
+import { gzipSync } from "node:zlib";
 
 const run = promisify(execFile);
 const root = resolve(import.meta.dirname, "..");
@@ -156,12 +157,47 @@ test("no unapproved external URLs anywhere in dist", async () => {
   }
 });
 
-test("interactive hero honours reduced motion", async () => {
-  assert.ok(html.includes("<canvas"), "hero canvas missing");
+test("both interactive fields are present and honour reduced motion", async () => {
+  assert.ok(html.includes('class="hero-canvas"'), "hero canvas missing");
+  assert.ok(
+    html.includes('class="process-canvas"'),
+    "process canvas missing: the steps answer the pointer too"
+  );
   const neural = await readFile(join(dist, "assets/neural.js"), "utf8");
   assert.ok(
     /prefers-reduced-motion/.test(neural),
     "neural.js must check prefers-reduced-motion"
+  );
+  /* The generator is shared with the social-card renderer. */
+  await access(join(dist, "assets/field.js"));
+});
+
+test("the wordmark is the ALEX OXITOCIN logo with an accessible name", () => {
+  assert.ok(html.includes('id="logo-alex-oxitocin"'), "logo symbol missing");
+  assert.equal(
+    (html.match(/href="#logo-alex-oxitocin"/g) ?? []).length,
+    2,
+    "logo is used in the header and the footer"
+  );
+  assert.ok(
+    /<a class="brand"[^>]*aria-label="Alex Oxitocin/.test(html),
+    "the brand link needs an accessible name once its text became a drawing"
+  );
+  assert.ok(
+    !text.includes("Алексей · ИИ по делу"),
+    "the old text wordmark was replaced by the logo"
+  );
+});
+
+test("the community mark is self-hosted and described", () => {
+  assert.ok(
+    html.includes('src="./assets/community-mark.jpg"'),
+    "community mark missing"
+  );
+  assert.ok(
+    /community-mark\.jpg"[^>]*alt="[^"]+"/.test(html) ||
+      /alt="[^"]*Алло, Нейросеточная[^"]*"/.test(html),
+    "community mark needs a meaningful alt text"
   );
 });
 
@@ -192,8 +228,47 @@ test("stage support files are emitted", async () => {
     "robots.txt",
     "sitemap.xml",
     "assets/favicon.svg",
-    "assets/og.png"
+    "assets/og.png",
+    "assets/community-mark.jpg"
   ]) {
     await access(join(dist, file));
   }
+});
+
+test("nothing extra ships: the payload stays within budget", async () => {
+  /* Uncompressed caps per type, with headroom over today's build. */
+  const budgets = {
+    ".html": 60 * 1024,
+    ".css": 60 * 1024,
+    ".js": 40 * 1024,
+    ".woff2": 160 * 1024,
+    ".jpg": 40 * 1024,
+    ".png": 400 * 1024 /* og.png is fetched by crawlers, not by the page */
+  };
+  const totals = {};
+  for (const file of await distFiles()) {
+    const { size } = await stat(file);
+    totals[extname(file)] = (totals[extname(file)] ?? 0) + size;
+  }
+  for (const [extension, budget] of Object.entries(budgets)) {
+    assert.ok(
+      (totals[extension] ?? 0) <= budget,
+      `${extension} payload ${totals[extension]} exceeds ${budget} bytes`
+    );
+  }
+  assert.deepEqual(
+    Object.keys(totals).sort(),
+    [".css", ".html", ".jpg", ".js", ".png", ".svg", ".txt", ".woff2", ".xml"],
+    "an unexpected file type appeared in dist"
+  );
+
+  /* What the browser actually downloads before first render, gzipped. */
+  const critical = ["index.html", "assets/styles.css", "assets/site.js", "assets/neural.js", "assets/field.js"];
+  let text = "";
+  for (const file of critical) text += await readFile(join(dist, file), "utf8");
+  const compressed = gzipSync(Buffer.from(text), { level: 9 }).length;
+  assert.ok(
+    compressed <= 45 * 1024,
+    `critical text payload ${compressed} bytes gzipped exceeds 46080`
+  );
 });

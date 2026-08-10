@@ -88,13 +88,14 @@
   align-items: center;
   padding-block: calc(var(--header-h) + var(--sp-7)) var(--sp-8);
   overflow: hidden;
-  /* Figure composition, inherited by the canvas and read there by neural.js:
-     centre x/y as fractions of the canvas, radius as a fraction of
-     min(width, height). On desktop the crown occupies the right half; the copy
-     column stops before its dense core. */
-  --nx: 0.72;
-  --ny: 0.46;
-  --nr: 0.52;
+  /* Field composition, inherited by the canvas and read there by neural.mjs:
+     --nx / --ny place the centre, --nrx / --nry give the half-width and
+     half-height, all as fractions of the canvas. The field spans the whole
+     hero and runs behind the copy; neural.mjs thins it towards that side. */
+  --nx: 0.68;
+  --ny: 0.48;
+  --nrx: 0.35;
+  --nry: 0.45;
 }
 
 /* Soft corona behind the figure: gives the neurons depth without a third hue. */
@@ -124,6 +125,24 @@
   pointer-events: none;
 }
 
+/* ---- Process: a quiet field that answers the hovered step ----------- */
+
+.process-shell {
+  position: relative;
+}
+
+.process-canvas {
+  position: absolute;
+  inset: -1.5rem -0.5rem;
+  width: calc(100% + 1rem);
+  height: calc(100% + 3rem);
+  pointer-events: none;
+  --nx: 0.5;
+  --ny: 0.5;
+  --nrx: 0.52;
+  --nry: 0.55;
+}
+
 .hero-grid {
   position: relative;
   z-index: 1;
@@ -131,27 +150,6 @@
 
 .hero-copy {
   max-width: min(34rem, 52%);
-}
-
-/* Discoverability for a pointer-only affordance; hidden from AT and from
-   touch, where there is no cursor to hover with. */
-.hero-hint {
-  position: absolute;
-  z-index: 1;
-  left: calc(var(--nx) * 100%);
-  bottom: clamp(1.25rem, 3vh, 2.5rem);
-  transform: translateX(-50%);
-  display: none;
-  font-size: var(--fs-meta);
-  color: var(--text-3);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .hero-hint {
-    display: block;
-  }
 }
 
 /* ---- Demo card band -------------------------------------------------- */
@@ -245,6 +243,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: var(--sp-6) var(--sp-5);
   position: relative;
+  z-index: 1;
   counter-reset: step;
 }
 
@@ -488,13 +487,15 @@
     align-items: flex-start;
     padding-top: calc(var(--header-h) + var(--sp-5));
     --nx: 0.5;
-    --ny: 0.22;
-    --nr: 0.42;
+    --ny: 0.3;
+    --nrx: 0.62;
+    --nry: 0.4;
   }
 
   .hero-copy {
     max-width: 34rem;
   }
+
 
   /* Scrim is strongest over the copy, so the crown stays readable above it. */
   .hero::after {

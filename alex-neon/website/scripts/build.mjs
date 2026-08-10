@@ -37,7 +37,7 @@ async function main() {
   await writeFile(join(dist, "assets/styles.css"), await buildStylesheet());
 
   for (const file of await readdir(join(root, "src/js"))) {
-    if (file.endsWith(".js")) {
+    if (file.endsWith(".js") || file.endsWith(".mjs")) {
       await cp(join(root, "src/js", file), join(dist, "assets", file));
     }
   }
@@ -47,6 +47,10 @@ async function main() {
   });
   await cp(join(root, "assets/favicon.svg"), join(dist, "assets/favicon.svg"));
   await cp(join(root, "assets/og.png"), join(dist, "assets/og.png"));
+  await cp(
+    join(root, "assets/community-mark.jpg"),
+    join(dist, "assets/community-mark.jpg")
+  );
 
   await writeFile(
     join(dist, "robots.txt"),

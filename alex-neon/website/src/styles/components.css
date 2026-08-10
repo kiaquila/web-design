@@ -60,17 +60,68 @@
   font-size: var(--fs-small);
 }
 
-/* ---- Brand mark ----------------------------------------------------- */
+/* ---- Brand: the ALEX OXITOCIN wordmark ------------------------------ */
+
+/* The sprite only carries the <symbol>; it must take no layout space. */
+.logo-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-3);
-  font-weight: 650;
-  font-size: 0.9375rem;
-  /* The wordmark is one unit: it must never wrap into a stack of lines. */
-  white-space: nowrap;
+  flex-shrink: 0;
 }
+
+.logo {
+  /* Aspect ratio comes from the symbol's viewBox (1306 × 112). */
+  height: 1.375rem;
+  width: auto;
+  display: block;
+}
+
+.brand-footer .logo {
+  height: 1.625rem;
+}
+
+.logo-alex {
+  stroke: var(--teal);
+  filter: drop-shadow(0 0 6px rgba(46, 230, 214, 0.35));
+}
+
+.logo-oxitocin {
+  stroke: var(--logo-violet);
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.45));
+}
+
+.brand:hover .logo-alex,
+.brand:hover .logo-oxitocin {
+  filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.55));
+}
+
+/* The wordmark is 11.7 : 1 wide, so on narrow screens it has to come down or
+   it crowds the menu toggle. These live here, not in layout.css, because this
+   layer is concatenated later and would otherwise win. */
+@media (max-width: 60em) {
+  .logo {
+    height: 1.125rem;
+  }
+}
+
+@media (max-width: 30em) {
+  .logo {
+    height: 0.9375rem;
+  }
+
+  .brand-footer .logo {
+    height: 1.25rem;
+  }
+}
+
+/* ---- Monogram (about chip) ------------------------------------------ */
 
 .brand-mark {
   width: 2.25rem;

@@ -77,6 +77,7 @@
   --teal: #2ee6d6;
   --violet: #8b5cf6;
   --violet-text: #a78bfa; /* violet lightened to pass 7:1 on surfaces */
+  --logo-violet: #9d76f8; /* wordmark stroke: brighter than --violet on black */
   --grad: linear-gradient(100deg, var(--teal), var(--violet));
   --tint-teal: rgba(46, 230, 214, 0.08);
   --tint-violet: rgba(139, 92, 246, 0.08);

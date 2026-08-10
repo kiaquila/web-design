@@ -338,6 +338,18 @@
   color: var(--text-2);
 }
 
+/* ---- Community ------------------------------------------------------ */
+
+/* The community's own Telegram mark; see ../../CONTENT-AUDIT.md. */
+.community-mark {
+  width: 5.5rem;
+  height: 5.5rem;
+  margin-bottom: var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  display: block;
+}
+
 /* ---- Community access line ------------------------------------------ */
 
 .community-access {

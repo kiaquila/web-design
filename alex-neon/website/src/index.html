@@ -21,16 +21,40 @@
   <link rel="preload" href="./assets/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./assets/styles.css">
   <script src="./assets/site.js" defer></script>
-  <script src="./assets/neural.js" defer></script>
+  <script src="./assets/neural.js" type="module"></script>
 </head>
 <body>
   <a class="skip-link" href="#top">К содержанию</a>
 
+  <svg class="logo-sprite" aria-hidden="true" focusable="false">
+    <symbol id="logo-alex-oxitocin" viewBox="-6 0 1306 112">
+      <g fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+        <g class="logo-alex">
+          <path d="M0 106 33 6 66 106"/>
+          <path d="M124 6v100h52"/>
+          <path d="M234 6h52M234 6v100M234 56h44M234 106h52"/>
+          <path d="M344 6 406 106M406 6 344 106"/>
+        </g>
+        <g class="logo-oxitocin">
+          <rect x="516" y="6" width="66" height="100" rx="28"/>
+          <path d="M640 6 702 106M702 6 640 106"/>
+          <path d="M760 6v100"/>
+          <path d="M818 6h58M847 6v100"/>
+          <rect x="934" y="6" width="66" height="100" rx="28"/>
+          <path d="M1118 30c-6-15-18-24-29-24-18 0-31 20-31 50s13 50 31 50c11 0 23-9 29-24"/>
+          <path d="M1178 6v100"/>
+          <path d="M1236 106V6l58 100V6"/>
+        </g>
+      </g>
+    </symbol>
+  </svg>
+
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="#top">
-        <span class="brand-mark" aria-hidden="true"><span>A</span></span>
-        Алексей · ИИ по делу
+      <a class="brand" href="#top" aria-label="Alex Oxitocin — на главную">
+        <svg class="logo" viewBox="-6 0 1306 112" aria-hidden="true" focusable="false">
+          <use href="#logo-alex-oxitocin"/>
+        </svg>
       </a>
       <nav class="site-nav" id="site-nav" aria-label="Разделы страницы">
         <ul role="list">
@@ -73,7 +97,6 @@
           </ul>
         </div>
       </div>
-      <p class="hero-hint" aria-hidden="true">Наведите курсор на нейроны</p>
     </section>
 
     <section class="section demo-section">
@@ -320,24 +343,27 @@
           <h2>Сначала ваша задача. Потом инструменты.</h2>
           <p class="section-lead">Вы не покупаете закрытую коробку, которую потом страшно трогать. На занятиях вы сами собираете процесс, понимаете его правила и можете менять его без меня.</p>
         </div>
-        <ol class="process-grid" role="list">
-          <li class="process-step" data-reveal>
-            <h3>Бесплатный чек-ап</h3>
-            <p>За 30 минут разбираем, как вы уже используете ИИ и какая повторяющаяся задача отнимает у вас время.</p>
-          </li>
-          <li class="process-step" data-reveal style="--i:1">
-            <h3>Выбираем один процесс</h3>
-            <p>Берём повторяющуюся задачу, которая отнимает время, но результат которой легко проверить и без больших потерь исправить.</p>
-          </li>
-          <li class="process-step" data-reveal style="--i:2">
-            <h3>Собираем вместе</h3>
-            <p>Подбираем подходящие ИИ-инструменты, подключаем нужные материалы и определяем ограничения и точки ручного подтверждения.</p>
-          </li>
-          <li class="process-step" data-reveal style="--i:3">
-            <h3>Вы управляете сами</h3>
-            <p>Вы учитесь запускать процесс, менять инструкции и источники, проверять результат и понимать, где ИИ должен остановиться и спросить вас.</p>
-          </li>
-        </ol>
+        <div class="process-shell">
+          <canvas class="process-canvas" aria-hidden="true"></canvas>
+          <ol class="process-grid" role="list">
+            <li class="process-step" data-reveal>
+              <h3>Бесплатный чек-ап</h3>
+              <p>За 30 минут разбираем, как вы уже используете ИИ и какая повторяющаяся задача отнимает у вас время.</p>
+            </li>
+            <li class="process-step" data-reveal style="--i:1">
+              <h3>Выбираем один процесс</h3>
+              <p>Берём повторяющуюся задачу, которая отнимает время, но результат которой легко проверить и без больших потерь исправить.</p>
+            </li>
+            <li class="process-step" data-reveal style="--i:2">
+              <h3>Собираем вместе</h3>
+              <p>Подбираем подходящие ИИ-инструменты, подключаем нужные материалы и определяем ограничения и точки ручного подтверждения.</p>
+            </li>
+            <li class="process-step" data-reveal style="--i:3">
+              <h3>Вы управляете сами</h3>
+              <p>Вы учитесь запускать процесс, менять инструкции и источники, проверять результат и понимать, где ИИ должен остановиться и спросить вас.</p>
+            </li>
+          </ol>
+        </div>
       </div>
     </section>
 
@@ -384,6 +410,8 @@
         <div class="community-panel" data-reveal>
           <div class="section-head">
             <p class="kicker">Профессиональное Telegram-комьюнити</p>
+            <img class="community-mark" src="./assets/community-mark.jpg" width="88" height="88"
+                 alt="Логотип Telegram-сообщества «Алло, Нейросеточная?»" loading="lazy" decoding="async">
             <h2>«Алло, Нейросеточная?»</h2>
             <p class="section-lead">Я создал живое сообщество для тех, кто разбирается в ИИ не в одиночку. Мы обсуждаем нейросети, агентные инструменты, вайбкодинг, реальные автоматизации и проекты, делимся опытом, ошибками и полезными находками. Иногда разговор уходит в финансы, путешествия и жизнь в разных странах — потому что технологии всё-таки существуют внутри жизни, а не вместо неё.</p>
           </div>
@@ -475,9 +503,10 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <a class="brand" href="#top">
-        <span class="brand-mark" aria-hidden="true"><span>A</span></span>
-        Алексей · ИИ по делу
+      <a class="brand brand-footer" href="#top" aria-label="Alex Oxitocin — наверх страницы">
+        <svg class="logo" viewBox="-6 0 1306 112" aria-hidden="true" focusable="false">
+          <use href="#logo-alex-oxitocin"/>
+        </svg>
       </a>
       <div class="footer-note">
         <p>Индивидуальное обучение практической работе с ИИ.</p>
