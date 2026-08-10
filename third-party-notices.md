@@ -12,8 +12,15 @@ Display Project Authors, with Reserved Font Name "Playfair Display". Licence
 text is kept beside the files as `OFL-PlayfairDisplay.txt`.
 
 **Manrope** (`chaijana/menu/assets/fonts/manrope-*.woff2`,
-`chaijana/website/public/fonts/`) — SIL Open Font License 1.1, © The Manrope
-Project Authors. Licence text is kept beside the files as `OFL-Manrope.txt`.
+`chaijana/website/public/fonts/`,
+`alex-neon/website/assets/fonts/manrope-*.woff2`) — SIL Open Font License 1.1,
+© The Manrope Project Authors. Licence text is kept beside the files as
+`OFL-Manrope.txt`.
+
+**Unbounded** (`alex-neon/website/assets/fonts/unbounded-*.woff2`) — SIL Open
+Font License 1.1, © The Unbounded Project Authors. Cyrillic and Latin variable
+subsets are self-hosted; the licence text is kept beside the files as
+`OFL-Unbounded.txt`.
 
 Playfair Display and Manrope replaced Cormorant Garamond, which is no longer
 shipped.

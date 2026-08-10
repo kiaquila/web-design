@@ -5,10 +5,15 @@
     "tests"
   ],
   "projects": [
+    "alex-neon",
     "alphacentr",
     "chaijana"
   ],
   "stageProjects": {
+    "alex-neon": {
+      "rootDirectory": "alex-neon/website",
+      "watchPath": "alex-neon/*"
+    },
     "alphacentr": {
       "rootDirectory": "alphacentr/site",
       "watchPath": "alphacentr/*"

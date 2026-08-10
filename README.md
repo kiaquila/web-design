@@ -25,6 +25,8 @@ truth instead of maintaining a second copy.
 
 ## Projects
 
+- [`alex-neon/`](./alex-neon/) — «ИИ по делу» AI-training landing by Aleksei
+  Grishchenko, redesigned under the **Alex Neon** concept.
 - [`alphacentr/`](./alphacentr/) — Alpha-Centr hypnosis practice website and
   audio-session catalogue, redesigned under the **Alpha Lumen** concept.
 - [`chaijana/`](./chaijana/) — Chaijaná restaurant website and multilingual
