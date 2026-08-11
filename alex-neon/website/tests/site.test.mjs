@@ -308,6 +308,21 @@ test("fork junctions do not become endpoint somas", async () => {
   }
 });
 
+test("the social card carries the current field fingerprint", async () => {
+  const {
+    createSocialField,
+    FIELD_FINGERPRINT_KEY,
+    fingerprintField,
+    readPngText
+  } = await import(join(root, "scripts/social-field.mjs"));
+  const card = await readFile(join(root, "assets", "og.png"));
+  assert.equal(
+    readPngText(card, FIELD_FINGERPRINT_KEY),
+    fingerprintField(createSocialField()),
+    "run npm run og and commit the regenerated card"
+  );
+});
+
 test("the footer carries only the copyright line", () => {
   const footer = html.slice(html.indexOf("<footer"));
   assert.ok(footer.includes("© Alex Oxitocin"), "copyright line missing");

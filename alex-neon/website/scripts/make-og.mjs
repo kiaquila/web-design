@@ -15,11 +15,18 @@ import { deflateSync } from "node:zlib";
 import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { generateField, ramp, rampAt, TEAL, VIOLET } from "../src/js/field.js";
+import { ramp, rampAt, TEAL, VIOLET } from "../src/js/field.js";
+import {
+  createSocialField,
+  FIELD_FINGERPRINT_KEY,
+  fingerprintField,
+  SOCIAL_HEIGHT,
+  SOCIAL_WIDTH
+} from "./social-field.mjs";
 
 const OUT = resolve(import.meta.dirname, "..", "assets", "og.png");
-const W = 1200;
-const H = 630;
+const W = SOCIAL_WIDTH;
+const H = SOCIAL_HEIGHT;
 const SS = 2; /* rendered at 2×, then box-filtered down */
 
 const BG = [5 / 255, 6 / 255, 10 / 255];
@@ -96,14 +103,8 @@ for (let y = 0; y < h; y++) {
 }
 
 /* ---- The field, from the generator the page uses ---------------------- */
-const field = generateField({
-  cx: CX,
-  cy: CY,
-  rx: W * 0.42,
-  ry: H * 0.44,
-  nodes: 900,
-  seed: 0x5eed
-});
+const field = createSocialField();
+const fieldFingerprint = fingerprintField(field);
 
 const colorOf = (px) => ramp(rampAt(field, px)).map((v) => v / 255);
 
@@ -207,11 +208,15 @@ ihdr[9] = 2; /* truecolor */
 const png = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   chunk("IHDR", ihdr),
+  chunk(
+    "tEXt",
+    Buffer.from(`${FIELD_FINGERPRINT_KEY}\0${fieldFingerprint}`, "latin1")
+  ),
   chunk("IDAT", deflateSync(Buffer.concat(rows), { level: 9 })),
   chunk("IEND", Buffer.alloc(0))
 ]);
 
 writeFileSync(OUT, png);
 console.log(
-  `Wrote ${join("assets", "og.png")} — ${W}×${H}, ${field.count} nodes, ${(png.length / 1024).toFixed(0)} KB`
+  `Wrote ${join("assets", "og.png")} — ${W}×${H}, ${field.count} nodes, ${(png.length / 1024).toFixed(0)} KB, field ${fieldFingerprint.slice(0, 12)}`
 );
