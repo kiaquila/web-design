@@ -211,6 +211,46 @@ test("the wordmark is the ALEX OXITOCIN logo with an accessible name", () => {
   assert.ok(vbLeft <= -stroke / 2, "the viewBox needs padding on the left too");
 });
 
+test("the field generator survives a degenerate box", async () => {
+  const { generateField } = await import(join(root, "src/js/field.js"));
+  for (const box of [
+    { rx: 0, ry: 0 },
+    { rx: -20, ry: 40 },
+    { rx: 40, ry: 0 }
+  ]) {
+    const field = generateField({ cx: 100, cy: 50, nodes: 500, ...box });
+    assert.equal(field.count, 0, `${JSON.stringify(box)} must yield no nodes`);
+    assert.equal(field.edgeCount, 0);
+  }
+
+  /* A real circle: every coordinate and radius has to be a usable number, or
+     the canvas silently draws nothing. */
+  const field = generateField({
+    cx: 300,
+    cy: 300,
+    rx: 300,
+    ry: 300,
+    nodes: 800,
+    rim: true
+  });
+  assert.ok(field.count > 400, `only ${field.count} nodes generated`);
+  assert.ok(
+    field.x.every(Number.isFinite) && field.y.every(Number.isFinite),
+    "node coordinates must all be finite"
+  );
+  assert.ok(
+    field.r.every((radius) => Number.isFinite(radius) && radius > 0),
+    "node radii must all be positive"
+  );
+  for (let e = 0; e < field.edgeCount; e++) {
+    assert.ok(
+      field.ea[e] >= 0 && field.ea[e] < field.count,
+      "edge endpoints must index real nodes"
+    );
+    assert.ok(field.eb[e] >= 0 && field.eb[e] < field.count);
+  }
+});
+
 test("the footer carries only the copyright line", () => {
   const footer = html.slice(html.indexOf("<footer"));
   assert.ok(footer.includes("© Alex Oxitocin"), "copyright line missing");

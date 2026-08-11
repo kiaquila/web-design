@@ -27,6 +27,20 @@ export function mulberry32(a) {
 const smoothstep = (t) => t * t * (3 - 2 * t);
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
+/** Returned for a degenerate box, so no caller has to divide by a zero axis. */
+const EMPTY_FIELD = {
+  count: 0,
+  x: new Float32Array(0),
+  y: new Float32Array(0),
+  r: new Float32Array(0),
+  edgeCount: 0,
+  ea: new Int32Array(0),
+  eb: new Int32Array(0),
+  elong: new Uint8Array(0),
+  cx: 0,
+  rx: 1
+};
+
 /** Teal → violet across the figure's width, as 0–255 channels. */
 export function ramp(t) {
   const s = smoothstep(clamp01(t));
@@ -58,6 +72,7 @@ export function generateField(o) {
   const { cx, cy, rx, ry, nodes: target, seed = 0x5eed, scale = 1 } = o;
   const leftBias = o.leftBias ?? 0;
   const rng = mulberry32(seed);
+  if (!(rx > 0) || !(ry > 0) || !(target > 0)) return EMPTY_FIELD;
   /* Geometric mean, not min(): a wide shallow band would otherwise get
      hair-thin filaments driven by its short side. */
   const unit = Math.sqrt(rx * ry);

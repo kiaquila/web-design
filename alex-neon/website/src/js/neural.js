@@ -138,7 +138,9 @@ function createNeuralField(canvas, options) {
     if (above) {
       const keepOut = above.getBoundingClientRect();
       const ceiling = keepOut.bottom - box.top + 24;
-      radius = Math.min(radius, centreY - ceiling);
+      /* On a viewport too short to hold both, the clearance wins and the radius
+         floors at zero rather than going negative and poisoning the geometry. */
+      radius = Math.max(0, Math.min(radius, centreY - ceiling));
     }
 
     /* Everything above is in CSS pixels; the field wants device pixels. */
@@ -164,6 +166,9 @@ function createNeuralField(canvas, options) {
     const perMegapixel = options.densityPerMegapixel ?? 1500;
     const nodes = Math.round(((cssWidth * cssHeight) / 1e6) * perMegapixel);
     const shape = measureShape(cssWidth, cssHeight);
+    /* Too little room for a figure at all — draw nothing rather than a speck.
+       A later resize rebuilds, since the observers are already attached. */
+    if (shape.rx < 8 * dpr || shape.ry < 8 * dpr) return false;
 
     field = generateField({
       cx: shape.cx,
