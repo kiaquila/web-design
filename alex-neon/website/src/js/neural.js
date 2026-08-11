@@ -96,10 +96,11 @@ function createNeuralField(canvas, options) {
    * radius is a fraction of the canvas height; without it the figure is the
    * ellipse given by `--nrx` / `--nry`.
    *
-   * With `clearOf`, a circle is kept out of that element's box: it is centred
-   * in the column left over beside the copy and shrunk until its edge clears
-   * it. When the copy spans the canvas — one-column layouts — there is no such
-   * column, and the CSS placement stands.
+   * `keepRightOf` holds a circle out of that element's box: it is centred in
+   * the column left over beside the copy and shrunk until its edge clears both
+   * the copy and the far edge of the canvas. When the copy spans the canvas —
+   * one-column layouts — there is no such column, and the CSS placement stands.
+   * `keepBelow` then shrinks it again so its top clears the header row.
    */
   function measureShape(cssWidth, cssHeight) {
     const nx = cssNumber("--nx", 0.5);
@@ -117,13 +118,13 @@ function createNeuralField(canvas, options) {
 
     let radius = circle * cssHeight;
     let centreX = nx * cssWidth;
+    const centreY = ny * cssHeight;
+    const box = canvas.getBoundingClientRect();
 
-    const clear = options.clearOf && document.querySelector(options.clearOf);
-    if (clear) {
-      const box = canvas.getBoundingClientRect();
-      const keepOut = clear.getBoundingClientRect();
-      const gap = 40;
-      const left = keepOut.right - box.left + gap;
+    const beside = options.keepRightOf && document.querySelector(options.keepRightOf);
+    if (beside) {
+      const keepOut = beside.getBoundingClientRect();
+      const left = keepOut.right - box.left + 40;
       /* Leave the far edge some room too, or the rim gets sliced flat by it. */
       const column = cssWidth - left - 28;
       /* Below roughly a third of the width the copy owns the canvas. */
@@ -133,10 +134,17 @@ function createNeuralField(canvas, options) {
       }
     }
 
+    const above = options.keepBelow && document.querySelector(options.keepBelow);
+    if (above) {
+      const keepOut = above.getBoundingClientRect();
+      const ceiling = keepOut.bottom - box.top + 24;
+      radius = Math.min(radius, centreY - ceiling);
+    }
+
     /* Everything above is in CSS pixels; the field wants device pixels. */
     return {
       cx: centreX * dpr,
-      cy: ny * cssHeight * dpr,
+      cy: centreY * dpr,
       rx: radius * dpr,
       ry: radius * dpr
     };
@@ -469,7 +477,8 @@ if (heroCanvas) {
     /* The circle is placed beside the copy, so the density gradient across it
        is only a gentle one — the clearance does the real work. */
     leftBias: 0.3,
-    clearOf: ".hero-copy",
+    keepRightOf: ".hero-copy",
+    keepBelow: ".site-header",
     rim: true,
     densityPerMegapixel: 820,
     pointerRadius: 190

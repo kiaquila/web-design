@@ -232,23 +232,46 @@ export function generateField(o) {
     trunk++;
   }
 
-  /* ---- Rim: the boundary drawn by the network itself -------------------- */
+  /* ---- Rim: the boundary drawn by the network itself --------------------
+     Dense on purpose — the edge is where the reference figure is busiest. The
+     fringe grows inward, so the outer silhouette stays exactly on the radius
+     and the clearances the caller measured still hold. */
   if (o.rim) {
     const ring = Math.min(rx, ry);
-    const steps = Math.max(28, Math.round((Math.PI * 2 * ring) / (unit * 0.06)));
+    const steps = Math.max(48, Math.round((Math.PI * 2 * ring) / (unit * 0.032)));
     let previous = -1;
     for (let i = 0; i < steps; i++) {
       const angle = (i / steps) * Math.PI * 2;
-      const px = cx + Math.cos(angle) * ring * (1 - rng() * 0.04);
-      const py = cy + Math.sin(angle) * ring * (1 - rng() * 0.04);
+      const band = 1 - rng() * 0.05;
+      const px = cx + Math.cos(angle) * ring * band;
+      const py = cy + Math.sin(angle) * ring * band;
       /* Breaks in the ring keep it from reading as a drawn circle. */
-      if (rng() < 0.12 + thinning(px)) {
+      if (rng() < 0.07 + thinning(px)) {
         previous = -1;
         continue;
       }
-      const node = addNode(px, py, 0.45 + rng() * 0.9);
+      const node = addNode(px, py, 0.4 + rng() * 0.85);
       addEdge(previous, node, false);
       previous = node;
+
+      if (rng() > 0.55) continue;
+      let hairX = px;
+      let hairY = py;
+      let last = node;
+      const hairs = 1 + Math.floor(rng() * 2);
+      for (let h = 0; h < hairs; h++) {
+        const inward = angle + Math.PI + (rng() - 0.5) * 0.7;
+        const length = unit * (0.022 + rng() * 0.03);
+        hairX += Math.cos(inward) * length;
+        hairY += Math.sin(inward) * length;
+        const tip = addNode(
+          hairX,
+          hairY,
+          h === hairs - 1 ? 0.65 + rng() * 1.2 : 0.35 + rng() * 0.3
+        );
+        addEdge(last, tip, false);
+        last = tip;
+      }
     }
   }
 
