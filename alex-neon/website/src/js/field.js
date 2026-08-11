@@ -1,11 +1,14 @@
 /* Alex Neon — shared neural-field generator.
 
    Pure data: no DOM, no canvas, no colours applied. The page renderer
-   (neural.mjs) and the social-card renderer (scripts/make-og.mjs) both build
-   their figure from here, so the card shows the same field as the hero.
+   (neural.js) and the social-card renderer (scripts/make-og.mjs) both build
+   their figure from here, so the card shows the same figure as the hero.
 
-   The field is deliberately unwound rather than a dense ball: nodes gather in
-   loose clusters spread across an ellipse, everything else is connections. */
+   Structure follows a real dendritic tree rather than a scatter of dots:
+   filaments radiate from a hub, keep their curvature so they read as smooth
+   arcs, branch as they go, and end in somas. Every point along a filament is a
+   node, and their radii vary widely — hair-fine along the path, prominent at
+   the endings — so no two branches look alike. */
 
 export const TEAL = [46, 230, 214];
 export const VIOLET = [139, 92, 246];
@@ -42,188 +45,180 @@ export function ramp(t) {
  * @param {number} o.ry        half-height of the field ellipse
  * @param {number} o.nodes     target node count
  * @param {number} [o.seed]
- * @param {number} [o.scale]   unit scale (device pixel ratio) for radii/links
- * @param {number} [o.leftBias] 0–1: how much sparser the left edge gets, so
- *                              copy sitting on that side stays readable
- * @param {{x:number,y:number}[]} [o.anchors] explicit cluster centres
+ * @param {number} [o.scale]   unit scale (device pixel ratio) for radii
+ * @param {number} [o.leftBias] 0–1: how much the left side thins out, so copy
+ *                              sitting there keeps its contrast
+ * @param {{x:number,y:number}[]} [o.anchors] hubs to grow from; defaults to one
+ *                              hub at the centre
  * @returns {{count:number,x:Float32Array,y:Float32Array,r:Float32Array,
- *            core:Float32Array,edgeCount:number,ea:Int32Array,eb:Int32Array,
- *            elong:Uint8Array,rx:number,cx:number}}
+ *            edgeCount:number,ea:Int32Array,eb:Int32Array,elong:Uint8Array,
+ *            rx:number,cx:number}}
  */
 export function generateField(o) {
   const { cx, cy, rx, ry, nodes: target, seed = 0x5eed, scale = 1 } = o;
   const leftBias = o.leftBias ?? 0;
   const rng = mulberry32(seed);
-  /* Geometric mean, not min(): a wide shallow band would otherwise get tiny
-     clusters and hair-thin links driven by its short side. */
+  /* Geometric mean, not min(): a wide shallow band would otherwise get
+     hair-thin filaments driven by its short side. */
   const unit = Math.sqrt(rx * ry);
+  const hubs = o.anchors?.length ? o.anchors : [{ x: cx, y: cy }];
 
-  /* ---- Cluster centres -------------------------------------------------
-     Callers may anchor the clusters (the process steps each get their own
-     knot, so hovering a step always has neurons to light). Otherwise a
-     golden-angle spiral covers the area evenly. Few, well-separated clusters:
-     many small ones average out into an even scatter, which reads as a
-     particle background rather than as neurons gathering in places. */
-  const clusters = [];
-  const anchors = o.anchors ?? [];
-  if (anchors.length) {
-    for (const anchor of anchors) {
-      clusters.push({
-        x: anchor.x,
-        y: anchor.y,
-        radius: unit * (0.1 + rng() * 0.05),
-        weight: 0.8 + rng() * 0.5,
-        first: 0,
-        last: 0
-      });
-    }
-  } else {
-    const clusterCount = Math.max(4, Math.min(18, Math.round(target / 90)));
-    for (let i = 0; i < clusterCount; i++) {
-      const angle = i * 2.39996 + rng() * 0.7;
-      /* sqrt keeps the spiral area-uniform instead of centre-heavy */
-      const spread = Math.sqrt((i + 0.55) / clusterCount);
-      clusters.push({
-        x: cx + Math.cos(angle) * spread * rx * 0.9,
-        y: cy + Math.sin(angle) * spread * ry * 0.9,
-        radius: unit * (0.07 + rng() * 0.07),
-        weight: 0.55 + rng() * 0.9,
-        first: 0,
-        last: 0
-      });
-    }
-  }
-
-  const totalWeight = clusters.reduce((sum, c) => sum + c.weight, 0);
-  const cap = Math.round(target * 1.25);
+  const cap = Math.round(target * 1.6) + 64;
   const x = new Float32Array(cap);
   const y = new Float32Array(cap);
   const r = new Float32Array(cap);
-  const core = new Float32Array(cap); /* 1 at a cluster centre, 0 out in the field */
   let count = 0;
-
-  /* Sparser on one side so the headline never sits on a dense patch. */
-  const keep = (px) => {
-    if (!leftBias) return true;
-    const t = clamp01((px - (cx - rx)) / (2 * rx));
-    return rng() < 1 - leftBias * (1 - smoothstep(t));
-  };
-
-  const push = (px, py, coreness) => {
-    if (count >= cap) return;
-    if (!keep(px)) return;
-    x[count] = px;
-    y[count] = py;
-    /* Cluster centres carry the larger somas; field nodes stay fine. */
-    r[count] = (0.9 + coreness * 1.5 + rng() * 0.6) * scale;
-    core[count] = coreness;
-    count++;
-  };
-
-  /* ---- Cluster nodes: most of the field -------------------------------- */
-  for (const cluster of clusters) {
-    cluster.first = count;
-    const n = Math.max(6, Math.round((target * 0.78 * cluster.weight) / totalWeight));
-    for (let i = 0; i < n; i++) {
-      /* pow > 0.5 pulls samples outward, so clusters read as loose knots */
-      const t = Math.pow(rng(), 0.62);
-      const angle = rng() * Math.PI * 2;
-      const rr = t * cluster.radius;
-      push(
-        cluster.x + Math.cos(angle) * rr * (0.85 + rng() * 0.5),
-        cluster.y + Math.sin(angle) * rr * (0.85 + rng() * 0.5),
-        1 - t
-      );
-    }
-    cluster.last = count;
-  }
-
-  /* ---- Field nodes: the sparse remainder, so clusters are not islands --- */
-  const fieldNodes = Math.round(target * 0.22);
-  for (let i = 0; i < fieldNodes; i++) {
-    const angle = rng() * Math.PI * 2;
-    const spread = Math.sqrt(rng());
-    push(
-      cx + Math.cos(angle) * spread * rx,
-      cy + Math.sin(angle) * spread * ry,
-      rng() * 0.25
-    );
-  }
-
-  /* ---- Edges: short local links via a uniform grid --------------------- */
-  const link = unit * 0.19;
-  const cell = link;
-  const cols = Math.max(1, Math.ceil((rx * 2 + link * 2) / cell));
-  const rows = Math.max(1, Math.ceil((ry * 2 + link * 2) / cell));
-  const originX = cx - rx - link;
-  const originY = cy - ry - link;
-  const buckets = new Map();
-  const keyOf = (px, py) => {
-    const col = Math.max(0, Math.min(cols - 1, Math.floor((px - originX) / cell)));
-    const row = Math.max(0, Math.min(rows - 1, Math.floor((py - originY) / cell)));
-    return row * cols + col;
-  };
-  for (let i = 0; i < count; i++) {
-    const key = keyOf(x[i], y[i]);
-    const bucket = buckets.get(key);
-    if (bucket) bucket.push(i);
-    else buckets.set(key, [i]);
-  }
-
   const ea = [];
   const eb = [];
   const elong = [];
-  const seen = new Set();
-  const addEdge = (i, j, isLong) => {
-    if (i === j) return;
-    const key = i < j ? i * cap + j : j * cap + i;
-    if (seen.has(key)) return;
-    seen.add(key);
-    ea.push(i);
-    eb.push(j);
-    elong.push(isLong ? 1 : 0);
+
+  /* 0 = full density, 1 = nothing. Thins the side the copy sits on. */
+  const thinning = (px) => {
+    if (!leftBias) return 0;
+    const t = clamp01((px - (cx - rx)) / (2 * rx));
+    return leftBias * (1 - smoothstep(t));
   };
 
-  const near = [];
-  for (let i = 0; i < count; i++) {
-    near.length = 0;
-    const col = Math.floor((x[i] - originX) / cell);
-    const row = Math.floor((y[i] - originY) / cell);
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        const bucket = buckets.get((row + dr) * cols + (col + dc));
-        if (!bucket) continue;
-        for (const j of bucket) {
-          if (j === i) continue;
-          const d = Math.hypot(x[j] - x[i], y[j] - y[i]);
-          if (d < link) near.push([d, j]);
-        }
+  const outside = (px, py) => {
+    const dx = (px - cx) / rx;
+    const dy = (py - cy) / ry;
+    return dx * dx + dy * dy > 1;
+  };
+
+  const addNode = (px, py, radius) => {
+    if (count >= cap) return -1;
+    x[count] = px;
+    y[count] = py;
+    r[count] = radius * scale;
+    return count++;
+  };
+
+  const addEdge = (a, b, long) => {
+    if (a < 0 || b < 0 || a === b) return;
+    ea.push(a);
+    eb.push(b);
+    elong.push(long ? 1 : 0);
+  };
+
+  /* Short steps: a straight line between neighbours then reads as a curve. */
+  const STEP = unit * 0.05;
+  const MAX_DEPTH = 6;
+
+  /**
+   * Grows one dendrite. `curve` is a persistent turn rate, which is what makes
+   * the filament an arc instead of a random walk.
+   */
+  /** Turns a node into a visible ending. Squaring the random part skews the
+      sizes so a few somas are much larger than the rest. */
+  const makeSoma = (node) => {
+    if (node < 0) return;
+    r[node] = (1.5 + rng() * rng() * 3.4) * scale;
+  };
+
+  function grow(fromIndex, startX, startY, angle, curve, depth) {
+    const segments = 3 + Math.floor(rng() * 3);
+    let previous = fromIndex;
+    let px = startX;
+    let py = startY;
+
+    for (let s = 0; s < segments; s++) {
+      angle += curve + (rng() - 0.5) * 0.05;
+      const step = STEP * (0.8 + rng() * 0.5) * (1 + depth * 0.15);
+      px += Math.cos(angle) * step;
+      py += Math.sin(angle) * step;
+      /* A filament that leaves the field still ends in a soma — most of them
+         end this way, and without it the figure has no visible endings. */
+      if (outside(px, py)) {
+        makeSoma(previous);
+        return;
       }
+      /* Wandering into the thinned side ends the filament early, so the copy
+         gets real emptiness rather than fainter clutter. */
+      if (rng() < thinning(px) * 0.4) {
+        makeSoma(previous);
+        return;
+      }
+      /* Along the path the nodes are hair-fine; the last one of a run is a
+         little junction bead. */
+      const isJoint = s === segments - 1;
+      const node = addNode(px, py, isJoint ? 0.9 + rng() * 0.7 : 0.4 + rng() * 0.45);
+      addEdge(previous, node, false);
+      previous = node;
     }
-    near.sort((a, b) => a[0] - b[0]);
-    /* Two links per node keeps the web airy; three would knit it solid. */
-    const links = near.length > 5 ? 2 : 3;
-    for (let k = 0; k < Math.min(links, near.length); k++) addEdge(i, near[k][1], false);
+
+    if (depth >= MAX_DEPTH || count >= cap) {
+      makeSoma(previous);
+      return;
+    }
+
+    /* Branching thins out over the copy side, and deeper twigs fork less. */
+    const forkChance = 0.82 - thinning(px) * 0.55 - depth * 0.07;
+    const children = rng() < forkChance ? 2 : 1;
+    const spread = 0.3 + rng() * 0.32;
+    for (let c = 0; c < children; c++) {
+      const turn = children === 1 ? (rng() - 0.5) * 0.55 : c === 0 ? -spread : spread;
+      grow(
+        previous,
+        px,
+        py,
+        angle + turn,
+        curve * (0.55 + rng() * 0.8) + (rng() - 0.5) * 0.02,
+        depth + 1
+      );
+    }
   }
 
-  /* ---- Long links: cluster to cluster, the visible "connections" -------- */
-  for (let a = 0; a < clusters.length; a++) {
-    const ordered = clusters
-      .map((c, index) => ({ index, d: Math.hypot(c.x - clusters[a].x, c.y - clusters[a].y) }))
-      .filter((c) => c.index !== a)
-      .sort((p, q) => p.d - q.d)
-      .slice(0, 2);
-    for (const { index: b } of ordered) {
-      let best = null;
-      for (let i = clusters[a].first; i < clusters[a].last; i += 2) {
-        for (let j = clusters[b].first; j < clusters[b].last; j += 2) {
-          if (i >= count || j >= count) continue;
-          const d = Math.hypot(x[j] - x[i], y[j] - y[i]);
-          if (!best || d < best[0]) best = [d, i, j];
-        }
-      }
-      if (best) addEdge(best[1], best[2], true);
+  /* ---- Core: a small mesh of somas per hub -------------------------------
+     Trunks grow out of these, not out of a single point — a lone convergence
+     point reads as a starburst, while a spread core reads as a nucleus. */
+  const coreRadius = unit * 0.17;
+  /* Grouped per hub, so the trunk loop can serve the hubs in turn: a flat list
+     would spend the whole node budget on the first hub. */
+  const nuclei = hubs.map((hub) => {
+    const somas = [];
+    const total = 7 + Math.floor(rng() * 6);
+    for (let i = 0; i < total; i++) {
+      const angle = rng() * Math.PI * 2;
+      const distance = coreRadius * Math.sqrt(rng());
+      const node = addNode(
+        hub.x + Math.cos(angle) * distance,
+        hub.y + Math.sin(angle) * distance,
+        1.1 + rng() * 1.5
+      );
+      somas.push({ node, x: x[node], y: y[node], hub });
     }
+    /* Web the nucleus together so charge can cross it. */
+    for (let i = 1; i < somas.length; i++) {
+      addEdge(somas[i].node, somas[i - 1].node, false);
+      if (rng() < 0.45) {
+        addEdge(somas[i].node, somas[Math.floor(rng() * i)].node, false);
+      }
+    }
+    return somas;
+  });
+
+  let trunk = 0;
+  while (count < target && trunk < 260) {
+    const nucleus = nuclei[trunk % nuclei.length];
+    const round = Math.floor(trunk / nuclei.length);
+    const root = nucleus[round % nucleus.length];
+    const angle = trunk * 2.39996 + rng() * 0.4;
+
+    /* Skip trunks aimed into the thinned side instead of shortening them: a
+       gap between filaments reads calmer than a row of stubs. */
+    const heading = root.x + Math.cos(angle) * rx * 0.55;
+    if (rng() < thinning(heading)) {
+      trunk++;
+      continue;
+    }
+
+    /* Head outward from the nucleus rather than straight along the raw angle,
+       so filaments fan out instead of crossing back through the core. */
+    const outward = Math.atan2(root.y - root.hub.y, root.x - root.hub.x);
+    const bias = Number.isFinite(outward) ? outward : angle;
+    const heading2 = angle + (((bias - angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * 0.45;
+    grow(root.node, root.x, root.y, heading2, (rng() - 0.5) * 0.24, 0);
+    trunk++;
   }
 
   return {
@@ -231,7 +226,6 @@ export function generateField(o) {
     x: x.subarray(0, count),
     y: y.subarray(0, count),
     r: r.subarray(0, count),
-    core: core.subarray(0, count),
     edgeCount: ea.length,
     ea: Int32Array.from(ea),
     eb: Int32Array.from(eb),

@@ -50,9 +50,11 @@ const EDGE_COLORS = [];
 const LINK_COLORS = [];
 for (let b = 0; b < BUCKETS; b++) {
   const [r, g, bl] = ramp(b / (BUCKETS - 1));
-  NODE_COLORS.push(`rgba(${r},${g},${bl},0.82)`);
-  EDGE_COLORS.push(`rgba(${r},${g},${bl},0.2)`);
-  LINK_COLORS.push(`rgba(${r},${g},${bl},0.12)`);
+  /* The filaments carry the structure now, so they are drawn a touch stronger
+     than the beads sitting on them. */
+  NODE_COLORS.push(`rgba(${r},${g},${bl},0.8)`);
+  EDGE_COLORS.push(`rgba(${r},${g},${bl},0.3)`);
+  LINK_COLORS.push(`rgba(${r},${g},${bl},0.14)`);
   CORE_COLORS.push(
     `rgb(${Math.round(r + (255 - r) * 0.5)},${Math.round(g + (255 - g) * 0.5)},${Math.round(bl + (255 - bl) * 0.5)})`
   );
@@ -412,8 +414,8 @@ if (heroCanvas) {
   createNeuralField(heroCanvas, {
     host: heroCanvas.closest(".hero") ?? heroCanvas.parentElement,
     /* Thinned towards the copy column so the headline keeps its contrast. */
-    leftBias: 0.5,
-    densityPerMegapixel: 1150,
+    leftBias: 0.78,
+    densityPerMegapixel: 780,
     pointerRadius: 190
   });
 }
@@ -425,10 +427,10 @@ if (processCanvas) {
   const processField = createNeuralField(processCanvas, {
     host: shell,
     seed: 0x51e9,
-    densityPerMegapixel: 1100,
+    densityPerMegapixel: 700,
     pointerRadius: 130,
-    baseOpacity: 0.55,
-    /* One knot of neurons per step, so hovering a step always lights it. */
+    baseOpacity: 0.6,
+    /* One little neuron per step, so hovering a step always lights it. */
     anchors: (canvas, dpr) => {
       const box = canvas.getBoundingClientRect();
       return [...document.querySelectorAll(".process-step")].map((step) => {
