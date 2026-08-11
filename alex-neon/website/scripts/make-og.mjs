@@ -13,11 +13,13 @@
 
 import { deflateSync } from "node:zlib";
 import { writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 
 import { generateField, ramp, rampAt, TEAL, VIOLET } from "../src/js/field.js";
 
-const OUT = resolve(import.meta.dirname, "..", "assets", "og.png");
+const OUT = process.argv[2]
+  ? resolve(process.argv[2])
+  : resolve(import.meta.dirname, "..", "assets", "og.png");
 const W = 1200;
 const H = 630;
 const SS = 2; /* rendered at 2×, then box-filtered down */
@@ -213,5 +215,5 @@ const png = Buffer.concat([
 
 writeFileSync(OUT, png);
 console.log(
-  `Wrote ${join("assets", "og.png")} — ${W}×${H}, ${field.count} nodes, ${(png.length / 1024).toFixed(0)} KB`
+  `Wrote ${OUT} — ${W}×${H}, ${field.count} nodes, ${(png.length / 1024).toFixed(0)} KB`
 );

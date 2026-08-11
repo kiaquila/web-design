@@ -4,7 +4,8 @@
 
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { access, readdir, readFile, stat } from "node:fs/promises";
+import { access, mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import test, { before } from "node:test";
 import { promisify } from "node:util";
@@ -249,6 +250,75 @@ test("the field generator survives a degenerate box", async () => {
     );
     assert.ok(field.eb[e] >= 0 && field.eb[e] < field.count);
   }
+});
+
+test("the field generator gives every anchor its own dendrites", async () => {
+  const { generateField } = await import(join(root, "src/js/field.js"));
+  const anchors = [-300, -150, 0, 150, 300].map((x) => ({ x, y: 0 }));
+  const field = generateField({
+    cx: 0,
+    cy: 0,
+    rx: 400,
+    ry: 150,
+    nodes: 120,
+    seed: 0x51e9,
+    anchors
+  });
+
+  const neighbours = Array.from({ length: field.count }, () => []);
+  for (let e = 0; e < field.edgeCount; e++) {
+    neighbours[field.ea[e]].push(field.eb[e]);
+    neighbours[field.eb[e]].push(field.ea[e]);
+  }
+
+  for (const anchor of anchors) {
+    let nearest = 0;
+    let distance = Infinity;
+    for (let i = 0; i < field.count; i++) {
+      const candidate = Math.hypot(field.x[i] - anchor.x, field.y[i] - anchor.y);
+      if (candidate < distance) {
+        nearest = i;
+        distance = candidate;
+      }
+    }
+    const seen = new Set([nearest]);
+    const queue = [nearest];
+    for (let q = 0; q < queue.length; q++) {
+      for (const node of neighbours[queue[q]]) {
+        if (seen.has(node)) continue;
+        seen.add(node);
+        queue.push(node);
+      }
+    }
+    assert.ok(seen.size > 12, `anchor at x=${anchor.x} has only its ${seen.size}-node core`);
+  }
+});
+
+test("fork junctions do not become endpoint somas", async () => {
+  const { generateField } = await import(join(root, "src/js/field.js"));
+  const field = generateField({ cx: 0, cy: 0, rx: 320, ry: 180, nodes: 500 });
+  const degree = new Uint16Array(field.count);
+  for (let e = 0; e < field.edgeCount; e++) {
+    degree[field.ea[e]]++;
+    degree[field.eb[e]]++;
+  }
+  const coreRadius = Math.sqrt(320 * 180) * 0.17;
+  for (let i = 0; i < field.count; i++) {
+    if (degree[i] < 2 || Math.hypot(field.x[i], field.y[i]) <= coreRadius * 1.1) continue;
+    assert.ok(field.r[i] <= 1.6, `junction ${i} has endpoint radius ${field.r[i]}`);
+  }
+});
+
+test("the checked-in social card matches its generator", async (t) => {
+  const temp = await mkdtemp(join(tmpdir(), "alex-neon-og-"));
+  t.after(() => rm(temp, { recursive: true, force: true }));
+  const generated = join(temp, "og.png");
+  await run(process.execPath, [join(root, "scripts/make-og.mjs"), generated]);
+  assert.deepEqual(
+    await readFile(generated),
+    await readFile(join(root, "assets", "og.png")),
+    "run npm run og and commit the regenerated card"
+  );
 });
 
 test("the footer carries only the copyright line", () => {

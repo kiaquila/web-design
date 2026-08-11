@@ -86,6 +86,16 @@ function createNeuralField(canvas, options) {
   let W = 0;
   let H = 0;
 
+  const clearFieldState = () => {
+    field = null;
+    energy = null;
+    next = null;
+    bucket = null;
+    adjacencyStart = null;
+    adjacency = null;
+    base = null;
+  };
+
   const cssNumber = (name, fallback) => {
     const raw = parseFloat(getComputedStyle(canvas).getPropertyValue(name));
     return Number.isFinite(raw) ? raw : fallback;
@@ -155,7 +165,12 @@ function createNeuralField(canvas, options) {
   function build() {
     const cssWidth = canvas.clientWidth;
     const cssHeight = canvas.clientHeight;
-    if (!cssWidth || !cssHeight) return false;
+    if (!cssWidth || !cssHeight) {
+      canvas.width = 0;
+      canvas.height = 0;
+      clearFieldState();
+      return false;
+    }
 
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = Math.round(cssWidth * dpr);
@@ -168,7 +183,10 @@ function createNeuralField(canvas, options) {
     const shape = measureShape(cssWidth, cssHeight);
     /* Too little room for a figure at all — draw nothing rather than a speck.
        A later resize rebuilds, since the observers are already attached. */
-    if (shape.rx < 8 * dpr || shape.ry < 8 * dpr) return false;
+    if (shape.rx < 8 * dpr || shape.ry < 8 * dpr) {
+      clearFieldState();
+      return false;
+    }
 
     field = generateField({
       cx: shape.cx,

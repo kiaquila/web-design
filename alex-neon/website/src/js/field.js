@@ -133,30 +133,61 @@ export function generateField(o) {
     r[node] = (1.5 + rng() * rng() * 3.4) * scale;
   };
 
-  function grow(fromIndex, startX, startY, angle, curve, depth) {
+  /** Adds an ending owned by this branch instead of enlarging its shared fork. */
+  const addTerminal = (previous, px, py, budgetEnd) => {
+    if (count >= budgetEnd) return;
+    const terminal = addNode(px, py, 1);
+    if (terminal < 0) return;
+    addEdge(previous, terminal, false);
+    makeSoma(terminal);
+  };
+
+  function grow(fromIndex, startX, startY, angle, curve, depth, budgetEnd) {
     const segments = 3 + Math.floor(rng() * 3);
     let previous = fromIndex;
     let px = startX;
     let py = startY;
 
     for (let s = 0; s < segments; s++) {
+      if (count >= budgetEnd) {
+        if (previous !== fromIndex) makeSoma(previous);
+        return;
+      }
       angle += curve + (rng() - 0.5) * 0.05;
       /* Long strides near the middle, short ones out by the rim: the inside of
          the circle then holds fewer neurons than its edge. */
       const t = radial(px, py);
       const step = STEP * (0.8 + rng() * 0.5) * (1 + depth * 0.15) * (1.75 - 0.85 * t);
+      const insideX = px;
+      const insideY = py;
       px += Math.cos(angle) * step;
       py += Math.sin(angle) * step;
       /* A filament that leaves the field still ends in a soma — most of them
-         end this way, and without it the figure has no visible endings. */
+         end this way, and without it the figure has no visible endings. Place
+         a child-owned node just inside the boundary: the preceding node may be
+         a fork shared with a sibling and must remain a junction bead. */
       if (outside(px, py)) {
-        makeSoma(previous);
+        let low = 0;
+        let high = 1;
+        for (let i = 0; i < 10; i++) {
+          const mid = (low + high) / 2;
+          const probeX = insideX + (px - insideX) * mid;
+          const probeY = insideY + (py - insideY) * mid;
+          if (outside(probeX, probeY)) high = mid;
+          else low = mid;
+        }
+        addTerminal(
+          previous,
+          insideX + (px - insideX) * low,
+          insideY + (py - insideY) * low,
+          budgetEnd
+        );
         return;
       }
       /* Wandering into the thinned side ends the filament early, so the copy
          gets real emptiness rather than fainter clutter. */
       if (rng() < thinning(px) * 0.4) {
-        makeSoma(previous);
+        addTerminal(previous, px, py, budgetEnd);
         return;
       }
       /* Along the path the nodes are hair-fine; the last one of a run is a
@@ -172,7 +203,7 @@ export function generateField(o) {
       previous = node;
     }
 
-    if (depth >= MAX_DEPTH || count >= cap) {
+    if (depth >= MAX_DEPTH || count >= budgetEnd || count >= cap) {
       makeSoma(previous);
       return;
     }
@@ -181,7 +212,7 @@ export function generateField(o) {
     const forkChance = 0.82 - thinning(px) * 0.55 - depth * 0.07;
     const children = rng() < forkChance ? 2 : 1;
     const spread = 0.3 + rng() * 0.32;
-    for (let c = 0; c < children; c++) {
+    for (let c = 0; c < children && count < budgetEnd; c++) {
       const turn = children === 1 ? (rng() - 0.5) * 0.55 : c === 0 ? -spread : spread;
       grow(
         previous,
@@ -189,7 +220,8 @@ export function generateField(o) {
         py,
         angle + turn,
         curve * (0.55 + rng() * 0.8) + (rng() - 0.5) * 0.02,
-        depth + 1
+        depth + 1,
+        budgetEnd
       );
     }
   }
@@ -224,6 +256,12 @@ export function generateField(o) {
   });
 
   let trunk = 0;
+  /* One recursive tree used to consume the entire global budget. A bounded
+     slice per trunk makes the outer loop a real round robin across hubs. */
+  const trunkBudget = Math.max(
+    8,
+    Math.min(32, Math.floor(target / Math.max(1, nuclei.length * 3)))
+  );
   while (count < target && trunk < 260) {
     const nucleus = nuclei[trunk % nuclei.length];
     const round = Math.floor(trunk / nuclei.length);
@@ -243,7 +281,15 @@ export function generateField(o) {
     const outward = Math.atan2(root.y - root.hub.y, root.x - root.hub.x);
     const bias = Number.isFinite(outward) ? outward : angle;
     const heading2 = angle + (((bias - angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * 0.45;
-    grow(root.node, root.x, root.y, heading2, (rng() - 0.5) * 0.24, 0);
+    grow(
+      root.node,
+      root.x,
+      root.y,
+      heading2,
+      (rng() - 0.5) * 0.24,
+      0,
+      Math.min(target, count + trunkBudget)
+    );
     trunk++;
   }
 
