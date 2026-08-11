@@ -58,8 +58,15 @@ const REQUIRED_TEXT = [
   "Можно прийти со своей задачей?",
   "Какую задачу вы до сих пор делаете вручную?",
   "Напишите мне слово «задача»",
-  "Не присылайте конфиденциальные файлы",
-  "Индивидуальное обучение практической работе с ИИ."
+  "Не присылайте конфиденциальные файлы"
+];
+
+/* Dropped from the page on the client's instruction; see ../../CONTENT-AUDIT.md.
+   Listed so a copy-paste cannot quietly bring them back. */
+const REMOVED_TEXT = [
+  "Индивидуальное обучение практической работе с ИИ.",
+  "Без привязки к одной модели, сервису или приложению.",
+  "Алексей · ИИ по делу"
 ];
 
 const REQUIRED_LINKS = [
@@ -173,20 +180,44 @@ test("both interactive fields are present and honour reduced motion", async () =
 });
 
 test("the wordmark is the ALEX OXITOCIN logo with an accessible name", () => {
-  assert.ok(html.includes('id="logo-alex-oxitocin"'), "logo symbol missing");
+  assert.ok(html.includes('id="logo-alex-oxitocin"'), "logo definition missing");
   assert.equal(
     (html.match(/href="#logo-alex-oxitocin"/g) ?? []).length,
-    2,
-    "logo is used in the header and the footer"
+    1,
+    "the logo is used once, in the header"
   );
   assert.ok(
     /<a class="brand"[^>]*aria-label="Alex Oxitocin/.test(html),
     "the brand link needs an accessible name once its text became a drawing"
   );
+  /* A <symbol> would give <use> its own viewport anchored at (0,0) and shift
+     the drawing out of a viewBox whose origin is negative, shaving the N. */
   assert.ok(
-    !text.includes("Алексей · ИИ по делу"),
-    "the old text wordmark was replaced by the logo"
+    !/<symbol[^>]*id="logo-alex-oxitocin"/.test(html),
+    "the logo must be a plain group in <defs>, not a <symbol>"
   );
+  /* The last letter's stroke has to sit inside the viewBox, cap included —
+     that is exactly what was clipping the N. */
+  const stroke = Number(html.match(/id="logo-alex-oxitocin"[^>]*stroke-width="([\d.]+)"/)[1]);
+  const [nx, nw] = html.match(/d="M(\d+) 106V6l(\d+) 100V6"/).slice(1).map(Number);
+  const [vbLeft, , vbWidth] = html
+    .match(/<svg class="logo" viewBox="(-?[\d.]+) (-?[\d.]+) ([\d.]+) ([\d.]+)"/)
+    .slice(1)
+    .map(Number);
+  assert.ok(
+    nx + nw + stroke / 2 <= vbLeft + vbWidth,
+    `the N ends at ${nx + nw + stroke / 2}, past the viewBox edge ${vbLeft + vbWidth}`
+  );
+  assert.ok(vbLeft <= -stroke / 2, "the viewBox needs padding on the left too");
+});
+
+test("the footer carries only the copyright line", () => {
+  const footer = html.slice(html.indexOf("<footer"));
+  assert.ok(footer.includes("© Alex Oxitocin"), "copyright line missing");
+  assert.ok(!footer.includes("<use"), "the footer no longer repeats the logo");
+  for (const phrase of REMOVED_TEXT) {
+    assert.ok(!text.includes(phrase), `text was removed but is still present: ${phrase}`);
+  }
 });
 
 test("the community mark is self-hosted and described", () => {

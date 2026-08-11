@@ -88,14 +88,13 @@
   align-items: center;
   padding-block: calc(var(--header-h) + var(--sp-7)) var(--sp-8);
   overflow: hidden;
-  /* Field composition, inherited by the canvas and read there by neural.mjs:
-     --nx / --ny place the centre, --nrx / --nry give the half-width and
-     half-height, all as fractions of the canvas. The field spans the whole
-     hero and runs behind the copy; neural.mjs thins it towards that side. */
-  --nx: 0.68;
-  --ny: 0.48;
-  --nrx: 0.35;
-  --nry: 0.45;
+  /* Field composition, inherited by the canvas and read there by neural.js.
+     --nr asks for a circle of that fraction of the canvas height; --nx / --ny
+     place its centre. neural.js then keeps the circle clear of .hero-copy, so
+     the rim never runs into the headline. */
+  --nx: 0.72;
+  --ny: 0.5;
+  --nr: 0.44;
 }
 
 /* Soft corona behind the figure: gives the neurons depth without a third hue. */
@@ -380,16 +379,16 @@
 
 .footer-inner {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--sp-6);
+  gap: var(--sp-4);
   flex-wrap: wrap;
 }
 
-.footer-note {
+/* Plain grey text, not the wordmark: the footer only signs the page. */
+.footer-copyright {
   color: var(--text-3);
   font-size: var(--fs-small);
-  max-width: 24rem;
 }
 
 /* ---- Reveal on scroll (JS present; ≤ 250ms, fade + 10px rise) ------- */
@@ -486,10 +485,12 @@
   .hero {
     align-items: flex-start;
     padding-top: calc(var(--header-h) + var(--sp-5));
+    /* One column leaves no room for a circle beside the copy, so it sits below
+       the fold line of the hero and only its top arc shows. The copy then has
+       no neurons behind it at all. */
     --nx: 0.5;
-    --ny: 0.3;
-    --nrx: 0.62;
-    --nry: 0.4;
+    --ny: 1.06;
+    --nr: 0.21;
   }
 
   .hero-copy {

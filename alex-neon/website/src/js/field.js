@@ -79,11 +79,14 @@ export function generateField(o) {
     return leftBias * (1 - smoothstep(t));
   };
 
-  const outside = (px, py) => {
+  /** 0 at the centre, 1 on the boundary. */
+  const radial = (px, py) => {
     const dx = (px - cx) / rx;
     const dy = (py - cy) / ry;
-    return dx * dx + dy * dy > 1;
+    return Math.min(1, Math.sqrt(dx * dx + dy * dy));
   };
+
+  const outside = (px, py) => radial(px, py) >= 1;
 
   const addNode = (px, py, radius) => {
     if (count >= cap) return -1;
@@ -123,7 +126,10 @@ export function generateField(o) {
 
     for (let s = 0; s < segments; s++) {
       angle += curve + (rng() - 0.5) * 0.05;
-      const step = STEP * (0.8 + rng() * 0.5) * (1 + depth * 0.15);
+      /* Long strides near the middle, short ones out by the rim: the inside of
+         the circle then holds fewer neurons than its edge. */
+      const t = radial(px, py);
+      const step = STEP * (0.8 + rng() * 0.5) * (1 + depth * 0.15) * (1.75 - 0.85 * t);
       px += Math.cos(angle) * step;
       py += Math.sin(angle) * step;
       /* A filament that leaves the field still ends in a soma — most of them
@@ -139,9 +145,14 @@ export function generateField(o) {
         return;
       }
       /* Along the path the nodes are hair-fine; the last one of a run is a
-         little junction bead. */
+         little junction bead. Both shrink towards the centre. */
       const isJoint = s === segments - 1;
-      const node = addNode(px, py, isJoint ? 0.9 + rng() * 0.7 : 0.4 + rng() * 0.45);
+      const inner = 0.5 + 0.5 * radial(px, py);
+      const node = addNode(
+        px,
+        py,
+        (isJoint ? 0.9 + rng() * 0.7 : 0.4 + rng() * 0.45) * inner
+      );
       addEdge(previous, node, false);
       previous = node;
     }
@@ -219,6 +230,26 @@ export function generateField(o) {
     const heading2 = angle + (((bias - angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * 0.45;
     grow(root.node, root.x, root.y, heading2, (rng() - 0.5) * 0.24, 0);
     trunk++;
+  }
+
+  /* ---- Rim: the boundary drawn by the network itself -------------------- */
+  if (o.rim) {
+    const ring = Math.min(rx, ry);
+    const steps = Math.max(28, Math.round((Math.PI * 2 * ring) / (unit * 0.06)));
+    let previous = -1;
+    for (let i = 0; i < steps; i++) {
+      const angle = (i / steps) * Math.PI * 2;
+      const px = cx + Math.cos(angle) * ring * (1 - rng() * 0.04);
+      const py = cy + Math.sin(angle) * ring * (1 - rng() * 0.04);
+      /* Breaks in the ring keep it from reading as a drawn circle. */
+      if (rng() < 0.12 + thinning(px)) {
+        previous = -1;
+        continue;
+      }
+      const node = addNode(px, py, 0.45 + rng() * 0.9);
+      addEdge(previous, node, false);
+      previous = node;
+    }
   }
 
   return {

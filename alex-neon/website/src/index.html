@@ -26,12 +26,15 @@
 <body>
   <a class="skip-link" href="#top">К содержанию</a>
 
-  <!-- Wordmark: monoline geometric caps. Letter boxes are unchanged; the
-       tracking sets how elongated the logo reads. The viewBox keeps a stroke's
-       worth of padding on every side so round caps cannot look shaved. -->
+  <!-- Wordmark: monoline geometric caps, kept in <defs> as a plain group.
+       A <symbol> would be wrong here: <use> gives a symbol its own viewport
+       anchored at (0,0), which shifts the drawing against a viewBox whose
+       origin is negative and shaves the last letter. A group is cloned into
+       the caller's coordinate system, so the padding in the viewBox holds. -->
   <svg class="logo-sprite" aria-hidden="true" focusable="false">
-    <symbol id="logo-alex-oxitocin" viewBox="-8 -2 1078 116">
-      <g fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <defs>
+      <g id="logo-alex-oxitocin" fill="none" stroke-width="7"
+         stroke-linecap="round" stroke-linejoin="round">
         <g class="logo-alex">
           <path d="M0 106 33 6 66 106"/>
           <path d="M105 6v100h52"/>
@@ -49,7 +52,7 @@
           <path d="M1004 106V6l58 100V6"/>
         </g>
       </g>
-    </symbol>
+    </defs>
   </svg>
 
   <header class="site-header">
@@ -506,15 +509,7 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <a class="brand brand-footer" href="#top" aria-label="Alex Oxitocin — наверх страницы">
-        <svg class="logo" viewBox="-8 -2 1078 116" aria-hidden="true" focusable="false">
-          <use href="#logo-alex-oxitocin"/>
-        </svg>
-      </a>
-      <div class="footer-note">
-        <p>Индивидуальное обучение практической работе с ИИ.</p>
-        <p>Без привязки к одной модели, сервису или приложению.</p>
-      </div>
+      <p class="footer-copyright">© Alex Oxitocin</p>
     </div>
   </footer>
 </body>

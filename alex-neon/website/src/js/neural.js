@@ -91,6 +91,51 @@ function createNeuralField(canvas, options) {
     return Number.isFinite(raw) ? raw : fallback;
   };
 
+  /**
+   * Where the figure sits, in device pixels. `--nr` asks for a circle whose
+   * radius is a fraction of the canvas height; without it the figure is the
+   * ellipse given by `--nrx` / `--nry`.
+   *
+   * With `clearOf`, a circle is kept out of that element's box: it is centred
+   * in the column left over beside the copy and shrunk until its edge clears
+   * it. When the copy spans the canvas — one-column layouts — there is no such
+   * column, and the CSS placement stands.
+   */
+  function measureShape(cssWidth, cssHeight) {
+    const nx = cssNumber("--nx", 0.5);
+    const ny = cssNumber("--ny", 0.5);
+    const circle = cssNumber("--nr", NaN);
+
+    if (!Number.isFinite(circle)) {
+      return {
+        cx: nx * W,
+        cy: ny * H,
+        rx: cssNumber("--nrx", 0.5) * W,
+        ry: cssNumber("--nry", 0.5) * H
+      };
+    }
+
+    let radius = circle * cssHeight;
+    let centreX = nx * cssWidth;
+
+    const clear = options.clearOf && document.querySelector(options.clearOf);
+    if (clear) {
+      const box = canvas.getBoundingClientRect();
+      const keepOut = clear.getBoundingClientRect();
+      const gap = 40;
+      const left = keepOut.right - box.left + gap;
+      /* Leave the far edge some room too, or the rim gets sliced flat by it. */
+      const column = cssWidth - left - 28;
+      /* Below roughly a third of the width the copy owns the canvas. */
+      if (column > cssWidth * 0.34) {
+        radius = Math.min(radius, column / 2);
+        centreX = left + column / 2;
+      }
+    }
+
+    return { cx: centreX * dpr, cy: ny * H, rx: radius * dpr, ry: radius * dpr };
+  }
+
   function build() {
     const cssWidth = canvas.clientWidth;
     const cssHeight = canvas.clientHeight;
@@ -104,12 +149,14 @@ function createNeuralField(canvas, options) {
 
     const perMegapixel = options.densityPerMegapixel ?? 1500;
     const nodes = Math.round(((cssWidth * cssHeight) / 1e6) * perMegapixel);
+    const shape = measureShape(cssWidth, cssHeight);
 
     field = generateField({
-      cx: cssNumber("--nx", 0.5) * W,
-      cy: cssNumber("--ny", 0.5) * H,
-      rx: cssNumber("--nrx", 0.5) * W,
-      ry: cssNumber("--nry", 0.5) * H,
+      cx: shape.cx,
+      cy: shape.cy,
+      rx: shape.rx,
+      ry: shape.ry,
+      rim: options.rim === true,
       nodes: Math.max(120, Math.min(2200, nodes)),
       seed: options.seed ?? 0x5eed,
       scale: dpr,
@@ -413,9 +460,12 @@ const heroCanvas = document.querySelector(".hero-canvas");
 if (heroCanvas) {
   createNeuralField(heroCanvas, {
     host: heroCanvas.closest(".hero") ?? heroCanvas.parentElement,
-    /* Thinned towards the copy column so the headline keeps its contrast. */
-    leftBias: 0.78,
-    densityPerMegapixel: 780,
+    /* The circle is placed beside the copy, so the density gradient across it
+       is only a gentle one — the clearance does the real work. */
+    leftBias: 0.3,
+    clearOf: ".hero-copy",
+    rim: true,
+    densityPerMegapixel: 820,
     pointerRadius: 190
   });
 }
