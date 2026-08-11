@@ -133,7 +133,13 @@ function createNeuralField(canvas, options) {
       }
     }
 
-    return { cx: centreX * dpr, cy: ny * H, rx: radius * dpr, ry: radius * dpr };
+    /* Everything above is in CSS pixels; the field wants device pixels. */
+    return {
+      cx: centreX * dpr,
+      cy: ny * cssHeight * dpr,
+      rx: radius * dpr,
+      ry: radius * dpr
+    };
   }
 
   function build() {
