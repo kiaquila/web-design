@@ -16,6 +16,26 @@ Cloudflare token is stored in GitHub or committed here.
 
 Each project below needs its own Worker and its own one-time connection.
 
+### Alex Neon
+
+| Setting | Value |
+| --- | --- |
+| Worker name | `alex-neon` |
+| Repository | `kiaquila/web-design` |
+| Production branch | `main` |
+| Root directory | `alex-neon/website` |
+| Build command | `npm run build` |
+| Production deploy command | `npm run stage:deploy` |
+| Non-production deploy command | `npm run stage:preview` |
+| Included build watch path | `alex-neon/*` |
+
+The landing is static, so Cloudflare serves it with Workers Static Assets from
+`dist/`. `alex-neon/website/worker/index.ts` exists only to attach the security
+headers the asset pipeline does not set on its own.
+
+The stable URL is `https://alex-neon.ks-design.workers.dev`. Pull-request
+previews use the same versioned URL shape documented for Chaijana below.
+
 ### Alpha-Centr
 
 | Setting | Value |
