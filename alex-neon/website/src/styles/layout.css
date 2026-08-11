@@ -487,10 +487,12 @@
     padding-top: calc(var(--header-h) + var(--sp-5));
     /* One column leaves no room for a circle beside the copy, so it sits below
        the fold line of the hero and only its top arc shows. The copy then has
-       no neurons behind it at all. */
+       no neurons behind it at all. The arc is wide and high enough to read as
+       a crown rather than a smudge — that band is the only part of the field a
+       phone ever sees, and it is what the ambient pulses light up. */
     --nx: 0.5;
-    --ny: 1.06;
-    --nr: 0.21;
+    --ny: 1.2;
+    --nr: 0.46;
   }
 
   .hero-copy {
@@ -498,7 +500,9 @@
   }
 
 
-  /* Scrim is strongest over the copy, so the crown stays readable above it. */
+  /* Scrim is strongest over the copy, so the crown stays readable above it,
+     then eases off again below the last line — that lower band holds the arc,
+     and at full strength it would wash the neurons out to nothing. */
   .hero::after {
     content: "";
     position: absolute;
@@ -507,7 +511,9 @@
       180deg,
       rgba(5, 6, 10, 0.22) 0%,
       rgba(5, 6, 10, 0.68) 30%,
-      rgba(5, 6, 10, 0.9) 55%
+      rgba(5, 6, 10, 0.9) 55%,
+      rgba(5, 6, 10, 0.86) 74%,
+      rgba(5, 6, 10, 0.4) 100%
     );
     pointer-events: none;
   }
@@ -586,5 +592,11 @@
 
   .header-inner {
     gap: var(--sp-3);
+  }
+
+  /* The mark-and-name lockup needs every pixel of the panel's inner width on a
+     phone, and a 35 px inset buys nothing there. */
+  .community-panel {
+    padding: var(--sp-5);
   }
 }

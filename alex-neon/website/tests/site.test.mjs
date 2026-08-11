@@ -177,6 +177,33 @@ test("both interactive fields are present and honour reduced motion", async () =
   );
   /* The generator is shared with the social-card renderer. */
   await access(join(dist, "assets/field.js"));
+  /* The palette is a separate module, so it has to reach dist too. */
+  await access(join(dist, "assets/palette.js"));
+});
+
+/* Touch has no hover, so the hero seeds its own pulses there. That is the one
+   thing on the page that moves without the visitor asking, so every gate it
+   leans on is worth pinning down: it must be off for a mouse, off under
+   reduced motion, and off while the field is asleep — the last one is what
+   keeps a phone from animating a hero that scrolled away. */
+test("the hero's ambient pulses stay behind every motion gate", async () => {
+  const neural = await readFile(join(dist, "assets/neural.js"), "utf8");
+  assert.ok(/ambientEvery:\s*\d+/.test(neural), "the hero must ask for ambient pulses");
+  const gate = neural.match(/const ambientDue = \(\) =>\s*([^;]+);/);
+  assert.ok(gate, "ambientDue must exist as the single gate for the pulses");
+  for (const condition of ["ambientEvery > 0", "coarseQuery.matches", "!reduced", "!asleep()"]) {
+    assert.ok(gate[1].includes(condition), `ambientDue must require ${condition}`);
+  }
+  assert.ok(
+    /hover: none/.test(neural),
+    "coarseQuery must be the hover query, or a mouse would get the pulses too"
+  );
+  /* stop() runs on reduced motion, on a hidden tab and off-screen; if it left
+     the timer pending the field would wake itself back up a few seconds later. */
+  assert.ok(
+    /function stop\(\) \{\s*stopAmbient\(\);/.test(neural),
+    "stopping the loop must also cancel the pending pulse"
+  );
 });
 
 test("the wordmark is the ALEX OXITOCIN logo with an accessible name", () => {

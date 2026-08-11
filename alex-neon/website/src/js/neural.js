@@ -15,50 +15,21 @@
    (half-width / half-height, as fractions). */
 
 import { generateField, ramp, rampAt } from "./field.js";
+import {
+  BUCKETS,
+  CORE_COLORS,
+  EDGE_COLORS,
+  LINK_COLORS,
+  NODE_COLORS,
+  SPRITES
+} from "./palette.js";
 
 const TAU = Math.PI * 2;
-const BUCKETS = 14;
 const DECAY = 0.925; /* per 60fps frame → a lit node fades in ~0.8s */
 const TRANSFER = 0.6; /* share handed to a connected neighbour each frame */
 const reduceQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-/** Pre-rendered radial glow sprites, one per colour bucket. */
-function makeSprites() {
-  const sprites = [];
-  for (let b = 0; b < BUCKETS; b++) {
-    const [r, g, bl] = ramp(b / (BUCKETS - 1));
-    const size = 64;
-    const sprite = document.createElement("canvas");
-    sprite.width = size;
-    sprite.height = size;
-    const sc = sprite.getContext("2d");
-    const grad = sc.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    grad.addColorStop(0, "rgba(255,255,255,0.5)");
-    grad.addColorStop(0.3, `rgba(${r},${g},${bl},0.3)`);
-    grad.addColorStop(1, `rgba(${r},${g},${bl},0)`);
-    sc.fillStyle = grad;
-    sc.fillRect(0, 0, size, size);
-    sprites.push(sprite);
-  }
-  return sprites;
-}
-
-const SPRITES = makeSprites();
-const CORE_COLORS = [];
-const NODE_COLORS = [];
-const EDGE_COLORS = [];
-const LINK_COLORS = [];
-for (let b = 0; b < BUCKETS; b++) {
-  const [r, g, bl] = ramp(b / (BUCKETS - 1));
-  /* The filaments carry the structure now, so they are drawn a touch stronger
-     than the beads sitting on them. */
-  NODE_COLORS.push(`rgba(${r},${g},${bl},0.8)`);
-  EDGE_COLORS.push(`rgba(${r},${g},${bl},0.3)`);
-  LINK_COLORS.push(`rgba(${r},${g},${bl},0.14)`);
-  CORE_COLORS.push(
-    `rgb(${Math.round(r + (255 - r) * 0.5)},${Math.round(g + (255 - g) * 0.5)},${Math.round(bl + (255 - bl) * 0.5)})`
-  );
-}
+/* No hover means no pointer to light the field with — see the ambient pulses. */
+const coarseQuery = window.matchMedia("(hover: none)");
 
 /**
  * @param {HTMLCanvasElement} canvas
@@ -110,7 +81,12 @@ function createNeuralField(canvas, options) {
    * the column left over beside the copy and shrunk until its edge clears both
    * the copy and the far edge of the canvas. When the copy spans the canvas —
    * one-column layouts — there is no such column, and the CSS placement stands.
-   * `keepBelow` then shrinks it again so its top clears the header row.
+   * The circle is then shrunk again until its top clears a ceiling: `keepBelow`
+   * beside the copy, `keepBelowStacked` under it. Which one applies is not the
+   * same question in the two layouts — beside the copy only the header is in
+   * the way, but stacked the copy itself is overhead, and how much of it there
+   * is depends on the phone. Asking the layout beats guessing a radius that
+   * happens to clear the last line on one screen size.
    */
   function measureShape(cssWidth, cssHeight) {
     const nx = cssNumber("--nx", 0.5);
@@ -131,6 +107,7 @@ function createNeuralField(canvas, options) {
     const centreY = ny * cssHeight;
     const box = canvas.getBoundingClientRect();
 
+    let stacked = true;
     const beside = options.keepRightOf && document.querySelector(options.keepRightOf);
     if (beside) {
       const keepOut = beside.getBoundingClientRect();
@@ -141,10 +118,12 @@ function createNeuralField(canvas, options) {
       if (column > cssWidth * 0.34) {
         radius = Math.min(radius, column / 2);
         centreX = left + column / 2;
+        stacked = false;
       }
     }
 
-    const above = options.keepBelow && document.querySelector(options.keepBelow);
+    const ceilingSelector = (stacked && options.keepBelowStacked) || options.keepBelow;
+    const above = ceilingSelector && document.querySelector(ceilingSelector);
     if (above) {
       const keepOut = above.getBoundingClientRect();
       const ceiling = keepOut.bottom - box.top + 24;
@@ -402,13 +381,61 @@ function createNeuralField(canvas, options) {
     if ((peak > 0.015 || pointer.active) && !asleep()) raf = requestAnimationFrame(frame);
   }
 
+  /* ---- Ambient pulses -------------------------------------------------- */
+
+  /* A touch screen has no hover, so on a phone the field would only ever move
+     under a deliberate tap — which nobody thinks to try. Every few seconds one
+     neuron is seeded instead, and the charge walks the connections exactly the
+     way a pointer's does. The figure itself still never moves. Between pulses
+     the loop is idle, so this costs roughly a quarter of a frame budget rather
+     than a continuous one, and it inherits every gate the loop already has. */
+  const ambientEvery = options.ambientEvery ?? 0;
+  let ambientTimer = 0;
+
+  const ambientDue = () =>
+    ambientEvery > 0 && coarseQuery.matches && !reduced && !asleep() && !!field;
+
+  /** A neuron inside the canvas box: most of the figure can sit below the fold. */
+  function visibleNode() {
+    for (let tries = 0; tries < 24; tries++) {
+      const i = (Math.random() * field.count) | 0;
+      if (field.x[i] >= 0 && field.x[i] <= W && field.y[i] >= 0 && field.y[i] <= H) return i;
+    }
+    return -1;
+  }
+
+  function pulse() {
+    ambientTimer = 0;
+    if (ambientDue()) {
+      const i = visibleNode();
+      if (i >= 0) {
+        injectAt(field.x[i], field.y[i], pointerRadius * 0.45 * dpr, 1);
+        start();
+      }
+    }
+    scheduleAmbient();
+  }
+
+  function scheduleAmbient() {
+    if (ambientTimer || !ambientDue()) return;
+    /* Jittered, or repeated pulses read as a metronome. */
+    ambientTimer = setTimeout(pulse, ambientEvery * (0.75 + Math.random() * 0.5));
+  }
+
+  function stopAmbient() {
+    clearTimeout(ambientTimer);
+    ambientTimer = 0;
+  }
+
   function start() {
+    scheduleAmbient();
     if (raf || reduced || asleep() || !field) return;
     lastFrame = performance.now();
     raf = requestAnimationFrame(frame);
   }
 
   function stop() {
+    stopAmbient();
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
   }
@@ -473,19 +500,35 @@ function createNeuralField(canvas, options) {
       lastWidth = canvas.clientWidth;
       lastHeight = canvas.clientHeight;
       stop();
-      if (build()) renderStatic();
+      if (build()) {
+        renderStatic();
+        /* stop() cancelled the pending pulse and the rebuilt field has no
+           energy to keep a loop alive, so without this the ambient beat would
+           die at the first resize — and on a phone that is every time the URL
+           bar slides away. Scheduling, not starting: there is nothing to draw
+           until the next pulse actually lands. */
+        scheduleAmbient();
+      }
     }, 200);
   }).observe(canvas);
 
   const applyMotionPreference = () => {
     reduced = reduceQuery.matches;
-    if (!reduced) return;
+    if (!reduced) {
+      /* Motion allowed again: the pulses have to be put back on the clock. */
+      scheduleAmbient();
+      return;
+    }
     stop();
     if (energy) energy.fill(0);
     pointer.active = false;
     renderStatic();
   };
   reduceQuery.addEventListener?.("change", applyMotionPreference);
+  coarseQuery.addEventListener?.("change", () => {
+    if (ambientDue()) start();
+    else stopAmbient();
+  });
 
   if (!build()) return null;
   renderStatic();
@@ -502,9 +545,12 @@ if (heroCanvas) {
     leftBias: 0.3,
     keepRightOf: ".hero-copy",
     keepBelow: ".site-header",
+    keepBelowStacked: ".hero-copy",
     rim: true,
     densityPerMegapixel: 820,
-    pointerRadius: 190
+    pointerRadius: 190,
+    /* Touch only: the crown under the copy breathes on its own there. */
+    ambientEvery: 3400
   });
 }
 
