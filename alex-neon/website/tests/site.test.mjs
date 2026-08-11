@@ -308,17 +308,17 @@ test("fork junctions do not become endpoint somas", async () => {
   }
 });
 
-test("the social card carries the current field fingerprint", async () => {
+test("the social card carries the current renderer fingerprint", async () => {
   const {
+    CARD_FINGERPRINT_KEY,
     createSocialField,
-    FIELD_FINGERPRINT_KEY,
-    fingerprintField,
+    fingerprintSocialCard,
     readPngText
   } = await import(join(root, "scripts/social-field.mjs"));
   const card = await readFile(join(root, "assets", "og.png"));
   assert.equal(
-    readPngText(card, FIELD_FINGERPRINT_KEY),
-    fingerprintField(createSocialField()),
+    readPngText(card, CARD_FINGERPRINT_KEY),
+    fingerprintSocialCard(createSocialField()),
     "run npm run og and commit the regenerated card"
   );
 });

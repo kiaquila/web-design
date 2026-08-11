@@ -17,9 +17,9 @@ import { join, resolve } from "node:path";
 
 import { ramp, rampAt, TEAL, VIOLET } from "../src/js/field.js";
 import {
+  CARD_FINGERPRINT_KEY,
   createSocialField,
-  FIELD_FINGERPRINT_KEY,
-  fingerprintField,
+  fingerprintSocialCard,
   SOCIAL_HEIGHT,
   SOCIAL_WIDTH
 } from "./social-field.mjs";
@@ -104,7 +104,7 @@ for (let y = 0; y < h; y++) {
 
 /* ---- The field, from the generator the page uses ---------------------- */
 const field = createSocialField();
-const fieldFingerprint = fingerprintField(field);
+const cardFingerprint = fingerprintSocialCard(field);
 
 const colorOf = (px) => ramp(rampAt(field, px)).map((v) => v / 255);
 
@@ -210,7 +210,7 @@ const png = Buffer.concat([
   chunk("IHDR", ihdr),
   chunk(
     "tEXt",
-    Buffer.from(`${FIELD_FINGERPRINT_KEY}\0${fieldFingerprint}`, "latin1")
+    Buffer.from(`${CARD_FINGERPRINT_KEY}\0${cardFingerprint}`, "latin1")
   ),
   chunk("IDAT", deflateSync(Buffer.concat(rows), { level: 9 })),
   chunk("IEND", Buffer.alloc(0))
@@ -218,5 +218,5 @@ const png = Buffer.concat([
 
 writeFileSync(OUT, png);
 console.log(
-  `Wrote ${join("assets", "og.png")} — ${W}×${H}, ${field.count} nodes, ${(png.length / 1024).toFixed(0)} KB, field ${fieldFingerprint.slice(0, 12)}`
+  `Wrote ${join("assets", "og.png")} — ${W}×${H}, ${field.count} nodes, ${(png.length / 1024).toFixed(0)} KB, card ${cardFingerprint.slice(0, 12)}`
 );

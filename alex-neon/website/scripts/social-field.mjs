@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import { generateField } from "../src/js/field.js";
 
 export const SOCIAL_WIDTH = 1200;
 export const SOCIAL_HEIGHT = 630;
-export const FIELD_FINGERPRINT_KEY = "alex-neon-field-sha256";
+export const CARD_FINGERPRINT_KEY = "alex-neon-card-sha256";
 
 /** The exact geometry shared by the checked-in card and its drift test. */
 export function createSocialField() {
@@ -18,10 +19,22 @@ export function createSocialField() {
   });
 }
 
-/** Hash only the small generated graph, not the expensive raster framebuffer. */
-export function fingerprintField(field) {
+/**
+ * Hash every repository-controlled render input plus the small generated graph.
+ * This catches palette and renderer drift without rebuilding the framebuffer.
+ */
+export function fingerprintSocialCard(field) {
   const hash = createHash("sha256");
-  hash.update(`alex-neon-field-v1:${field.count}:${field.edgeCount}:${field.cx}:${field.rx}\0`);
+  hash.update("alex-neon-card-v1\0");
+  for (const source of [
+    new URL("../src/js/field.js", import.meta.url),
+    new URL("./social-field.mjs", import.meta.url),
+    new URL("./make-og.mjs", import.meta.url)
+  ]) {
+    hash.update(readFileSync(source));
+    hash.update("\0");
+  }
+  hash.update(`${field.count}:${field.edgeCount}:${field.cx}:${field.rx}\0`);
   for (const values of [field.x, field.y, field.r, field.ea, field.eb, field.elong]) {
     hash.update(Buffer.from(values.buffer, values.byteOffset, values.byteLength));
   }
