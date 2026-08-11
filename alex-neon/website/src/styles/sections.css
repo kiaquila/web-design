@@ -340,14 +340,78 @@
 
 /* ---- Community ------------------------------------------------------ */
 
+/* Mark and name lockup: the community's own avatar with its label above its
+   title to the right, the way the channel itself introduces itself.
+   --community-mark is the square's side; the two lines beside it are sized so
+   their ink — cap line of the label, baseline of the title — spans exactly
+   that side, which is what makes the row read as aligned. The negative margins
+   below take the half-leading out of the way so the line boxes stop hiding the
+   ink behind a few pixels of air; they are in em, so they follow the type. */
+.community-id {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  /* Derived from --fs-h2, not picked by eye: the column is the label's cap
+     line plus its gap plus 0.96 of the title's size, so the square that ends
+     flush with both has to follow the title as it scales. */
+  --community-mark: clamp(2.875rem, 2.58rem + 1.25vw, 3.4375rem);
+}
+
 /* The community's own Telegram mark; see ../../CONTENT-AUDIT.md. */
 .community-mark {
-  width: 5.5rem;
-  height: 5.5rem;
-  margin-bottom: var(--sp-4);
+  width: var(--community-mark);
+  height: var(--community-mark);
   border-radius: var(--r-md);
   border: 1px solid var(--line-strong);
   display: block;
+  flex-shrink: 0;
+}
+
+/* A column, not a block: .kicker is inline-flex, and inside a block its line
+   box would swallow the leading trim below instead of letting the margin move
+   the ink. As flex items both lines answer to their own margins. */
+.community-id-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.community-id .kicker {
+  /* A label, not a paragraph: the body leading only pads the lockup out. */
+  line-height: 1.4;
+  margin-top: -0.348em;
+}
+
+.community-id h2 {
+  margin-top: var(--sp-3);
+  margin-bottom: -0.218em;
+}
+
+.community-id + .section-lead {
+  margin-top: var(--sp-5);
+}
+
+/* 36em is where the title stops fitting on one line. Below it both the label
+   and the title run to two lines, the column grows to about 74 px, and the
+   mark grows with it to stay flush top and bottom. The title pays for that in
+   size: «Нейросеточная?» is one unbreakable word and at 360 px it is the
+   widest thing the column has to carry. The cap holds that wrap steady across
+   the whole range instead of letting it snap back to one line near 36em. */
+@media (max-width: 36em) {
+  .community-id {
+    --community-mark: 4.5rem;
+    gap: var(--sp-3);
+  }
+
+  .community-id-text {
+    max-width: 13rem;
+  }
+
+  .community-id h2 {
+    font-size: 1.0625rem;
+    margin-top: var(--sp-2);
+  }
 }
 
 /* ---- Community access line ------------------------------------------ */
