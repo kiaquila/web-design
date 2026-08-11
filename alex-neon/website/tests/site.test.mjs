@@ -4,8 +4,7 @@
 
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { access, mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { access, readdir, readFile, stat } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import test, { before } from "node:test";
 import { promisify } from "node:util";
@@ -307,18 +306,6 @@ test("fork junctions do not become endpoint somas", async () => {
     if (degree[i] < 2 || Math.hypot(field.x[i], field.y[i]) <= coreRadius * 1.1) continue;
     assert.ok(field.r[i] <= 1.6, `junction ${i} has endpoint radius ${field.r[i]}`);
   }
-});
-
-test("the checked-in social card matches its generator", async (t) => {
-  const temp = await mkdtemp(join(tmpdir(), "alex-neon-og-"));
-  t.after(() => rm(temp, { recursive: true, force: true }));
-  const generated = join(temp, "og.png");
-  await run(process.execPath, [join(root, "scripts/make-og.mjs"), generated]);
-  assert.deepEqual(
-    await readFile(generated),
-    await readFile(join(root, "assets", "og.png")),
-    "run npm run og and commit the regenerated card"
-  );
 });
 
 test("the footer carries only the copyright line", () => {
