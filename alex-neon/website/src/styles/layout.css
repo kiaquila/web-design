@@ -485,12 +485,22 @@
   .hero {
     align-items: flex-start;
     padding-top: calc(var(--header-h) + var(--sp-5));
-    /* One column leaves no room for a circle beside the copy, so it sits below
-       the fold line of the hero and only its top arc shows. The copy then has
-       no neurons behind it at all. */
+    /* One column leaves no room for a circle beside the copy, so the copy owns
+       the top of the hero and the figure owns the band under it. The centre
+       sits exactly on the bottom edge, so what shows is the top half of the
+       sphere — the desktop circle cut across, not a thin arc. neural.js grows
+       it into whatever the copy leaves and never lets it touch the text. */
     --nx: 0.5;
-    --ny: 1.06;
-    --nr: 0.21;
+    --ny: 1;
+    --nr: 0.62;
+  }
+
+  /* The three points stand down on a phone so the dome can have the room.
+     Everything they say is either in the lead above or on the page below, the
+     CTA and the examples link still carry the next step, and desktop keeps
+     them. Recorded under «Осознанные отклонения» in ../../CONTENT-AUDIT.md. */
+  .hero-points {
+    display: none;
   }
 
   .hero-copy {
@@ -498,16 +508,20 @@
   }
 
 
-  /* Scrim is strongest over the copy, so the crown stays readable above it. */
+  /* Scrim covers the copy and then gets out of the way. Below the last line the
+     dome is the thing worth looking at, and any veil over it costs exactly the
+     brightness the figure is there to show, so it clears to nothing. */
   .hero::after {
     content: "";
     position: absolute;
     inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(5, 6, 10, 0.22) 0%,
-      rgba(5, 6, 10, 0.68) 30%,
-      rgba(5, 6, 10, 0.9) 55%
+      rgba(5, 6, 10, 0.2) 0%,
+      rgba(5, 6, 10, 0.66) 26%,
+      rgba(5, 6, 10, 0.88) 46%,
+      rgba(5, 6, 10, 0.44) 64%,
+      rgba(5, 6, 10, 0) 80%
     );
     pointer-events: none;
   }
@@ -586,5 +600,11 @@
 
   .header-inner {
     gap: var(--sp-3);
+  }
+
+  /* The mark-and-name lockup needs every pixel of the panel's inner width on a
+     phone, and a 35 px inset buys nothing there. */
+  .community-panel {
+    padding: var(--sp-5);
   }
 }

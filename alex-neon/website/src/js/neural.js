@@ -3,70 +3,32 @@
    A field is a static figure: loose clusters of neurons spread across an
    ellipse, joined by connections. Nothing rotates and nothing drifts. Every
    neuron can light up: energy is injected around the pointer and then travels
-   along the connections, fading out over roughly a second.
+   along the connections, fading out over roughly a second. The unlit figure is
+   rasterised once into an offscreen canvas; the loop runs only while energy is
+   left, and each gate that stops it is documented where it sits.
 
-   Cost control: the unlit figure is rasterised once into an offscreen canvas,
-   requestAnimationFrame runs only while some energy is left, and the loop stops
-   off-screen and on a hidden document. Under prefers-reduced-motion the field
-   is drawn once and never animates.
-
-   Geometry comes from CSS custom properties on the canvas, so composition stays
-   a styling decision: --nx / --ny (centre, as fractions) and --nrx / --nry
-   (half-width / half-height, as fractions). */
+   Where the figure goes is placement.js's question, not this file's. */
 
 import { generateField, ramp, rampAt } from "./field.js";
+import { measureShape } from "./placement.js";
+import {
+  BUCKETS,
+  CORE_COLORS,
+  EDGE_COLORS,
+  LINK_COLORS,
+  NODE_COLORS,
+  SPRITES
+} from "./palette.js";
 
 const TAU = Math.PI * 2;
-const BUCKETS = 14;
 const DECAY = 0.925; /* per 60fps frame → a lit node fades in ~0.8s */
 const TRANSFER = 0.6; /* share handed to a connected neighbour each frame */
 const reduceQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+/* No hover means no pointer to light the field with — see the ambient pulses. */
+const coarseQuery = window.matchMedia("(hover: none)");
 
-/** Pre-rendered radial glow sprites, one per colour bucket. */
-function makeSprites() {
-  const sprites = [];
-  for (let b = 0; b < BUCKETS; b++) {
-    const [r, g, bl] = ramp(b / (BUCKETS - 1));
-    const size = 64;
-    const sprite = document.createElement("canvas");
-    sprite.width = size;
-    sprite.height = size;
-    const sc = sprite.getContext("2d");
-    const grad = sc.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    grad.addColorStop(0, "rgba(255,255,255,0.5)");
-    grad.addColorStop(0.3, `rgba(${r},${g},${bl},0.3)`);
-    grad.addColorStop(1, `rgba(${r},${g},${bl},0)`);
-    sc.fillStyle = grad;
-    sc.fillRect(0, 0, size, size);
-    sprites.push(sprite);
-  }
-  return sprites;
-}
-
-const SPRITES = makeSprites();
-const CORE_COLORS = [];
-const NODE_COLORS = [];
-const EDGE_COLORS = [];
-const LINK_COLORS = [];
-for (let b = 0; b < BUCKETS; b++) {
-  const [r, g, bl] = ramp(b / (BUCKETS - 1));
-  /* The filaments carry the structure now, so they are drawn a touch stronger
-     than the beads sitting on them. */
-  NODE_COLORS.push(`rgba(${r},${g},${bl},0.8)`);
-  EDGE_COLORS.push(`rgba(${r},${g},${bl},0.3)`);
-  LINK_COLORS.push(`rgba(${r},${g},${bl},0.14)`);
-  CORE_COLORS.push(
-    `rgb(${Math.round(r + (255 - r) * 0.5)},${Math.round(g + (255 - g) * 0.5)},${Math.round(bl + (255 - bl) * 0.5)})`
-  );
-}
-
-/**
- * @param {HTMLCanvasElement} canvas
- * @param {{host: HTMLElement, seed?: number, densityPerMegapixel?: number,
- *          leftBias?: number, pointerRadius?: number,
- *          anchors?: (canvas: HTMLCanvasElement, dpr: number) =>
- *            {x: number, y: number}[]}} options
- */
+/** Builds a field on `canvas`. Each option is explained where it is read; the
+    two call sites at the bottom of this file carry the full sets. */
 function createNeuralField(canvas, options) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
@@ -76,6 +38,7 @@ function createNeuralField(canvas, options) {
   let reduced = reduceQuery.matches;
 
   let field = null;
+  let shape = null; /* last measured geometry, in device pixels */
   let energy = null;
   let next = null;
   let bucket = null; /* colour bucket per node */
@@ -88,6 +51,7 @@ function createNeuralField(canvas, options) {
 
   const clearFieldState = () => {
     field = null;
+    shape = null;
     energy = null;
     next = null;
     bucket = null;
@@ -95,72 +59,6 @@ function createNeuralField(canvas, options) {
     adjacency = null;
     base = null;
   };
-
-  const cssNumber = (name, fallback) => {
-    const raw = parseFloat(getComputedStyle(canvas).getPropertyValue(name));
-    return Number.isFinite(raw) ? raw : fallback;
-  };
-
-  /**
-   * Where the figure sits, in device pixels. `--nr` asks for a circle whose
-   * radius is a fraction of the canvas height; without it the figure is the
-   * ellipse given by `--nrx` / `--nry`.
-   *
-   * `keepRightOf` holds a circle out of that element's box: it is centred in
-   * the column left over beside the copy and shrunk until its edge clears both
-   * the copy and the far edge of the canvas. When the copy spans the canvas —
-   * one-column layouts — there is no such column, and the CSS placement stands.
-   * `keepBelow` then shrinks it again so its top clears the header row.
-   */
-  function measureShape(cssWidth, cssHeight) {
-    const nx = cssNumber("--nx", 0.5);
-    const ny = cssNumber("--ny", 0.5);
-    const circle = cssNumber("--nr", NaN);
-
-    if (!Number.isFinite(circle)) {
-      return {
-        cx: nx * W,
-        cy: ny * H,
-        rx: cssNumber("--nrx", 0.5) * W,
-        ry: cssNumber("--nry", 0.5) * H
-      };
-    }
-
-    let radius = circle * cssHeight;
-    let centreX = nx * cssWidth;
-    const centreY = ny * cssHeight;
-    const box = canvas.getBoundingClientRect();
-
-    const beside = options.keepRightOf && document.querySelector(options.keepRightOf);
-    if (beside) {
-      const keepOut = beside.getBoundingClientRect();
-      const left = keepOut.right - box.left + 40;
-      /* Leave the far edge some room too, or the rim gets sliced flat by it. */
-      const column = cssWidth - left - 28;
-      /* Below roughly a third of the width the copy owns the canvas. */
-      if (column > cssWidth * 0.34) {
-        radius = Math.min(radius, column / 2);
-        centreX = left + column / 2;
-      }
-    }
-
-    const above = options.keepBelow && document.querySelector(options.keepBelow);
-    if (above) {
-      const keepOut = above.getBoundingClientRect();
-      const ceiling = keepOut.bottom - box.top + 24;
-      /* On a viewport too short to hold both, the clearance wins and the radius
-         floors at zero rather than going negative and poisoning the geometry. */
-      radius = Math.max(0, Math.min(radius, centreY - ceiling));
-    }
-
-    /* Everything above is in CSS pixels; the field wants device pixels. */
-    return {
-      cx: centreX * dpr,
-      cy: centreY * dpr,
-      rx: radius * dpr,
-      ry: radius * dpr
-    };
-  }
 
   function build() {
     const cssWidth = canvas.clientWidth;
@@ -178,9 +76,7 @@ function createNeuralField(canvas, options) {
     canvas.width = W;
     canvas.height = H;
 
-    const perMegapixel = options.densityPerMegapixel ?? 1500;
-    const nodes = Math.round(((cssWidth * cssHeight) / 1e6) * perMegapixel);
-    const shape = measureShape(cssWidth, cssHeight);
+    shape = measureShape({ canvas, options, cssWidth, cssHeight, dpr, W, H });
     /* Too little room for a figure at all — draw nothing rather than a speck.
        A later resize rebuilds, since the observers are already attached. */
     if (shape.rx < 8 * dpr || shape.ry < 8 * dpr) {
@@ -188,13 +84,24 @@ function createNeuralField(canvas, options) {
       return false;
     }
 
+    /* Stacked, the budget follows the disc, not the canvas: on a short phone
+       the clearance shrinks the dome to a fraction of the band, and a canvas-
+       sized crowd packed into that arc is both opaque and paid for. The rate is
+       per megapixel of disc and carries the doubling for the hidden half. */
+    const nodes = shape.stacked
+      ? Math.round((Math.PI * (shape.rx / dpr) ** 2 * (options.densityStacked ?? 0)) / 1e6)
+      : Math.round(((cssWidth * cssHeight) / 1e6) * (options.densityPerMegapixel ?? 1500));
+
     field = generateField({
       cx: shape.cx,
       cy: shape.cy,
       rx: shape.rx,
       ry: shape.ry,
       rim: options.rim === true,
-      nodes: Math.max(120, Math.min(2200, nodes)),
+      /* The floor keeps a small figure from degenerating into a speck, but a
+         shrunken dome is meant to be sparse — holding it to 120 would undo the
+         scaling above on exactly the screens that need it. */
+      nodes: Math.max(shape.stacked ? 48 : 120, Math.min(2200, nodes)),
       seed: options.seed ?? 0x5eed,
       scale: dpr,
       leftBias: options.leftBias ?? 0,
@@ -297,14 +204,18 @@ function createNeuralField(canvas, options) {
       ctx.stroke();
     }
 
+    /* On touch the figure is small and lit by single seeds rather than by a
+       parked cursor, so the same energy reads dimmer. A mouse gets no scaling. */
+    const lit = coarseQuery.matches ? options.touchGlow ?? 1 : 1;
+
     for (let i = 0; i < field.count; i++) {
       const e = energy[i];
       if (e < 0.02) continue;
       const b = bucket[i];
       /* The field is sparse, so a lit neuron has to carry more glow than it
          would inside a dense mass to read as "switched on". */
-      const size = field.r[i] * (5 + 4 * e);
-      ctx.globalAlpha = Math.min(1, e) * 0.6;
+      const size = field.r[i] * (5 + 4 * e) * lit;
+      ctx.globalAlpha = Math.min(1, e * lit) * 0.6;
       ctx.drawImage(SPRITES[b], field.x[i] - size / 2, field.y[i] - size / 2, size, size);
       ctx.globalAlpha = Math.min(1, 0.35 + 0.65 * e);
       ctx.fillStyle = CORE_COLORS[b];
@@ -330,10 +241,9 @@ function createNeuralField(canvas, options) {
     return box.top < window.innerHeight && box.bottom > 0;
   };
 
-  /* A pointer event over the field is proof that it is on screen, so it also
-     clears a stale "off-screen" state: observer notifications can be withheld
-     while the document is hidden, and the field must not stay frozen after
-     the page becomes visible again. */
+  /* A pointer event proves the field is on screen, so it clears a stale
+     "off-screen" state: observer notifications can be withheld while the
+     document is hidden, and the field must not stay frozen afterwards. */
   const wake = () => {
     onScreen = true;
     start();
@@ -382,6 +292,7 @@ function createNeuralField(canvas, options) {
     lastFrame = time;
 
     if (pointer.active) injectAt(pointer.x, pointer.y, pointerRadius * dpr, 0.85);
+    if (scrollPending) seedFromScroll();
 
     /* Spread along the connections, then decay. Transfer < 1 keeps it stable. */
     const decay = Math.pow(DECAY, step / 16.7);
@@ -402,13 +313,97 @@ function createNeuralField(canvas, options) {
     if ((peak > 0.015 || pointer.active) && !asleep()) raf = requestAnimationFrame(frame);
   }
 
+  /* ---- Scroll ---------------------------------------------------------- */
+
+  /* Scrolling is the one gesture every phone visitor makes, so the dome answers
+     it: how far the hero has travelled decides how far round the rim the charge
+     goes in, sweeping the light across the arc. The listener only raises a
+     flag, so a fast flick costs one seed per frame, not one per event. */
+  const scrollDriven = options.scrollDriven === true;
+  let scrollPending = false;
+
+  function seedFromScroll() {
+    scrollPending = false;
+    if (!field || !shape || reduced) return;
+    const box = canvas.getBoundingClientRect();
+    /* 0 while the hero is parked, 1 by the time it has scrolled fully out. */
+    const travelled = Math.min(1, Math.max(0, -box.top / Math.max(1, box.height)));
+    /* π → 0 walks the top of the circle from its left edge to its right one. */
+    const angle = Math.PI * (1 - travelled);
+    injectAt(
+      shape.cx + Math.cos(angle) * shape.rx,
+      shape.cy - Math.sin(angle) * shape.ry,
+      pointerRadius * 0.8 * dpr,
+      0.95
+    );
+  }
+
+  if (scrollDriven) {
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (reduced || !coarseQuery.matches || asleep()) return;
+        scrollPending = true;
+        start();
+      },
+      { passive: true }
+    );
+  }
+
+  /* ---- Ambient pulses -------------------------------------------------- */
+
+  /* A touch screen has no hover, so on a phone the field would only ever move
+     under a deliberate tap — which nobody thinks to try. Every few seconds one
+     neuron is seeded instead, and the charge walks the connections the way a
+     pointer's does; the figure still never moves. The loop idles between
+     pulses, so this costs about a quarter of a frame budget, not a whole one. */
+  const ambientEvery = options.ambientEvery ?? 0;
+  let ambientTimer = 0;
+
+  const ambientDue = () =>
+    ambientEvery > 0 && coarseQuery.matches && !reduced && !asleep() && !!field;
+
+  /** A neuron inside the canvas box: most of the figure can sit below the fold. */
+  function visibleNode() {
+    for (let tries = 0; tries < 24; tries++) {
+      const i = (Math.random() * field.count) | 0;
+      if (field.x[i] >= 0 && field.x[i] <= W && field.y[i] >= 0 && field.y[i] <= H) return i;
+    }
+    return -1;
+  }
+
+  function pulse() {
+    ambientTimer = 0;
+    if (ambientDue()) {
+      const i = visibleNode();
+      if (i >= 0) {
+        injectAt(field.x[i], field.y[i], pointerRadius * 0.9 * dpr, 1);
+        start();
+      }
+    }
+    scheduleAmbient();
+  }
+
+  function scheduleAmbient() {
+    if (ambientTimer || !ambientDue()) return;
+    /* Jittered, or repeated pulses read as a metronome. */
+    ambientTimer = setTimeout(pulse, ambientEvery * (0.75 + Math.random() * 0.5));
+  }
+
+  function stopAmbient() {
+    clearTimeout(ambientTimer);
+    ambientTimer = 0;
+  }
+
   function start() {
+    scheduleAmbient();
     if (raf || reduced || asleep() || !field) return;
     lastFrame = performance.now();
     raf = requestAnimationFrame(frame);
   }
 
   function stop() {
+    stopAmbient();
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
   }
@@ -458,13 +453,25 @@ function createNeuralField(canvas, options) {
     else start();
   });
 
+  /* The clearance is measured against this element, so its height is geometry
+     too. Fonts swap in after first paint: the copy rewraps and grows while the
+     hero stays pinned at 100svh, so the canvas never changes size and a dome
+     measured a moment earlier would now reach into the text. */
+  const keepOutNode = () =>
+    (options.keepBelowStacked && document.querySelector(options.keepBelowStacked)) ||
+    (options.keepBelow && document.querySelector(options.keepBelow)) ||
+    null;
+  const keepOutHeight = () => keepOutNode()?.getBoundingClientRect().height ?? 0;
+
   let resizeTimer = 0;
   let lastWidth = canvas.clientWidth;
   let lastHeight = canvas.clientHeight;
-  new ResizeObserver(() => {
+  let lastKeepOut = keepOutHeight();
+  const resizes = new ResizeObserver(() => {
     if (
       Math.abs(canvas.clientWidth - lastWidth) < 2 &&
-      Math.abs(canvas.clientHeight - lastHeight) < 2
+      Math.abs(canvas.clientHeight - lastHeight) < 2 &&
+      Math.abs(keepOutHeight() - lastKeepOut) < 2
     ) {
       return;
     }
@@ -472,20 +479,38 @@ function createNeuralField(canvas, options) {
     resizeTimer = setTimeout(() => {
       lastWidth = canvas.clientWidth;
       lastHeight = canvas.clientHeight;
+      lastKeepOut = keepOutHeight();
       stop();
-      if (build()) renderStatic();
+      if (build()) {
+        renderStatic();
+        /* stop() cancelled the pending pulse and a rebuilt field has no energy
+           to keep the loop alive, so the beat would die at the first resize —
+           on a phone, every time the URL bar slides away. */
+        scheduleAmbient();
+      }
     }, 200);
-  }).observe(canvas);
+  });
+  resizes.observe(canvas);
+  const keepOut = keepOutNode();
+  if (keepOut) resizes.observe(keepOut);
 
   const applyMotionPreference = () => {
     reduced = reduceQuery.matches;
-    if (!reduced) return;
+    if (!reduced) {
+      /* Motion allowed again: the pulses have to be put back on the clock. */
+      scheduleAmbient();
+      return;
+    }
     stop();
     if (energy) energy.fill(0);
     pointer.active = false;
     renderStatic();
   };
   reduceQuery.addEventListener?.("change", applyMotionPreference);
+  coarseQuery.addEventListener?.("change", () => {
+    if (ambientDue()) start();
+    else stopAmbient();
+  });
 
   if (!build()) return null;
   renderStatic();
@@ -497,14 +522,21 @@ const heroCanvas = document.querySelector(".hero-canvas");
 if (heroCanvas) {
   createNeuralField(heroCanvas, {
     host: heroCanvas.closest(".hero") ?? heroCanvas.parentElement,
-    /* The circle is placed beside the copy, so the density gradient across it
-       is only a gentle one — the clearance does the real work. */
+    /* Gentle: beside the copy the clearance does the real work. */
     leftBias: 0.3,
     keepRightOf: ".hero-copy",
     keepBelow: ".site-header",
+    keepBelowStacked: ".hero-copy",
     rim: true,
     densityPerMegapixel: 820,
-    pointerRadius: 190
+    densityStacked: 3800,
+    pointerRadius: 190,
+    /* All three are touch-only, and all three exist because a phone shows the
+       dome small, under a scrim and with no cursor to light it: it breathes on
+       its own, it answers the scroll, and what it does light burns harder. */
+    ambientEvery: 3400,
+    scrollDriven: true,
+    touchGlow: 1.5
   });
 }
 

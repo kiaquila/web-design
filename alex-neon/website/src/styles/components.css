@@ -77,8 +77,13 @@
 }
 
 .logo {
-  /* Aspect ratio comes from the viewBox (1078 × 116). */
-  height: 1.1875rem;
+  /* Aspect ratio comes from the viewBox (1090 × 114), which is 14 units of
+     stroke plus padding around a 1062 × 86 drawing — so these heights are not
+     the wordmark's height, they are the box's. The caps were flattened from
+     100 units to 86, which is why the same heights below now draw a mark a
+     tenth wider than before: the box got shorter, so the uniform scale grew.
+     Change the caps or the stroke and this has to be re-derived. */
+  height: 1.125rem;
   width: auto;
   display: block;
 }
@@ -103,13 +108,13 @@
    layer is concatenated later and would otherwise win. */
 @media (max-width: 60em) {
   .logo {
-    height: 1rem;
+    height: 0.9375rem;
   }
 }
 
 @media (max-width: 30em) {
   .logo {
-    height: 0.8125rem;
+    height: 0.78125rem;
   }
 }
 

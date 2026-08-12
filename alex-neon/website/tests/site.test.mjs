@@ -177,6 +177,148 @@ test("both interactive fields are present and honour reduced motion", async () =
   );
   /* The generator is shared with the social-card renderer. */
   await access(join(dist, "assets/field.js"));
+  /* The palette is a separate module, so it has to reach dist too. */
+  await access(join(dist, "assets/palette.js"));
+});
+
+/* Touch has no hover, so the hero seeds its own pulses there. That is the one
+   thing on the page that moves without the visitor asking, so every gate it
+   leans on is worth pinning down: it must be off for a mouse, off under
+   reduced motion, and off while the field is asleep — the last one is what
+   keeps a phone from animating a hero that scrolled away. */
+test("the hero's ambient pulses stay behind every motion gate", async () => {
+  const neural = await readFile(join(dist, "assets/neural.js"), "utf8");
+  assert.ok(/ambientEvery:\s*\d+/.test(neural), "the hero must ask for ambient pulses");
+  const gate = neural.match(/const ambientDue = \(\) =>\s*([^;]+);/);
+  assert.ok(gate, "ambientDue must exist as the single gate for the pulses");
+  for (const condition of ["ambientEvery > 0", "coarseQuery.matches", "!reduced", "!asleep()"]) {
+    assert.ok(gate[1].includes(condition), `ambientDue must require ${condition}`);
+  }
+  assert.ok(
+    /hover: none/.test(neural),
+    "coarseQuery must be the hover query, or a mouse would get the pulses too"
+  );
+  /* stop() runs on reduced motion, on a hidden tab and off-screen; if it left
+     the timer pending the field would wake itself back up a few seconds later. */
+  assert.ok(
+    /function stop\(\) \{\s*stopAmbient\(\);/.test(neural),
+    "stopping the loop must also cancel the pending pulse"
+  );
+});
+
+/* The dome is the whole point of the phone hero, and its geometry is the part
+   most likely to go quietly wrong: it is derived from the live layout, so a
+   copy block that grows or a narrower screen silently changes it. placement.js
+   is pure apart from two globals, so the real function can be measured here
+   against a stand-in layout instead of trusted by eye. */
+test("the stacked dome is a half sphere that clears the copy", async () => {
+  const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0 }) };
+  /* 375 × 812 phone: copy ends at 512, hero and canvas fill the viewport. */
+  const vars = { "--nx": "0.5", "--ny": "1", "--nr": "0.62" };
+  globalThis.getComputedStyle = () => ({ getPropertyValue: (n) => vars[n] ?? "" });
+  globalThis.document = {
+    querySelector: (sel) =>
+      sel === ".hero-copy"
+        ? { getBoundingClientRect: () => ({ right: 375, bottom: 512 }) }
+        : null
+  };
+
+  const { measureShape } = await import(join(root, "src/js/placement.js"));
+  const cssWidth = 375;
+  const cssHeight = 812;
+  const shape = measureShape({
+    canvas,
+    options: { keepRightOf: ".hero-copy", keepBelow: ".site-header", keepBelowStacked: ".hero-copy" },
+    cssWidth,
+    cssHeight,
+    dpr: 1,
+    W: cssWidth,
+    H: cssHeight
+  });
+
+  assert.ok(shape.stacked, "a full-width copy leaves no column, so this is the stacked layout");
+  /* Centre on the bottom edge is what makes the visible part a half sphere:
+     any higher and the underside shows, any lower and it is a shallow arc. */
+  assert.equal(shape.cy, cssHeight, "the equator must sit on the canvas bottom edge");
+  assert.ok(shape.ry > 0, "the dome must survive the clearance clamps");
+  assert.ok(
+    shape.cy - shape.ry > 512,
+    `the dome tops out at ${shape.cy - shape.ry}, which is into the copy above 512`
+  );
+  /* Cropping the shoulders is deliberate; cropping past them is the shallow
+     arc this replaced, so the radius stays inside the documented bound. */
+  assert.ok(
+    shape.rx <= cssWidth * 0.62 + 0.001,
+    `radius ${shape.rx} crops more than the shoulders off a ${cssWidth}px canvas`
+  );
+  assert.equal(shape.rx, shape.ry, "the dome is a circle, not an ellipse");
+
+  /* Short phone: the copy eats the band, so the clearance — not the width —
+     decides, and the dome collapses. This is the input the node budget reads,
+     which is why it is pinned here rather than left implicit. */
+  const short = measureShape({
+    canvas,
+    options: { keepRightOf: ".hero-copy", keepBelowStacked: ".hero-copy" },
+    cssWidth: 360,
+    cssHeight: 640,
+    dpr: 1,
+    W: 360,
+    H: 640
+  });
+  assert.ok(
+    short.ry < shape.ry / 2,
+    `a 640px screen must collapse the dome, got ${short.ry} against ${shape.ry}`
+  );
+  assert.ok(short.cy - short.ry > 512, "even collapsed, the dome clears the copy");
+
+  delete globalThis.getComputedStyle;
+  delete globalThis.document;
+});
+
+/* Both of these were review findings: the budget scaled off canvas area, so a
+   collapsed dome still got a canvas-sized crowd packed into it, and the
+   clearance was measured once against fallback font metrics. */
+test("the stacked node budget and the clearance follow the live layout", async () => {
+  const neural = await readFile(join(dist, "assets/neural.js"), "utf8");
+  /* Budget off the disc, not the canvas: shape.rx is the collapsing quantity,
+     cssWidth * cssHeight is not. */
+  assert.ok(
+    /shape\.stacked[\s\S]{0,200}?Math\.PI \* \(shape\.rx \/ dpr\) \*\* 2/.test(neural),
+    "the stacked budget must be reckoned from the dome's own radius"
+  );
+  assert.ok(
+    /Math\.max\(shape\.stacked \? \d+ : 120,/.test(neural),
+    "the node floor must drop for a stacked dome, or it undoes the scaling"
+  );
+  /* Fonts swap in after first paint and the copy rewraps while the hero stays
+     pinned at 100svh, so a canvas-only observer never learns about it. */
+  assert.ok(
+    /resizes\.observe\(keepOut\)/.test(neural),
+    "the keep-out element must be observed, not just the canvas"
+  );
+  assert.ok(
+    /Math\.abs\(keepOutHeight\(\) - lastKeepOut\) < 2/.test(neural),
+    "its height must be part of the change guard, or the rebuild is skipped"
+  );
+});
+
+test("scroll and touch glow stay behind the same gates as the pulses", async () => {
+  const neural = await readFile(join(dist, "assets/neural.js"), "utf8");
+  assert.ok(/scrollDriven:\s*true/.test(neural), "the hero must ask for scroll seeding");
+  /* A non-passive scroll listener would let the seeding block scrolling — the
+     one thing on a phone that must never stutter. */
+  assert.ok(
+    /"scroll",[\s\S]{0,400}?\{ passive: true \}/.test(neural),
+    "the scroll listener must be passive"
+  );
+  const guard = neural.match(/if \(reduced \|\| !coarseQuery\.matches \|\| asleep\(\)\) return;/);
+  assert.ok(guard, "scroll seeding must be off for a mouse, reduced motion and a sleeping field");
+  /* The extra glow is there to answer a scrim and a small figure, both of which
+     are phone-only; on a desktop it would just blow the sphere out. */
+  assert.ok(
+    /coarseQuery\.matches \? options\.touchGlow \?\? 1 : 1/.test(neural),
+    "touchGlow must apply to coarse pointers only"
+  );
 });
 
 test("the wordmark is the ALEX OXITOCIN logo with an accessible name", () => {
@@ -199,7 +341,10 @@ test("the wordmark is the ALEX OXITOCIN logo with an accessible name", () => {
   /* The last letter's stroke has to sit inside the viewBox, cap included —
      that is exactly what was clipping the N. */
   const stroke = Number(html.match(/id="logo-alex-oxitocin"[^>]*stroke-width="([\d.]+)"/)[1]);
-  const [nx, nw] = html.match(/d="M(\d+) 106V6l(\d+) 100V6"/).slice(1).map(Number);
+  /* The cap height is not pinned here — it has been retuned deliberately more
+     than once. What must hold is that the N's own box, whatever its height,
+     still ends inside the viewBox with its stroke cap on. */
+  const [nx, nw] = html.match(/d="M(\d+) \d+V6l(\d+) \d+V6"/).slice(1).map(Number);
   const [vbLeft, , vbWidth] = html
     .match(/<svg class="logo" viewBox="(-?[\d.]+) (-?[\d.]+) ([\d.]+) ([\d.]+)"/)
     .slice(1)
