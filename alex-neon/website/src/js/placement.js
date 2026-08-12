@@ -1,9 +1,7 @@
-/* Alex Neon — where a neural figure sits on its canvas.
-
-   Composition stays a styling decision: --nx / --ny place the centre and --nr
-   (or --nrx / --nry) size it, as fractions. What CSS cannot say is "stay off
-   the copy", whose height depends on the text and the screen, so the keep-out
-   selectors are resolved against the live layout instead of guessed. */
+/* Alex Neon — where a neural figure sits on its canvas. Composition stays a
+   styling decision: --nx / --ny place the centre, --nr (or --nrx / --nry)
+   sizes it, all as fractions. What CSS cannot say is "stay off the copy", so
+   the keep-out selectors below are resolved against the live layout. */
 
 /** Reads a numeric custom property off the canvas. */
 export function cssNumber(canvas, name, fallback) {
@@ -78,8 +76,7 @@ export function measureShape({ canvas, options, cssWidth, cssHeight, dpr, W, H }
   if (stacked) radius = Math.min(radius, cssWidth * 0.62);
 
   /* Everything above is in CSS pixels; the field wants device pixels. `stacked`
-     goes back out because the caller budgets nodes off it: half a dome's worth
-     of them fall below the canvas edge and are never seen. */
+     goes back out because the caller budgets its nodes off it. */
   return {
     cx: centreX * dpr,
     cy: centreY * dpr,

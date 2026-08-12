@@ -253,8 +253,53 @@ test("the stacked dome is a half sphere that clears the copy", async () => {
   );
   assert.equal(shape.rx, shape.ry, "the dome is a circle, not an ellipse");
 
+  /* Short phone: the copy eats the band, so the clearance — not the width —
+     decides, and the dome collapses. This is the input the node budget reads,
+     which is why it is pinned here rather than left implicit. */
+  const short = measureShape({
+    canvas,
+    options: { keepRightOf: ".hero-copy", keepBelowStacked: ".hero-copy" },
+    cssWidth: 360,
+    cssHeight: 640,
+    dpr: 1,
+    W: 360,
+    H: 640
+  });
+  assert.ok(
+    short.ry < shape.ry / 2,
+    `a 640px screen must collapse the dome, got ${short.ry} against ${shape.ry}`
+  );
+  assert.ok(short.cy - short.ry > 512, "even collapsed, the dome clears the copy");
+
   delete globalThis.getComputedStyle;
   delete globalThis.document;
+});
+
+/* Both of these were review findings: the budget scaled off canvas area, so a
+   collapsed dome still got a canvas-sized crowd packed into it, and the
+   clearance was measured once against fallback font metrics. */
+test("the stacked node budget and the clearance follow the live layout", async () => {
+  const neural = await readFile(join(dist, "assets/neural.js"), "utf8");
+  /* Budget off the disc, not the canvas: shape.rx is the collapsing quantity,
+     cssWidth * cssHeight is not. */
+  assert.ok(
+    /shape\.stacked[\s\S]{0,200}?Math\.PI \* \(shape\.rx \/ dpr\) \*\* 2/.test(neural),
+    "the stacked budget must be reckoned from the dome's own radius"
+  );
+  assert.ok(
+    /Math\.max\(shape\.stacked \? \d+ : 120,/.test(neural),
+    "the node floor must drop for a stacked dome, or it undoes the scaling"
+  );
+  /* Fonts swap in after first paint and the copy rewraps while the hero stays
+     pinned at 100svh, so a canvas-only observer never learns about it. */
+  assert.ok(
+    /resizes\.observe\(keepOut\)/.test(neural),
+    "the keep-out element must be observed, not just the canvas"
+  );
+  assert.ok(
+    /Math\.abs\(keepOutHeight\(\) - lastKeepOut\) < 2/.test(neural),
+    "its height must be part of the change guard, or the rebuild is skipped"
+  );
 });
 
 test("scroll and touch glow stay behind the same gates as the pulses", async () => {
