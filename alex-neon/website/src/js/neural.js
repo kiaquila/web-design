@@ -15,6 +15,7 @@
    (half-width / half-height, as fractions). */
 
 import { generateField, ramp, rampAt } from "./field.js";
+import { measureShape } from "./placement.js";
 import {
   BUCKETS,
   CORE_COLORS,
@@ -47,6 +48,7 @@ function createNeuralField(canvas, options) {
   let reduced = reduceQuery.matches;
 
   let field = null;
+  let shape = null; /* last measured geometry, in device pixels */
   let energy = null;
   let next = null;
   let bucket = null; /* colour bucket per node */
@@ -59,6 +61,7 @@ function createNeuralField(canvas, options) {
 
   const clearFieldState = () => {
     field = null;
+    shape = null;
     energy = null;
     next = null;
     bucket = null;
@@ -66,80 +69,6 @@ function createNeuralField(canvas, options) {
     adjacency = null;
     base = null;
   };
-
-  const cssNumber = (name, fallback) => {
-    const raw = parseFloat(getComputedStyle(canvas).getPropertyValue(name));
-    return Number.isFinite(raw) ? raw : fallback;
-  };
-
-  /**
-   * Where the figure sits, in device pixels. `--nr` asks for a circle whose
-   * radius is a fraction of the canvas height; without it the figure is the
-   * ellipse given by `--nrx` / `--nry`.
-   *
-   * `keepRightOf` holds a circle out of that element's box: it is centred in
-   * the column left over beside the copy and shrunk until its edge clears both
-   * the copy and the far edge of the canvas. When the copy spans the canvas —
-   * one-column layouts — there is no such column, and the CSS placement stands.
-   * The circle is then shrunk again until its top clears a ceiling: `keepBelow`
-   * beside the copy, `keepBelowStacked` under it. Which one applies is not the
-   * same question in the two layouts — beside the copy only the header is in
-   * the way, but stacked the copy itself is overhead, and how much of it there
-   * is depends on the phone. Asking the layout beats guessing a radius that
-   * happens to clear the last line on one screen size.
-   */
-  function measureShape(cssWidth, cssHeight) {
-    const nx = cssNumber("--nx", 0.5);
-    const ny = cssNumber("--ny", 0.5);
-    const circle = cssNumber("--nr", NaN);
-
-    if (!Number.isFinite(circle)) {
-      return {
-        cx: nx * W,
-        cy: ny * H,
-        rx: cssNumber("--nrx", 0.5) * W,
-        ry: cssNumber("--nry", 0.5) * H
-      };
-    }
-
-    let radius = circle * cssHeight;
-    let centreX = nx * cssWidth;
-    const centreY = ny * cssHeight;
-    const box = canvas.getBoundingClientRect();
-
-    let stacked = true;
-    const beside = options.keepRightOf && document.querySelector(options.keepRightOf);
-    if (beside) {
-      const keepOut = beside.getBoundingClientRect();
-      const left = keepOut.right - box.left + 40;
-      /* Leave the far edge some room too, or the rim gets sliced flat by it. */
-      const column = cssWidth - left - 28;
-      /* Below roughly a third of the width the copy owns the canvas. */
-      if (column > cssWidth * 0.34) {
-        radius = Math.min(radius, column / 2);
-        centreX = left + column / 2;
-        stacked = false;
-      }
-    }
-
-    const ceilingSelector = (stacked && options.keepBelowStacked) || options.keepBelow;
-    const above = ceilingSelector && document.querySelector(ceilingSelector);
-    if (above) {
-      const keepOut = above.getBoundingClientRect();
-      const ceiling = keepOut.bottom - box.top + 24;
-      /* On a viewport too short to hold both, the clearance wins and the radius
-         floors at zero rather than going negative and poisoning the geometry. */
-      radius = Math.max(0, Math.min(radius, centreY - ceiling));
-    }
-
-    /* Everything above is in CSS pixels; the field wants device pixels. */
-    return {
-      cx: centreX * dpr,
-      cy: centreY * dpr,
-      rx: radius * dpr,
-      ry: radius * dpr
-    };
-  }
 
   function build() {
     const cssWidth = canvas.clientWidth;
@@ -157,15 +86,20 @@ function createNeuralField(canvas, options) {
     canvas.width = W;
     canvas.height = H;
 
-    const perMegapixel = options.densityPerMegapixel ?? 1500;
-    const nodes = Math.round(((cssWidth * cssHeight) / 1e6) * perMegapixel);
-    const shape = measureShape(cssWidth, cssHeight);
+    shape = measureShape({ canvas, options, cssWidth, cssHeight, dpr, W, H });
     /* Too little room for a figure at all — draw nothing rather than a speck.
        A later resize rebuilds, since the observers are already attached. */
     if (shape.rx < 8 * dpr || shape.ry < 8 * dpr) {
       clearFieldState();
       return false;
     }
+
+    /* The budget is per canvas area, but a stacked dome spends about half of it
+       below the bottom edge where nobody sees it. Left at the flat rate the
+       phone gets a figure roughly half as dense as the desktop one. */
+    const perMegapixel =
+      (shape.stacked && options.densityStacked) || options.densityPerMegapixel || 1500;
+    const nodes = Math.round(((cssWidth * cssHeight) / 1e6) * perMegapixel);
 
     field = generateField({
       cx: shape.cx,
@@ -276,14 +210,18 @@ function createNeuralField(canvas, options) {
       ctx.stroke();
     }
 
+    /* On touch the figure is small and lit by single seeds rather than by a
+       parked cursor, so the same energy reads dimmer. A mouse gets no scaling. */
+    const lit = coarseQuery.matches ? options.touchGlow ?? 1 : 1;
+
     for (let i = 0; i < field.count; i++) {
       const e = energy[i];
       if (e < 0.02) continue;
       const b = bucket[i];
       /* The field is sparse, so a lit neuron has to carry more glow than it
          would inside a dense mass to read as "switched on". */
-      const size = field.r[i] * (5 + 4 * e);
-      ctx.globalAlpha = Math.min(1, e) * 0.6;
+      const size = field.r[i] * (5 + 4 * e) * lit;
+      ctx.globalAlpha = Math.min(1, e * lit) * 0.6;
       ctx.drawImage(SPRITES[b], field.x[i] - size / 2, field.y[i] - size / 2, size, size);
       ctx.globalAlpha = Math.min(1, 0.35 + 0.65 * e);
       ctx.fillStyle = CORE_COLORS[b];
@@ -361,6 +299,7 @@ function createNeuralField(canvas, options) {
     lastFrame = time;
 
     if (pointer.active) injectAt(pointer.x, pointer.y, pointerRadius * dpr, 0.85);
+    if (scrollPending) seedFromScroll();
 
     /* Spread along the connections, then decay. Transfer < 1 keeps it stable. */
     const decay = Math.pow(DECAY, step / 16.7);
@@ -379,6 +318,43 @@ function createNeuralField(canvas, options) {
 
     render();
     if ((peak > 0.015 || pointer.active) && !asleep()) raf = requestAnimationFrame(frame);
+  }
+
+  /* ---- Scroll ---------------------------------------------------------- */
+
+  /* Scrolling is the one gesture every phone visitor makes, so the dome answers
+     it: how far the hero has travelled decides how far round the rim the charge
+     goes in, sweeping the light across the arc. The listener only raises a
+     flag, so a fast flick costs one seed per frame, not one per event. */
+  const scrollDriven = options.scrollDriven === true;
+  let scrollPending = false;
+
+  function seedFromScroll() {
+    scrollPending = false;
+    if (!field || !shape || reduced) return;
+    const box = canvas.getBoundingClientRect();
+    /* 0 while the hero is parked, 1 by the time it has scrolled fully out. */
+    const travelled = Math.min(1, Math.max(0, -box.top / Math.max(1, box.height)));
+    /* π → 0 walks the top of the circle from its left edge to its right one. */
+    const angle = Math.PI * (1 - travelled);
+    injectAt(
+      shape.cx + Math.cos(angle) * shape.rx,
+      shape.cy - Math.sin(angle) * shape.ry,
+      pointerRadius * 0.8 * dpr,
+      0.95
+    );
+  }
+
+  if (scrollDriven) {
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (reduced || !coarseQuery.matches || asleep()) return;
+        scrollPending = true;
+        start();
+      },
+      { passive: true }
+    );
   }
 
   /* ---- Ambient pulses -------------------------------------------------- */
@@ -409,7 +385,7 @@ function createNeuralField(canvas, options) {
     if (ambientDue()) {
       const i = visibleNode();
       if (i >= 0) {
-        injectAt(field.x[i], field.y[i], pointerRadius * 0.45 * dpr, 1);
+        injectAt(field.x[i], field.y[i], pointerRadius * 0.9 * dpr, 1);
         start();
       }
     }
@@ -548,9 +524,14 @@ if (heroCanvas) {
     keepBelowStacked: ".hero-copy",
     rim: true,
     densityPerMegapixel: 820,
+    densityStacked: 2100,
     pointerRadius: 190,
-    /* Touch only: the crown under the copy breathes on its own there. */
-    ambientEvery: 3400
+    /* All three are touch-only, and all three exist because a phone shows the
+       dome small, under a scrim and with no cursor to light it: it breathes on
+       its own, it answers the scroll, and what it does light burns harder. */
+    ambientEvery: 3400,
+    scrollDriven: true,
+    touchGlow: 1.5
   });
 }
 
