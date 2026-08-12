@@ -528,15 +528,20 @@ test("nothing extra ships: the payload stays within budget", async () => {
   const budgets = {
     ".html": 60 * 1024,
     ".css": 60 * 1024,
-    ".js": 40 * 1024,
+    ".js": 48 * 1024,
     ".woff2": 160 * 1024,
     ".jpg": 40 * 1024,
     ".png": 400 * 1024 /* og.png is fetched by crawlers, not by the page */
   };
   const totals = {};
+  let gzipJsTotal = 0;
   for (const file of await distFiles()) {
     const { size } = await stat(file);
-    totals[extname(file)] = (totals[extname(file)] ?? 0) + size;
+    const extension = extname(file);
+    totals[extension] = (totals[extension] ?? 0) + size;
+    if (extension === ".js" && file.startsWith(join(dist, "assets"))) {
+      gzipJsTotal += gzipSync(await readFile(file)).length;
+    }
   }
   for (const [extension, budget] of Object.entries(budgets)) {
     assert.ok(
@@ -544,6 +549,10 @@ test("nothing extra ships: the payload stays within budget", async () => {
       `${extension} payload ${totals[extension]} exceeds ${budget} bytes`
     );
   }
+  assert.ok(
+    gzipJsTotal <= 20 * 1024,
+    `.js payload ${gzipJsTotal} bytes gzipped exceeds 20480`
+  );
   assert.deepEqual(
     Object.keys(totals).sort(),
     [".css", ".html", ".jpg", ".js", ".png", ".svg", ".txt", ".woff2", ".xml"],
