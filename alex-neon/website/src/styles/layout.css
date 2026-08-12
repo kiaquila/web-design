@@ -562,6 +562,17 @@
   }
 }
 
+@media (max-width: 60em) {
+  /* Safari changes the visible viewport height as its bars collapse. If the
+     hero follows that height, the copy-clearance clamp changes the dome's
+     radius mid-scroll. Give the stacked composition a content-sized band
+     instead: the width fixes the radius, and scrolling can only light it. */
+  .hero {
+    min-height: 0;
+    padding-bottom: calc(var(--sp-5) + 62vw);
+  }
+}
+
 @media (max-width: 30em) {
   /* Narrow phones: the headline and lead tighten so the primary call to
      action stays above the fold on a 360 × 760 screen. */
@@ -572,7 +583,7 @@
   }
 
   .hero {
-    padding-block: calc(var(--header-h) + var(--sp-4)) var(--sp-7);
+    padding-top: calc(var(--header-h) + var(--sp-4));
   }
 
   .hero-copy h1 {

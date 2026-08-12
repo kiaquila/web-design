@@ -253,23 +253,27 @@ test("the stacked dome is a half sphere that clears the copy", async () => {
   );
   assert.equal(shape.rx, shape.ry, "the dome is a circle, not an ellipse");
 
-  /* Short phone: the copy eats the band, so the clearance — not the width —
-     decides, and the dome collapses. This is the input the node budget reads,
-     which is why it is pinned here rather than left implicit. */
-  const short = measureShape({
+  /* The phone layout reserves a content-sized band: 24 px of clearance plus
+     the width-bound radius. Its canvas height therefore does not follow the
+     visible viewport when Safari's bars collapse during a scroll. */
+  const reservedRadius = cssWidth * 0.62;
+  const stableHeight = 512 + 24 + reservedRadius;
+  const stable = measureShape({
     canvas,
     options: { keepRightOf: ".hero-copy", keepBelowStacked: ".hero-copy" },
-    cssWidth: 360,
-    cssHeight: 640,
+    cssWidth,
+    cssHeight: stableHeight,
     dpr: 1,
-    W: 360,
-    H: 640
+    W: cssWidth,
+    H: stableHeight
   });
-  assert.ok(
-    short.ry < shape.ry / 2,
-    `a 640px screen must collapse the dome, got ${short.ry} against ${shape.ry}`
+  assert.equal(stable.ry, reservedRadius, "the reserved band must leave the width-bound radius");
+  assert.equal(stable.cy - stable.ry, 512 + 24, "the stable dome must keep its copy gap");
+  assert.match(
+    css,
+    /@media \(max-width: 60em\)[\s\S]{0,500}?\.hero \{[\s\S]{0,200}?min-height: 0;[\s\S]{0,200}?padding-bottom: calc\(var\(--sp-5\) \+ 62vw\);/,
+    "the mobile hero must reserve its dome by width instead of viewport height"
   );
-  assert.ok(short.cy - short.ry > 512, "even collapsed, the dome clears the copy");
 
   delete globalThis.getComputedStyle;
   delete globalThis.document;
@@ -290,8 +294,8 @@ test("the stacked node budget and the clearance follow the live layout", async (
     /Math\.max\(shape\.stacked \? \d+ : 120,/.test(neural),
     "the node floor must drop for a stacked dome, or it undoes the scaling"
   );
-  /* Fonts swap in after first paint and the copy rewraps while the hero stays
-     pinned at 100svh, so a canvas-only observer never learns about it. */
+  /* Fonts swap in after first paint and the copy rewraps, so observing both
+     nodes keeps the content-sized hero band and clearance in sync. */
   assert.ok(
     /resizes\.observe\(keepOut\)/.test(neural),
     "the keep-out element must be observed, not just the canvas"
