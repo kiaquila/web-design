@@ -454,9 +454,8 @@ function createNeuralField(canvas, options) {
   });
 
   /* The clearance is measured against this element, so its height is geometry
-     too. Fonts swap in after first paint: the copy rewraps and grows while the
-     hero stays pinned at 100svh, so the canvas never changes size and a dome
-     measured a moment earlier would now reach into the text. */
+     too. Fonts swap in after first paint: the copy rewraps and grows, and a
+     dome measured a moment earlier would now reach into the text. */
   const keepOutNode = () =>
     (options.keepBelowStacked && document.querySelector(options.keepBelowStacked)) ||
     (options.keepBelow && document.querySelector(options.keepBelow)) ||
