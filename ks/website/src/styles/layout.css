@@ -114,10 +114,14 @@
   gap: clamp(1rem, 0.3rem + 1.6vw, 2rem);
 }
 
+/* 44 px tall, not just the 33 px the text needs: touch laptops and tablets
+   are above the 900px breakpoint too, and the project's minimum has no
+   "desktop is exempt" clause. */
 .site-nav a {
   position: relative;
-  display: inline-block;
-  padding-block: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
   color: var(--ink-soft);
   font-size: 0.78rem;
   font-weight: 600;
@@ -126,11 +130,12 @@
   transition: color var(--dur-fast) var(--ease);
 }
 
+/* Sits under the word rather than at the bottom of the enlarged box. */
 .site-nav a::after {
   content: "";
   position: absolute;
   inset-inline: 0;
-  bottom: 0;
+  bottom: calc(50% - 0.8rem);
   height: 1px;
   background: currentColor;
   transform: scaleX(0);

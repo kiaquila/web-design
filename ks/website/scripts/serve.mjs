@@ -44,22 +44,39 @@ async function resolveFile(urlPath) {
   return null;
 }
 
+async function nearestNotFound(urlPath) {
+  const clean = normalize(decodeURIComponent(urlPath.split("?")[0])).replace(
+    /^(\.\.[/\\])+/,
+    ""
+  );
+  const segments = clean.split("/").filter(Boolean).slice(0, -1);
+  while (true) {
+    const candidate = join(dist, ...segments, "404.html");
+    if (candidate.startsWith(dist)) {
+      try {
+        if ((await stat(candidate)).isFile()) return candidate;
+      } catch {
+        /* keep walking up */
+      }
+    }
+    if (segments.length === 0) return null;
+    segments.pop();
+  }
+}
+
 createServer(async (request, response) => {
   const file = await resolveFile(request.url ?? "/");
   if (!file) {
-    const notFound = join(dist, "404.html");
-    try {
-      const info = await stat(notFound);
-      if (info.isFile()) {
-        response.writeHead(404, { "content-type": TYPES[".html"] });
-        createReadStream(notFound).pipe(response);
-        return;
-      }
-    } catch {
-      /* fall through to the plain response */
-    }
+    /* Walks up from the requested path to the nearest 404.html, the way
+       Workers Static Assets does — otherwise a missing /en/ URL would answer
+       in Russian here and in English in production. */
+    const notFound = await nearestNotFound(request.url ?? "/");
     response.writeHead(404, { "content-type": TYPES[".html"] });
-    response.end("<h1>404</h1>");
+    if (notFound) {
+      createReadStream(notFound).pipe(response);
+    } else {
+      response.end("<h1>404</h1>");
+    }
     return;
   }
   response.writeHead(200, {

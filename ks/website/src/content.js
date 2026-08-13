@@ -33,6 +33,12 @@ export const languages = {
   en: { locale: "en", ogLocale: "en_US", label: "EN", path: "/en/" }
 };
 
+/** One social card per language — sharing the English page with a card that
+ *  carries the Russian headline is a mixed-language preview. Rendered by
+ *  `scripts/make-og.mjs`, copied by the build, referenced by the renderer;
+ *  named here so those three cannot disagree. */
+export const ogImages = { ru: "og.png", en: "og-en.png" };
+
 export const content = {
   ru: {
     meta: {

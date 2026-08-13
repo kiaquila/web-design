@@ -9,7 +9,7 @@
    desktop, and the deck scrolls with snap points. Everything still reads as a
    plain document on phones and without CSS. */
 
-import { content, experienceYears, languages, links } from "./content.js";
+import { content, experienceYears, languages, links, ogImages } from "./content.js";
 
 const escapeHtml = (value = "") =>
   String(value)
@@ -383,7 +383,7 @@ function documentShell({ lang, copy, origin, body, description, title, canonical
   <meta property="og:type" content="website">
   <meta property="og:locale" content="${languages[lang].ogLocale}">
   <meta property="og:url" content="${origin}${canonicalPath}">
-  <meta property="og:image" content="${origin}/assets/og.png">
+  <meta property="og:image" content="${origin}/assets/${ogImages[lang]}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="theme-color" content="#ffffff">

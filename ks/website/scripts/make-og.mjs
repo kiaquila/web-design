@@ -21,11 +21,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { content } from "../src/content.js";
+import { content, ogImages } from "../src/content.js";
 
 const run = promisify(execFile);
 const root = resolve(import.meta.dirname, "..");
-const out = join(root, "assets", "og.png");
 
 const CHROME_CANDIDATES = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -55,15 +54,17 @@ async function dataUri(relativePath, mime) {
   return `data:${mime};base64,${bytes.toString("base64")}`;
 }
 
-async function cardHtml() {
-  const copy = content.ru;
+async function cardHtml(lang) {
+  const copy = content[lang];
+  /* Cyrillic carries the Latin glyphs this card needs too, so one subset
+     serves both languages. */
   const [manrope, portrait] = await Promise.all([
     dataUri("assets/fonts/manrope-cyrillic.woff2", "font/woff2"),
     dataUri("assets/portrait/calm-776.jpg", "image/jpeg")
   ]);
 
   return `<!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><style>
+<html lang="${lang}"><head><meta charset="utf-8"><style>
   @font-face { font-family: "Manrope"; src: url("${manrope}") format("woff2"); font-weight: 200 800; }
   * { margin: 0; box-sizing: border-box; }
   body { width: 1200px; height: 630px; display: grid; grid-template-columns: 1fr 430px;
@@ -91,23 +92,28 @@ async function cardHtml() {
 </body></html>`;
 }
 
+/** One card per language: the English page would otherwise be shared with a
+ *  card carrying the Russian headline. */
 async function main() {
   const chrome = await findChrome();
   const dir = await mkdtemp(join(tmpdir(), "ks-og-"));
-  const page = join(dir, "card.html");
 
   try {
-    await writeFile(page, await cardHtml(), "utf8");
-    await run(chrome, [
-      "--headless",
-      "--disable-gpu",
-      "--hide-scrollbars",
-      "--window-size=1200,630",
-      "--virtual-time-budget=4000",
-      `--screenshot=${out}`,
-      `file://${page}`
-    ]);
-    console.log(`Rendered ${out}`);
+    for (const lang of Object.keys(content)) {
+      const page = join(dir, `card-${lang}.html`);
+      const target = join(root, "assets", ogImages[lang]);
+      await writeFile(page, await cardHtml(lang), "utf8");
+      await run(chrome, [
+        "--headless",
+        "--disable-gpu",
+        "--hide-scrollbars",
+        "--window-size=1200,630",
+        "--virtual-time-budget=4000",
+        `--screenshot=${target}`,
+        `file://${page}`
+      ]);
+      console.log(`Rendered ${target}`);
+    }
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -9,7 +9,13 @@ import { join, resolve } from "node:path";
 import test, { before } from "node:test";
 import { gzipSync } from "node:zlib";
 
-import { CAREER_START_YEAR, content, experienceYears, links } from "../src/content.js";
+import {
+  CAREER_START_YEAR,
+  content,
+  experienceYears,
+  links,
+  ogImages
+} from "../src/content.js";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = join(root, "dist");
@@ -343,26 +349,39 @@ test("the toggle only appears once the script can open the menu", () => {
 });
 
 test("every touch target clears 44 px", () => {
+  /* An earlier version of this test checked three controls and passed while
+     the nav links sat at 33 px and the header CTA at 38 px, so the list is
+     now explicit. Height is asserted everywhere; width only where the control
+     is an icon or a couple of characters and would otherwise be tiny. Text
+     buttons and nav links take their width from the label. */
   const clean = withoutComments(css);
-  for (const selector of [
-    /\.lang-switch a,\s*\.lang-current\s*\{[^}]*\}/,
-    /\.footer-social a\s*\{[^}]*\}/,
-    /\.carousel-btn\s*\{[^}]*\}/
-  ]) {
+  const rules = [
+    [/\.lang-switch a,\s*\.lang-current\s*\{[^}]*\}/, "both"],
+    [/\.footer-social a\s*\{[^}]*\}/, "both"],
+    [/\.carousel-btn\s*\{[^}]*\}/, "both"],
+    [/\.site-nav a\s*\{[^}]*\}/, "height"],
+    [/\.btn-compact\s*\{[^}]*\}/, "height"],
+    [/(?:^|\})\s*\.btn\s*\{[^}]*\}/, "height"]
+  ];
+
+  for (const [selector, axes] of rules) {
     const rule = clean.match(selector);
     assert.ok(rule, `missing rule for ${selector}`);
+    const name = rule[0].split("{")[0].trim();
     const size = (property) => {
       const rems = rule[0].match(new RegExp(`${property}:\\s*([\\d.]+)rem`))?.[1];
       return rems ? Number(rems) : 0;
     };
     assert.ok(
-      size("min-width") >= 2.75 || size("width") >= 2.75,
-      `${rule[0].split("{")[0].trim()} needs a 44 px wide target`
-    );
-    assert.ok(
       size("min-height") >= 2.75 || size("height") >= 2.75,
-      `${rule[0].split("{")[0].trim()} needs a 44 px tall target`
+      `${name} needs a 44 px tall target`
     );
+    if (axes === "both") {
+      assert.ok(
+        size("min-width") >= 2.75 || size("width") >= 2.75,
+        `${name} needs a 44 px wide target`
+      );
+    }
   }
 });
 
@@ -400,9 +419,30 @@ test("the palette stays fully achromatic", () => {
 
 /* --- delivery ------------------------------------------------------------------ */
 
-test("the 404 page is rendered and excluded from indexing", () => {
-  assert.match(pages.notFound, /<meta name="robots" content="noindex">/);
-  assert.ok(pages.notFoundText.includes(content.ru.notFound.title));
+test("each language gets its own 404 page", async () => {
+  /* Workers Static Assets walks up to the nearest 404.html, so an English
+     visitor hitting a missing /en/ URL must not be answered in Russian. */
+  const englishNotFound = await readFile(join(dist, "en/404.html"), "utf8");
+  for (const [page, lang] of [[pages.notFound, "ru"], [englishNotFound, "en"]]) {
+    assert.match(page, /<meta name="robots" content="noindex">/);
+    assert.match(page, new RegExp(`<html lang="${lang}">`));
+    assert.ok(
+      stripTags(page).includes(content[lang].notFound.title),
+      `${lang}: the 404 page is not in its own language`
+    );
+  }
+});
+
+test("each language gets its own social card", async () => {
+  /* Sharing /en/ with a card carrying the Russian headline is a
+     mixed-language preview. */
+  assert.notEqual(ogImages.ru, ogImages.en);
+  assert.match(pages.ru, new RegExp(`og:image" content="[^"]+/assets/${ogImages.ru}"`));
+  assert.match(pages.en, new RegExp(`og:image" content="[^"]+/assets/${ogImages.en}"`));
+  for (const file of Object.values(ogImages)) {
+    const info = await stat(join(dist, "assets", file));
+    assert.ok(info.isFile(), `${file} is referenced but not built`);
+  }
 });
 
 test("robots.txt and the sitemap list both languages", async () => {
