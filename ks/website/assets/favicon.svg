@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ks">
+  <!-- The wordmark's monogram set as type, not a drawn mark. No background
+       plate: the letters flip black/white with the browser theme, so the tab
+       icon reads on both. Favicons cannot load webfonts, so the stack leans
+       on the system's closest grotesk. -->
+  <style>
+    text {
+      font-family: ui-sans-serif, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      fill: #0b0b0c;
+    }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #ffffff; }
+    }
+  </style>
+  <text x="32" y="46" text-anchor="middle">ks</text>
+</svg>

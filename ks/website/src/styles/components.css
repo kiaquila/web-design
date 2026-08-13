@@ -1,0 +1,283 @@
+/* Reusable primitives: buttons, links, glass, the portrait swap with its
+   stats panel, and the carousel mechanics. Anything used by more than one
+   section lives here. */
+
+/* --- buttons: rectangular and tracked, like set type ----------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.875rem;
+  padding: 0.8rem 1.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-solid {
+  background: var(--ink);
+  color: var(--ground);
+}
+
+.btn-solid:hover {
+  background: #2a2b2f;
+}
+
+.btn-ghost {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.btn-ghost:hover {
+  background: var(--ink);
+  color: var(--ground);
+}
+
+/* Compact in width only — the 44 px minimum applies to the header CTA as
+   much as to anything else. */
+.btn-compact {
+  min-height: 2.75rem;
+  padding: 0.55rem 1.1rem;
+}
+
+/* Lives here rather than with the header in layout.css: the layers are
+   concatenated in order, so `.btn { display: inline-flex }` in this file would
+   win over an equally specific `display: none` written earlier — and the
+   header would overflow the viewport on a phone. */
+@media (max-width: 899px) {
+  .header-cta {
+    display: none;
+  }
+}
+
+/* --- glass ----------------------------------------------------------------- */
+
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--shadow-card);
+}
+
+/* --- the portrait swap ----------------------------------------------------- */
+
+/* Two frames stacked in the same box. The swap is a short cross-fade rather
+   than a slow dissolve: at ~140 ms the eye reads a cut, which is what makes it
+   feel like a looping gif instead of a slideshow transition. Both frames come
+   from one photo session with identical framing, so nothing but the face
+   moves. */
+.portrait-box {
+  position: relative;
+}
+
+.portrait {
+  position: relative;
+  isolation: isolate;
+  /* The exact aspect of the source pair — zero crop, zero drift. */
+  aspect-ratio: 776 / 971;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--ground-sunk);
+  cursor: pointer;
+}
+
+.portrait-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.portrait-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portrait-wink {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.portrait-calm {
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+/* `data-active` is set by the script for touch, where there is no hover at
+   all; pointer devices need no script for this to work. */
+.portrait-box:hover .portrait-wink,
+.portrait-box:focus-within .portrait-wink,
+.portrait-box:has([data-active]) .portrait-wink {
+  opacity: 1;
+}
+
+.portrait-box:hover .portrait-calm,
+.portrait-box:focus-within .portrait-calm,
+.portrait-box:has([data-active]) .portrait-calm {
+  opacity: 0;
+}
+
+/* The frosted stats panel: rises over the sweater, never over the face. A
+   sibling of the portrait, because inside role="img" it would be silenced
+   for screen readers. */
+.portrait-stats {
+  position: absolute;
+  inset-inline: 0.75rem;
+  bottom: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.portrait-box:hover .portrait-stats,
+.portrait-box:focus-within .portrait-stats,
+.portrait-box:has([data-active]) .portrait-stats {
+  opacity: 1;
+  transform: none;
+}
+
+.stat-value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.stat-label {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+/* --- carousel -------------------------------------------------------------- */
+
+/* The track is an ordinary scroll container with snap points, so it works by
+   drag, wheel, trackpad and keyboard before any script loads. The buttons are
+   an enhancement and stay hidden until the script can drive them. */
+.work-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 2 * var(--space-md)) / 3);
+  gap: var(--space-md);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  /* Room for the card lift and its shadow, which would otherwise be clipped
+     by the scroll container. */
+  padding-block: 0.5rem 1rem;
+  scrollbar-width: none;
+}
+
+.work-track::-webkit-scrollbar {
+  display: none;
+}
+
+.work-track > * {
+  scroll-snap-align: start;
+}
+
+.carousel-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* `display: flex` would otherwise beat the `hidden` attribute's UA rule, and
+   the arrows would sit there dead whenever the track has nothing to scroll. */
+.carousel-controls[hidden] {
+  display: none;
+}
+
+.carousel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.carousel-btn:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--ground-alt);
+}
+
+.carousel-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+/* Three per page is the target once the portfolio has three. With one or two
+   projects that same track leaves a third of the row empty and reads as a
+   layout bug, so a short list widens to fill. Scoped to the three-column
+   breakpoint: `:has()` outranks a plain class, so left unscoped it would also
+   force two columns onto a phone. */
+@media (min-width: 1100px) {
+  .work-track:has(> :last-child:nth-child(-n + 2)) {
+    grid-auto-columns: calc((100% - var(--space-md)) / 2);
+  }
+}
+
+@media (max-width: 1099px) {
+  .work-track {
+    grid-auto-columns: calc((100% - var(--space-md)) / 2);
+  }
+}
+
+@media (max-width: 719px) {
+  .work-track {
+    grid-auto-columns: 86%;
+    gap: var(--space-sm);
+  }
+}
+
+/* --- soft slide reveals ----------------------------------------------------- */
+
+/* Claimed by the script only when it can actually animate: the class lands on
+   <html> after load, so a no-JS or reduced-motion visit never sees hidden
+   content. Each slide's container drifts up as the slide enters the viewport. */
+html.reveal-on .slide > .container,
+html.reveal-on .slide .contact-middle,
+html.reveal-on .slide .site-footer {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease);
+}
+
+html.reveal-on .slide.in-view > .container,
+html.reveal-on .slide.in-view .contact-middle,
+html.reveal-on .slide.in-view .site-footer {
+  opacity: 1;
+  transform: none;
+}

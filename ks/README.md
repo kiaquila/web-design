@@ -1,0 +1,88 @@
+# KS — Kristina Aquila portfolio
+
+Bilingual selling landing page for Kristina Aquila's web design practice. It is
+an original design rather than a redesign: the business, the offer and the
+copy are the owner's own.
+
+The page is a **deck**: six sections, each one screen tall on desktop, scrolling
+with snap points. On phones it is an ordinary flowing document.
+
+1. Hero — headline and the portrait with its hover state
+2. Selected projects
+3. Process — `01`–`04`
+4. Services — four package cards
+5. Kind Words
+6. Get in touch — full-width band, then the footer
+
+Implementation lives in `website/`: static HTML/CSS/JS with no framework,
+served by a Cloudflare Worker that only adds security headers.
+
+## Source of truth
+
+| Item | Value | Source |
+| --- | --- | --- |
+| Owner | Kristina Aquila | client |
+| Location | Buenos Aires, Argentina | client |
+| Email | `krisredlips@gmail.com` | client |
+| Telegram | [@ks_aquila](https://t.me/ks_aquila) | client |
+| LinkedIn | [kiaquila](https://www.linkedin.com/in/kiaquila) | client |
+| Instagram | [ks_aquila](https://www.instagram.com/ks_aquila) | client |
+| In web development since | 2017 | client |
+
+Every string lives in [`website/src/content.js`](./website/src/content.js).
+Nothing on the page is written anywhere else.
+
+### Prices
+
+Quoted by the client, in US dollars:
+
+| Service | Price |
+| --- | --- |
+| Landing page | 500 |
+| Website, 5+ pages | 1 500 |
+| Menu build | 100 for the first page, 20 per additional page |
+| Dish photo retouching | 50 per 10 dishes |
+
+### Portfolio entries
+
+Both projects live in this repository and are linked to their public stages:
+[Chaijaná Noir](https://chaijana.ks-design.workers.dev) and
+[Alex Neon](https://alex-neon.ks-design.workers.dev). The card images are
+screenshots of those stages, regenerated with the command in
+[`AGENTS.md`](./AGENTS.md).
+
+## Open items
+
+- **Kind Words is unfilled.** The section is built and styled, and the first
+  card already carries Alex Oxitocin's name, role and avatar — but all three
+  quotes are `TODO` placeholders, because the repository forbids inventing
+  testimonials. The build prints a warning naming the section on every run.
+  Replace `kindWords.items` in `content.js` with real quotes and set
+  `todo: false`.
+- **Three links have no home on the page.** The old "why me" block carried the
+  client's Pinterest, the `@vibecodesh` channel and the mentored Telegram
+  group. That block was replaced by the numbers-only panel over the portrait,
+  and the footer takes LinkedIn, Telegram and Instagram only — so those three
+  destinations are currently nowhere. They are still in git history; decide
+  whether they belong in the footer before launch.
+- **Stage not deployed.** `wrangler.json` and the repository stage entry are in
+  place, but nothing has been published. Deployment needs the owner's explicit
+  go-ahead.
+
+## Checks
+
+From the repository root:
+
+```bash
+node scripts/check-repository.mjs
+```
+
+```bash
+npm --prefix ks/website run check
+```
+
+Local preview:
+
+```bash
+npm --prefix ks/website run dev
+```

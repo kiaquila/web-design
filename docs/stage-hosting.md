@@ -76,6 +76,32 @@ a versioned URL shaped like
 `https://<version>-chaijana.ks-design.workers.dev`. The version prefix is
 assigned by Cloudflare and must not be hard-coded.
 
+### KS
+
+| Setting | Value |
+| --- | --- |
+| Worker name | `ks` |
+| Repository | `kiaquila/web-design` |
+| Production branch | `main` |
+| Root directory | `ks/website` |
+| Build command | `npm run build` |
+| Production deploy command | `npm run stage:deploy` |
+| Non-production deploy command | `npm run stage:preview` |
+| Included build watch path | `ks/*` |
+
+The landing is static, so Cloudflare serves it with Workers Static Assets from
+`dist/`. `ks/website/worker/index.ts` exists only to attach the security
+headers the asset pipeline does not set on its own.
+
+The stable URL is `https://ks.ks-design.workers.dev`. Pull-request previews use
+the same versioned URL shape documented for Chaijaná above.
+
+**The build watch path is not optional.** Left at the default, this Worker
+builds on every pull request in the repository, and any branch that does not
+carry `ks/` fails its build for the obvious reason — which is what happened to
+the branch that fixed the nanoid advisory. Setting the include path to `ks/*`
+is what keeps unrelated work from consuming, and failing, this project's build.
+
 ## One-time Cloudflare connection
 
 Repeat these steps once per project, using that project's row from the tables
@@ -85,7 +111,8 @@ GitHub Actions.
 
 1. In **Workers & Pages**, choose **Create application**, then **Import a
    repository**, and connect `kiaquila/web-design`.
-2. Name the Worker exactly as the project slug (`alphacentr` or `chaijana`).
+2. Name the Worker exactly as the project slug (`alex-neon`, `alphacentr`,
+   `chaijana` or `ks`).
    Cloudflare requires the dashboard name to match `name` in that project's
    `wrangler.json`.
 3. Enter the root, build, production deploy, and non-production deploy values

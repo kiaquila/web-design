@@ -1,0 +1,589 @@
+/* Per-section composition. Each section's own responsive rules live here, at
+   the end of the cascade, so they win over the generic frame in layout.css. */
+
+/* --- hero ------------------------------------------------------------------ */
+
+.hero {
+  background: var(--ground);
+}
+
+.hero-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: clamp(2rem, 1rem + 4vw, 5rem);
+}
+
+.hero h1 {
+  max-width: 16ch;
+}
+
+.hero-subtitle {
+  max-width: 36ch;
+  margin-top: var(--space-md);
+  color: var(--ink-soft);
+  font-size: var(--step-lead);
+  line-height: 1.5;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xl);
+}
+
+.hero-portrait {
+  justify-self: end;
+  width: 100%;
+  max-width: min(29rem, 74svh * 776 / 971);
+}
+
+@media (max-width: 899px) {
+  .hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-lg);
+  }
+
+  /* Portrait first on a phone: the face is the hook, and it is what makes the
+     page feel like a person rather than a template. */
+  .hero-copy {
+    order: 2;
+  }
+
+  .hero-portrait {
+    order: 1;
+    justify-self: center;
+    max-width: min(84vw, 26rem);
+  }
+
+  .hero h1,
+  .hero-subtitle {
+    max-width: none;
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* --- work ------------------------------------------------------------------ */
+
+.work-card {
+  display: flex;
+}
+
+.work-link {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  transition: transform var(--dur) var(--ease);
+}
+
+.work-link:hover {
+  transform: translateY(-4px);
+}
+
+.work-shot {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--ground-sunk);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.work-link:hover .work-shot {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lift);
+}
+
+.work-shot img {
+  width: 100%;
+  height: clamp(180px, 32svh, 430px);
+  object-fit: cover;
+  object-position: 50% 0;
+  transition: transform var(--dur-slow) var(--ease);
+}
+
+/* On the deck the shot stops guessing its height and simply takes whatever the
+   slide has left after the heading and the card meta. That is what keeps this
+   slide exactly one screen at any window height instead of at the few the
+   clamp above happens to suit. */
+@media (min-width: 900px) and (min-height: 660px) {
+  .work {
+    align-content: stretch;
+  }
+
+  /* The cap is what makes the `1fr` row mean anything: without a definite
+     height there is no free space to distribute, the row resolves to its
+     max-content, and the slide grows past the screen instead of the shot
+     shrinking to fit. */
+  .work > .container {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: center;
+    max-height: calc(100svh - var(--header-h));
+    padding-block: var(--space-lg);
+    min-height: 0;
+  }
+
+  .work-track,
+  .work-card,
+  .work-link {
+    min-height: 0;
+  }
+
+  .work-shot {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .work-shot img {
+    height: 100%;
+    min-height: 120px;
+  }
+
+  .work-meta {
+    padding-top: var(--space-sm);
+  }
+
+  /* Two lines on the deck: the summary is a teaser next to the shot, and the
+     full sentence still shows in the flowing layout on phones. */
+  .work-summary {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.work-link:hover .work-shot img {
+  transform: scale(1.03);
+}
+
+.work-meta {
+  display: block;
+  padding-top: var(--space-md);
+}
+
+.work-kind {
+  display: block;
+  color: var(--ink-mute);
+  font-size: var(--step-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.work-name {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.3125rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.work-summary {
+  display: block;
+  margin-top: 0.5rem;
+  max-width: 52ch;
+  color: var(--ink-soft);
+  font-size: var(--step-small);
+  line-height: 1.55;
+}
+
+.work-visit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: var(--space-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line-strong);
+  padding-bottom: 0.2rem;
+}
+
+.work-visit svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-mute);
+  transition: transform var(--dur) var(--ease);
+}
+
+.work-link:hover .work-visit svg {
+  transform: translate(2px, -2px);
+}
+
+/* --- process ---------------------------------------------------------------- */
+
+/* Four columns reading left to right, each opened by a chapter numeral — the
+   tall serif figures a book chapter starts with. */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+.step {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--ink);
+}
+
+.step-number {
+  display: inline-block;
+  font-family: var(--font-serif);
+  font-size: var(--step-numeral);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  /* The elongation: stretched vertically like condensed folio numerals. */
+  transform: scaleY(1.18);
+  transform-origin: top left;
+  user-select: none;
+}
+
+.step-title {
+  margin-top: clamp(0.75rem, 2.4svh, 1.5rem);
+  font-size: var(--step-h3);
+}
+
+.step-text {
+  margin-top: 0.5rem;
+  color: var(--ink-soft);
+  font-size: var(--step-small);
+  line-height: 1.55;
+}
+
+@media (max-width: 899px) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+}
+
+@media (max-width: 539px) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- services --------------------------------------------------------------- */
+
+/* The one tinted slide: a grey ground with soft shadow-blobs behind the
+   cards, so the frosted glass has something real to blur. */
+.services {
+  background: var(--ground-alt);
+}
+
+/* Frosted glass only reads when there is something behind it to blur, so the
+   grey ground carries soft tonal drifts for the cards to sit on. */
+.services-blobs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(38rem 26rem at 14% 88%, rgb(11 11 12 / 0.26), transparent 64%),
+    radial-gradient(32rem 22rem at 84% 12%, rgb(11 11 12 / 0.2), transparent 62%),
+    radial-gradient(26rem 20rem at 62% 74%, rgb(11 11 12 / 0.14), transparent 66%),
+    radial-gradient(24rem 18rem at 40% 24%, rgb(255 255 255 / 0.95), transparent 70%);
+}
+
+.services .container {
+  position: relative;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+/* The package card: square, rounded, frosted. */
+.service-card {
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 1 / 1;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur) var(--ease), background-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lift);
+}
+
+.service-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
+.service-note {
+  margin-top: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+/* Pinned to the bottom edge: the four prices then line up across the row
+   whatever length each description happens to be. */
+.service-price {
+  margin-top: auto;
+  padding-top: var(--space-md);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.currency-note {
+  margin-top: var(--space-md);
+  color: var(--ink-mute);
+  font-size: var(--step-small);
+}
+
+.section-cta {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  .service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .service-card {
+    aspect-ratio: auto;
+    min-height: 11rem;
+  }
+}
+
+@media (max-width: 539px) {
+  .service-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- kind words -------------------------------------------------------------- */
+
+.quote-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.quote-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--ink);
+  background: var(--ground);
+}
+
+.quote-text {
+  flex: 1;
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.quote-text::before {
+  content: "“";
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--ink-faint);
+  font-size: 2.25rem;
+  line-height: 0.6;
+}
+
+.quote-person {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.quote-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--ground-sunk);
+  border: 1px solid var(--line);
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: var(--step-small);
+  font-weight: 700;
+}
+
+.quote-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.quote-id {
+  display: grid;
+}
+
+.quote-name {
+  font-weight: 700;
+  font-size: var(--step-small);
+}
+
+.quote-role {
+  color: var(--ink-mute);
+  font-size: var(--step-eyebrow);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 899px) {
+  .quote-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- contact ----------------------------------------------------------------- */
+
+/* Last slide: the band centred in the space above, the footer pinned to the
+   slide's bottom. `align-content: stretch` overrides the deck's centring so
+   the 1fr row actually absorbs the leftover height. */
+.contact {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-content: stretch;
+  padding-bottom: 0;
+}
+
+.contact-middle {
+  display: grid;
+  align-content: center;
+  min-height: 0;
+}
+
+/* The band runs edge to edge — one printed stripe across the page. */
+.contact-band {
+  display: block;
+  width: 100%;
+  background: var(--panel);
+  color: var(--panel-ink);
+  padding-block: clamp(2.5rem, 9svh, 5.5rem);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.contact-band:hover {
+  background: #26272b;
+}
+
+.band-inner {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.band-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  border-radius: var(--radius-pill);
+}
+
+.band-copy {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.band-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 1rem + 2.4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.band-note {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  color: var(--panel-ink-soft);
+}
+
+.band-arrow {
+  margin-left: auto;
+  color: var(--panel-ink-soft);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.band-arrow svg {
+  width: 34px;
+  height: 34px;
+}
+
+.contact-band:hover .band-arrow {
+  transform: translate(4px, -4px);
+  color: var(--panel-ink);
+}
+
+.contact-band:focus-visible {
+  outline-offset: -4px;
+  outline-color: var(--panel-ink);
+}
+
+@media (max-width: 599px) {
+  .band-inner {
+    flex-wrap: wrap;
+  }
+
+  .band-arrow {
+    display: none;
+  }
+}
+
+/* --- 404 --------------------------------------------------------------------- */
+
+.not-found {
+  text-align: center;
+}
+
+.not-found .section-intro {
+  margin-inline: auto;
+  max-width: 40ch;
+}
+
+.not-found p:last-child {
+  margin-top: var(--space-lg);
+}
+
+.not-found + .site-footer .footer-inner {
+  border-top: 1px solid var(--line);
+}
