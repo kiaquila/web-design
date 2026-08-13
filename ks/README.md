@@ -19,6 +19,11 @@ The customer stage remains on Cloudflare Workers; production is
 [ks-design.art](https://ks-design.art), served from an isolated Docker Compose
 project on the owner's `cz` server.
 
+The hero's rock-expression source is preserved at
+[`source-assets/portrait-rock-reference.png`](./source-assets/portrait-rock-reference.png).
+The published hover exports keep the calm frame fixed outside the blended
+facial-expression region so the cross-fade reads as one continuous portrait.
+
 ## Source of truth
 
 | Item | Value | Source |
