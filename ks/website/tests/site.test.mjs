@@ -23,6 +23,7 @@ const dist = join(root, "dist");
 const pages = {};
 let css = "";
 let ogGenerator = "";
+let siteScript = "";
 
 /* Compares against what a reader sees: tags dropped and entities decoded, so
    an apostrophe in the copy is matched as "'" and not as "&#039;". */
@@ -46,6 +47,7 @@ before(async () => {
   pages.notFound = await readFile(join(dist, "404.html"), "utf8");
   css = await readFile(join(dist, "assets/styles.css"), "utf8");
   ogGenerator = await readFile(join(root, "scripts/make-og.mjs"), "utf8");
+  siteScript = await readFile(join(root, "src/js/site.js"), "utf8");
   for (const key of ["ru", "en", "notFound"]) {
     pages[`${key}Text`] = stripTags(pages[key]);
   }
@@ -347,6 +349,16 @@ test("the toggle only appears once the script can open the menu", () => {
   assert.ok(
     !/(^|\})\s*\.nav-toggle\s*\{[^}]*display:\s*flex/.test(clean),
     "the toggle must not be shown by the breakpoint alone"
+  );
+});
+
+test("crossing into the mobile breakpoint preserves keyboard focus", () => {
+  /* `event.matches` is false when the viewport narrows below 900px. The
+     listener must still close through the focus-aware path, while widening
+     must not move focus from a visible nav link to the now-hidden toggle. */
+  assert.match(
+    siteScript,
+    /addEventListener\("change",\s*\(event\)\s*=>\s*\{\s*setOpen\(false,\s*!event\.matches\);/s
   );
 });
 

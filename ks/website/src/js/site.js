@@ -49,10 +49,12 @@
        see the `visibility` rule in layout.css. The script only tracks the open
        state and moves focus, so there is no JS-held copy of the breakpoint to
        fall out of step with the CSS. */
-    const setOpen = (open) => {
+    const setOpen = (open, restoreToggleFocus = true) => {
       /* Focus must leave before the subtree becomes unfocusable, or it is
          stranded on an element nothing can reach again. */
-      if (!open && nav.contains(document.activeElement)) toggle.focus();
+      if (!open && restoreToggleFocus && nav.contains(document.activeElement)) {
+        toggle.focus();
+      }
       nav.toggleAttribute("data-open", open);
       toggle.setAttribute("aria-expanded", String(open));
     };
@@ -77,13 +79,13 @@
       }
     });
 
-    /* Tidies `data-open` when the layout grows past the breakpoint. Nothing
-       depends on this firing: above 900px the collapsed rules do not apply at
-       all, so a stranded `data-open` changes nothing on screen. */
+    /* Keep state tidy in both directions. On narrowing, focus must leave a
+       desktop nav link as CSS hides the collapsed menu; on widening the nav
+       stays visible, so moving focus to the now-hidden toggle would be wrong. */
     window
       .matchMedia("(min-width: 900px)")
       .addEventListener("change", (event) => {
-        if (event.matches) setOpen(false);
+        setOpen(false, !event.matches);
       });
   }
 
