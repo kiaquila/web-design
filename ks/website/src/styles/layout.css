@@ -101,6 +101,9 @@
 /* The wordmark is typography, not a mark: bold lowercase, like an item name
    set on the menu card. */
 .brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 1.1875rem;
