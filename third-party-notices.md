@@ -7,13 +7,15 @@
 licence text is kept beside the files as `OFL-Inter.txt`.
 
 **Playfair Display** (`chaijana/menu/assets/fonts/playfair-display-*.woff2`,
-`chaijana/website/public/fonts/`) — SIL Open Font License 1.1, © The Playfair
-Display Project Authors, with Reserved Font Name "Playfair Display". Licence
-text is kept beside the files as `OFL-PlayfairDisplay.txt`.
+`chaijana/website/public/fonts/`, `ks/website/assets/fonts/playfair-display-*.woff2`)
+— SIL Open Font License 1.1, © The Playfair Display Project Authors, with
+Reserved Font Name "Playfair Display". Licence text is kept beside the files as
+`OFL-PlayfairDisplay.txt`.
 
 **Manrope** (`chaijana/menu/assets/fonts/manrope-*.woff2`,
 `chaijana/website/public/fonts/`,
-`alex-neon/website/assets/fonts/manrope-*.woff2`) — SIL Open Font License 1.1,
+`alex-neon/website/assets/fonts/manrope-*.woff2`,
+`ks/website/assets/fonts/manrope-*.woff2`) — SIL Open Font License 1.1,
 © The Manrope Project Authors. Licence text is kept beside the files as
 `OFL-Manrope.txt`.
 
