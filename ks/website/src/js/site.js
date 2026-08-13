@@ -85,6 +85,9 @@
     window
       .matchMedia("(min-width: 900px)")
       .addEventListener("change", (event) => {
+        if (event.matches && document.activeElement === toggle) {
+          nav.querySelector("a")?.focus();
+        }
         setOpen(false, !event.matches);
       });
   }

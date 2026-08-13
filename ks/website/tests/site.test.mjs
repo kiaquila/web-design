@@ -358,7 +358,17 @@ test("crossing into the mobile breakpoint preserves keyboard focus", () => {
      must not move focus from a visible nav link to the now-hidden toggle. */
   assert.match(
     siteScript,
-    /addEventListener\("change",\s*\(event\)\s*=>\s*\{\s*setOpen\(false,\s*!event\.matches\);/s
+    /addEventListener\("change",\s*\(event\)\s*=>\s*\{[\s\S]*?setOpen\(false,\s*!event\.matches\);/
+  );
+});
+
+test("widening from a focused menu toggle moves focus into the nav", () => {
+  /* The toggle becomes display:none above 900px. If it owns focus during the
+     transition, the first visible nav link must receive focus; a nav link
+     that already owns focus is deliberately left alone. */
+  assert.match(
+    siteScript,
+    /if\s*\(event\.matches\s*&&\s*document\.activeElement\s*===\s*toggle\)\s*\{\s*nav\.querySelector\("a"\)\?\.focus\(\);/s
   );
 });
 
