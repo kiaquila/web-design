@@ -134,10 +134,9 @@ test("the years of experience are derived, never hardcoded", () => {
   assert.equal(yearsStat.value, "%YEARS%");
 });
 
-test("placeholder testimonials are still flagged as placeholders", () => {
-  /* Kind Words is intentionally unfilled. This test exists so that shipping
-     real quotes forces the flag off, and so nobody mistakes TODO copy for
-     approved wording. */
+test("placeholder testimonials stay out of the published pages", () => {
+  /* Kind Words remains in the content model for later client-approved copy,
+     but a todo block must never render in a customer-facing build. */
   for (const lang of ["ru", "en"]) {
     const block = content[lang].kindWords;
     if (!block.todo) {
@@ -148,6 +147,7 @@ test("placeholder testimonials are still flagged as placeholders", () => {
       continue;
     }
     assert.ok(block.items.every((item) => item.quote.startsWith("TODO")));
+    assert.doesNotMatch(pages[lang], /kind-words|TODO:/);
   }
 });
 

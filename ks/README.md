@@ -55,10 +55,12 @@ screenshots of those stages, regenerated with the command in
 
 ## Open items
 
-- **Kind Words is unfilled.** The section is built and styled, and the first
+- **Kind Words is unfilled and hidden from published pages.** The section is
+  built and styled, and the first
   card already carries Alex Oxitocin's name, role and avatar — but all three
   quotes are `TODO` placeholders, because the repository forbids inventing
-  testimonials. The build prints a warning naming the section on every run.
+  testimonials. The build prints a warning naming the section on every run,
+  while the renderer omits the entire block until it is approved.
   Replace `kindWords.items` in `content.js` with real quotes and set
   `todo: false`.
 - **Three links have no home on the page.** The old "why me" block carried the

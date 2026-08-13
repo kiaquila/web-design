@@ -53,7 +53,8 @@ Below that it is an ordinary flowing document.
   on the page comes from there, in both languages. A key that exists in one
   language must exist in the other.
 - Do not invent facts, prices, testimonials, client names or dates. Kind Words
-  is deliberately unfilled; see README.
+  is deliberately unfilled and must remain absent from published pages while
+  its content is marked `todo`; see README.
 - The years of experience are **derived** from `CAREER_START_YEAR`, never typed.
   Copy uses the `%YEARS%` placeholder. A test fails if the literal is hardcoded.
 - Approved external destinations are listed in `links`. A test rejects any other
