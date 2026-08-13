@@ -28,6 +28,8 @@ let productionCompose = "";
 let productionDockerfile = "";
 let productionNginx = "";
 let productionEdge = "";
+let productionDeploy = "";
+let productionEdgeInstaller = "";
 
 /* Compares against what a reader sees: tags dropped and entities decoded, so
    an apostrophe in the copy is matched as "'" and not as "&#039;". */
@@ -66,6 +68,11 @@ before(async () => {
   );
   productionEdge = await readFile(
     join(root, "production/ks-design.art.conf"),
+    "utf8"
+  );
+  productionDeploy = await readFile(join(root, "production/deploy.sh"), "utf8");
+  productionEdgeInstaller = await readFile(
+    join(root, "production/install-edge.sh"),
     "utf8"
   );
   for (const key of ["ru", "en", "notFound"]) {
@@ -538,6 +545,14 @@ test("production runs as an isolated, hardened container", () => {
   assert.match(productionEdge, /server_name www\.ks-design\.art;/);
   assert.match(productionEdge, /proxy_pass http:\/\/127\.0\.0\.1:3100;/);
   assert.doesNotMatch(productionEdge, /127\.0\.0\.1:(?:3000|8080|4433)/);
+
+  assert.match(productionDeploy, /git .* archive --format=tar/);
+  assert.match(productionDeploy, /"\$payload_dir\/" "\$target:\$remote_dir\/"/);
+  assert.doesNotMatch(productionDeploy, /"\$website_dir\/" "\$target:/);
+  assert.match(productionEdgeInstaller, /had_live_tls=false/);
+  assert.match(productionEdgeInstaller, /backup_ready=false/);
+  assert.match(productionEdgeInstaller, /restore_live_edge/);
+  assert.match(productionEdgeInstaller, /trap restore_live_edge EXIT/);
 });
 
 test("the shipped JavaScript stays within its budget", async () => {

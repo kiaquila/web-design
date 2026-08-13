@@ -28,16 +28,21 @@ if [[ "$branch" != "main" && "${KS_DESIGN_ALLOW_NON_MAIN:-}" != "true" ]]; then
   exit 1
 fi
 
+# Build the payload from the validated commit, never from the working tree.
+# This excludes untracked and ignored files (including local credentials) and
+# guarantees that the deployed bytes match the image revision label.
+payload_dir="$(mktemp -d "${TMPDIR:-/tmp}/ks-design-deploy.XXXXXX")"
+trap 'rm -rf -- "$payload_dir"' EXIT
+git -C "$repo_dir" archive --format=tar "$revision:ks/website" |
+  tar -xf - -C "$payload_dir"
+
 # The validated remote directory intentionally expands on the client.
 # shellcheck disable=SC2029
 ssh "$target" "sudo install -d -o \"\$(id -un)\" -g \"\$(id -gn)\" '$remote_dir'"
 rsync \
   --archive \
   --delete \
-  --exclude dist \
-  --exclude node_modules \
-  --exclude .wrangler \
-  "$website_dir/" "$target:$remote_dir/"
+  "$payload_dir/" "$target:$remote_dir/"
 
 # The validated directory and hexadecimal revision intentionally expand here.
 # shellcheck disable=SC2029

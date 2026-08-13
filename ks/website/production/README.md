@@ -42,9 +42,11 @@ The first server installation, or an intentional TLS/edge refresh, is:
 ks/website/production/install-edge.sh
 ```
 
-The edge installer first loads the HTTP-only ACME virtual host, obtains or
-renews the certificate through the server's existing Certbot account, then
-atomically installs the TLS virtual host. Every Nginx change is checked with
+On a first install, the edge installer loads the HTTP-only ACME virtual host,
+obtains the certificate through the server's existing Certbot account, then
+installs the TLS virtual host. On refresh it keeps the existing TLS edge live
+while Certbot runs and restores the previous configuration if validation,
+reload, or the final health check fails. Every Nginx change is checked with
 `nginx -t` before reload.
 
 ## Verification
