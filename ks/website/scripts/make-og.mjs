@@ -56,16 +56,22 @@ async function dataUri(relativePath, mime) {
 
 async function cardHtml(lang) {
   const copy = content[lang];
-  /* Cyrillic carries the Latin glyphs this card needs too, so one subset
-     serves both languages. */
-  const [manrope, portrait] = await Promise.all([
+  /* Match the real page's split @font-face declarations. The Cyrillic subset
+     does not contain the English alphabet or every glyph in `ks-design`, so
+     both cards need the Latin subset as well. */
+  const [manropeCyrillic, manropeLatin, portrait] = await Promise.all([
     dataUri("assets/fonts/manrope-cyrillic.woff2", "font/woff2"),
+    dataUri("assets/fonts/manrope-latin.woff2", "font/woff2"),
     dataUri("assets/portrait/calm-776.jpg", "image/jpeg")
   ]);
 
   return `<!doctype html>
 <html lang="${lang}"><head><meta charset="utf-8"><style>
-  @font-face { font-family: "Manrope"; src: url("${manrope}") format("woff2"); font-weight: 200 800; }
+  @font-face { font-family: "Manrope"; src: url("${manropeCyrillic}") format("woff2");
+               font-weight: 200 800; unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: "Manrope"; src: url("${manropeLatin}") format("woff2");
+               font-weight: 200 800; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                 U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
   * { margin: 0; box-sizing: border-box; }
   body { width: 1200px; height: 630px; display: grid; grid-template-columns: 1fr 430px;
          background: #fff; color: #0b0b0c; font-family: "Manrope", sans-serif; overflow: hidden; }

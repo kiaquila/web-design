@@ -22,6 +22,7 @@ const dist = join(root, "dist");
 
 const pages = {};
 let css = "";
+let ogGenerator = "";
 
 /* Compares against what a reader sees: tags dropped and entities decoded, so
    an apostrophe in the copy is matched as "'" and not as "&#039;". */
@@ -44,6 +45,7 @@ before(async () => {
   pages.en = await readFile(join(dist, "en/index.html"), "utf8");
   pages.notFound = await readFile(join(dist, "404.html"), "utf8");
   css = await readFile(join(dist, "assets/styles.css"), "utf8");
+  ogGenerator = await readFile(join(root, "scripts/make-og.mjs"), "utf8");
   for (const key of ["ru", "en", "notFound"]) {
     pages[`${key}Text`] = stripTags(pages[key]);
   }
@@ -443,6 +445,16 @@ test("each language gets its own social card", async () => {
     const info = await stat(join(dist, "assets", file));
     assert.ok(info.isFile(), `${file} is referenced but not built`);
   }
+});
+
+test("the social-card renderer embeds both Manrope subsets", () => {
+  /* The Cyrillic file contains only isolated Latin glyphs. Without the Latin
+     face, the English card and the `ks-design` wordmark silently use a system
+     fallback even though the Russian headline appears correct. */
+  assert.match(ogGenerator, /assets\/fonts\/manrope-cyrillic\.woff2/);
+  assert.match(ogGenerator, /assets\/fonts\/manrope-latin\.woff2/);
+  assert.match(ogGenerator, /unicode-range:\s*U\+0301,\s*U\+0400-045F/);
+  assert.match(ogGenerator, /unicode-range:\s*U\+0000-00FF/);
 });
 
 test("robots.txt and the sitemap list both languages", async () => {
