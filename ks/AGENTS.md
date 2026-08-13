@@ -75,6 +75,16 @@ Below that it is an ordinary flowing document.
   carousel is a native scroll container until the script adds buttons, and the
   portrait swaps on hover in pure CSS. A test asserts the markup ships nothing
   pre-hidden.
+- **The collapsed menu leaves the tab order through CSS `visibility`, not
+  through `inert`.** Clip-path, opacity and pointer-events hide it from the eye
+  and the mouse but leave every link keyboard-focusable. `visibility` is
+  transitioned with `allow-discrete` so the menu still animates shut and still
+  drops out of the tab order the instant it closes. Do not replace this with a
+  delayed `visibility` transition — the computed value stays `visible` for the
+  whole delay, so it looks right and does nothing. Keeping it in CSS rather
+  than toggling `inert` from the script means it tracks the media query exactly
+  and cannot go stale; a script-held copy of the breakpoint got the desktop
+  navigation inert and keyboard-unreachable while this was being built.
 - No external origins at all: no CDN, no analytics, no remote fonts or images.
   The Worker's CSP is `script-src 'self'` and there are no inline `<script>`
   elements — the test enforces both.
@@ -153,10 +163,23 @@ Visually: 360 px and 1280 px+, keyboard focus, the portrait swap on hover and on
 tap, the carousel at every breakpoint, `prefers-reduced-motion`, and a console
 with no errors.
 
-**Headless Chrome cannot photograph this layout directly.** It clamps the
-layout viewport to a minimum of 500 px, so a `--window-size=390` capture renders
-at 500 px and crops — which looks exactly like a horizontal-overflow bug and is
-not one. It also screenshots from the top of the document, so `#anchor` captures
+### Two traps when verifying this project
+
+Both of these have already produced confident, wrong diagnoses. Read them before
+concluding that something is broken.
+
+**Headless Chrome cannot photograph this layout directly.** It clamps the layout
+viewport to a minimum of 500 px, so a `--window-size=390` capture renders at
+500 px and crops — which looks exactly like a horizontal-overflow bug and is not
+one. It also screenshots from the top of the document, so `#anchor` captures
 come back blank. Measure overflow and slide heights in a real browser; use
 headless only for tall full-page captures with the deck's `100svh` temporarily
 pinned to a pixel height in `dist/`.
+
+**In a backgrounded browser pane (`document.hidden === true`), CSS transitions
+and `requestAnimationFrame` never advance.** Transitioned properties stay stuck
+at their pre-transition values, so `getComputedStyle` reports `opacity: 1` and
+`visibility: visible` on an element the stylesheet has already hidden, and the
+carousel's rAF-scheduled sync never runs. To test anything transitioned, set
+`element.style.transition = 'none'`, read the value, then restore it — that
+isolates the cascade from the stalled animation clock.

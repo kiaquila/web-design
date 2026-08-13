@@ -45,13 +45,25 @@
        it. Before this line the nav is a plain visible list. */
     nav.setAttribute("data-collapsed", "");
 
+    /* Taking the closed menu out of the tab order is the stylesheet's job —
+       see the `visibility` rule in layout.css. The script only tracks the open
+       state and moves focus, so there is no JS-held copy of the breakpoint to
+       fall out of step with the CSS. */
     const setOpen = (open) => {
+      /* Focus must leave before the subtree becomes unfocusable, or it is
+         stranded on an element nothing can reach again. */
+      if (!open && nav.contains(document.activeElement)) toggle.focus();
       nav.toggleAttribute("data-open", open);
       toggle.setAttribute("aria-expanded", String(open));
     };
 
     toggle.addEventListener("click", () => {
-      setOpen(!nav.hasAttribute("data-open"));
+      const open = !nav.hasAttribute("data-open");
+      setOpen(open);
+      /* The nav sits before the toggle in the document, so Tab from the button
+         would carry on past the menu it just opened. Moving focus to the first
+         link puts the keyboard where the eye already is. */
+      if (open) nav.querySelector("a")?.focus();
     });
 
     nav.addEventListener("click", (event) => {
@@ -65,13 +77,14 @@
       }
     });
 
-    /* Leaving the narrow layout with the menu open would otherwise strand
-       `data-open` on a nav that is now a horizontal bar. */
-    const wide = window.matchMedia("(min-width: 900px)");
-    const closeOnWide = (event) => {
-      if (event.matches) setOpen(false);
-    };
-    wide.addEventListener("change", closeOnWide);
+    /* Tidies `data-open` when the layout grows past the breakpoint. Nothing
+       depends on this firing: above 900px the collapsed rules do not apply at
+       all, so a stranded `data-open` changes nothing on screen. */
+    window
+      .matchMedia("(min-width: 900px)")
+      .addEventListener("change", (event) => {
+        if (event.matches) setOpen(false);
+      });
   }
 
   /* --- work carousel ------------------------------------------------------ */

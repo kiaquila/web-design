@@ -163,10 +163,22 @@
   letter-spacing: 0.12em;
 }
 
+/* The visual is two small words, but each hit area is a full 44 px square —
+   set at 0.78rem with a few pixels of padding these were the hardest things on
+   the page to tap. */
+.lang-switch a,
+.lang-current {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  transition: color var(--dur-fast) var(--ease);
+}
+
 .lang-switch a {
   color: var(--ink-mute);
-  padding: 0.35rem 0.1rem;
-  transition: color var(--dur-fast) var(--ease);
 }
 
 .lang-switch a:hover {
@@ -175,8 +187,19 @@
 
 .lang-current {
   color: var(--ink);
-  padding: 0.35rem 0.1rem;
-  border-bottom: 1.5px solid var(--ink);
+}
+
+/* A pseudo-element rather than a border, so the rule sits under the word
+   instead of at the bottom edge of the 44 px box. */
+.lang-current::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(50% - 0.8rem);
+  width: 1.6rem;
+  height: 1.5px;
+  background: var(--ink);
+  transform: translateX(-50%);
 }
 
 .lang-divider {
@@ -260,6 +283,16 @@
   /* Closed by default on small screens; the toggle opens it. Without a script
      the nav is unreachable here, so the script also removes this state — see
      site.js, which only hides the list once it can open it again. */
+  /* `visibility` is the load-bearing line. Clip-path, opacity and
+     pointer-events hide the closed menu from the eye and the mouse but leave
+     its links keyboard-focusable, so Tab would walk an invisible menu.
+     `allow-discrete` flips visibility to `visible` immediately on opening and
+     back to `hidden` only when the closing animation ends — so the menu still
+     animates shut and is still out of the tab order the moment it is closed.
+     A plain delayed `visibility` transition does NOT work here: the computed
+     value stays `visible` for the whole delay, which looks correct and is not.
+     Keeping this in CSS rather than toggling `inert` from the script means it
+     follows the media query exactly and can never go stale. */
   .site-nav[data-collapsed] {
     position: absolute;
     inset-inline: 0;
@@ -271,13 +304,16 @@
     box-shadow: var(--shadow-card);
     clip-path: inset(0 0 100% 0);
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: clip-path var(--dur) var(--ease), opacity var(--dur-fast) var(--ease);
+    transition: clip-path var(--dur) var(--ease), opacity var(--dur-fast) var(--ease),
+      visibility var(--dur) allow-discrete;
   }
 
   .site-nav[data-collapsed][data-open] {
     clip-path: inset(0 0 0 0);
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
   }
 

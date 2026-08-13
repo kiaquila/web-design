@@ -299,6 +299,37 @@ test("every grey that carries text clears AA on white", () => {
   assert.deepEqual(faintUsers.sort(), [".lang-divider", ".quote-text::before"]);
 });
 
+test("the collapsed mobile nav leaves the tab order", () => {
+  /* Clipping, opacity and pointer-events hide the closed menu from the eye and
+     from the mouse, but leave its links keyboard-focusable — Tab would walk an
+     invisible menu. Only `visibility` removes them. */
+  const clean = withoutComments(css);
+  const closed = clean.match(/\.site-nav\[data-collapsed\]\s*\{[^}]*\}/);
+  assert.ok(closed, "the collapsed nav rule is missing");
+  assert.match(closed[0], /visibility:\s*hidden/);
+
+  /* `allow-discrete` is what lets the menu animate shut and still drop out of
+     the tab order the moment it closes. A delayed transition would look
+     equivalent and do nothing: the computed value stays `visible` throughout
+     the delay. */
+  assert.match(closed[0], /visibility\s+var\(--dur\)\s+allow-discrete/);
+  assert.ok(
+    !/visibility\s+0s/.test(closed[0]),
+    "a delayed visibility transition leaves the links focusable"
+  );
+});
+
+test("the language links meet the 44 px touch target", () => {
+  const rule = withoutComments(css).match(
+    /\.lang-switch a,\s*\.lang-current\s*\{[^}]*\}/
+  );
+  assert.ok(rule, "the language link rule is missing");
+  const rems = (property) =>
+    Number(rule[0].match(new RegExp(`${property}:\\s*([\\d.]+)rem`))?.[1]);
+  assert.ok(rems("min-width") >= 2.75, "language links need a 44 px wide target");
+  assert.ok(rems("min-height") >= 2.75, "language links need a 44 px tall target");
+});
+
 test("focus is visible and motion can be turned off", () => {
   assert.match(css, /:focus-visible\s*\{/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
