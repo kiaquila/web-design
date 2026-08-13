@@ -53,7 +53,8 @@ Below that it is an ordinary flowing document.
   on the page comes from there, in both languages. A key that exists in one
   language must exist in the other.
 - Do not invent facts, prices, testimonials, client names or dates. Kind Words
-  is deliberately unfilled; see README.
+  is deliberately unfilled and must remain absent from published pages while
+  its content is marked `todo`; see README.
 - The years of experience are **derived** from `CAREER_START_YEAR`, never typed.
   Copy uses the `%YEARS%` placeholder. A test fails if the literal is hardcoded.
 - Approved external destinations are listed in `links`. A test rejects any other
@@ -102,6 +103,12 @@ Below that it is an ordinary flowing document.
   rather than raising the number.
 - Accessibility: one `h1` per page, AA contrast, visible `:focus-visible`, tap
   targets ≥ 44 px, `prefers-reduced-motion` disables every transition.
+- Production is `https://ks-design.art`. Keep canonical, Open Graph, sitemap,
+  and robots URLs on that origin even when a Cloudflare stage builds the same
+  source.
+- The production Compose project is `ks-design-portfolio` and may publish only
+  `127.0.0.1:3100`. Do not reuse the `capsule-zero` Compose project, networks,
+  volumes, images, ports, or Nginx configuration.
 
 ## The hero portrait
 

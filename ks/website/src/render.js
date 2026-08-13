@@ -276,6 +276,11 @@ function services(copy) {
 }
 
 function kindWords(copy) {
+  /* Testimonials are never published until the client-supplied copy has been
+     approved. Keeping the draft in content.js preserves the intended layout
+     without leaking TODO text into a production build. */
+  if (copy.kindWords.todo) return "";
+
   const cards = copy.kindWords.items
     .map((item) => {
       const face = item.avatar

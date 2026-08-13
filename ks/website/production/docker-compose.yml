@@ -1,0 +1,29 @@
+name: ks-design-portfolio
+
+services:
+  portfolio:
+    image: ks-design-portfolio:${KS_DESIGN_IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: production/Dockerfile
+      args:
+        SOURCE_REVISION: ${KS_DESIGN_SOURCE_REVISION:-unknown}
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:3100:8080"
+    mem_limit: 128m
+    pids_limit: 64
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

@@ -31,8 +31,8 @@ truth instead of maintaining a second copy.
   audio-session catalogue, redesigned under the **Alpha Lumen** concept.
 - [`chaijana/`](./chaijana/) — Chaijaná restaurant website and multilingual
   menu, redesigned under the **Chaijaná Noir** concept.
-- [`ks/`](./ks/) — Kristina Aquila's own bilingual web design portfolio and
-  selling landing page.
+- [`ks/`](./ks/) — Kristina Aquila's bilingual web design portfolio and selling
+  landing page, live at [ks-design.art](https://ks-design.art).
 
 Menus can be a deliverable inside a business project, as they are for Chaijaná.
 Reusable menu tooling or a menu-focused product should live in its own future
