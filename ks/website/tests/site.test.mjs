@@ -202,18 +202,30 @@ test("each page has exactly one h1", () => {
   }
 });
 
-test("every nav link resolves to a section that exists", () => {
-  for (const key of ["ru", "en"]) {
+test("every in-page anchor resolves to a section that exists", () => {
+  /* The 404 page is included on purpose: it reuses the site header, and a bare
+     `#work` there points at an id the error page does not have, so the whole
+     navigation would silently do nothing. Its anchors must be qualified with
+     the home path instead. */
+  for (const key of ["ru", "en", "notFound"]) {
     const html = pages[key];
-    const anchors = [...html.matchAll(/<a href="#([a-z-]+)"/g)].map((m) => m[1]);
-    assert.ok(anchors.length > 0);
+    const anchors = [...html.matchAll(/<a[^>]+href="#([a-z-]+)"/g)].map((m) => m[1]);
     for (const id of new Set(anchors)) {
       assert.ok(
         html.includes(`id="${id}"`),
-        `${key}: nav points at #${id} but no element has that id`
+        `${key}: a link points at #${id} but no element on that page has the id`
       );
     }
   }
+
+  /* The landing pages must still carry the real in-page navigation. */
+  for (const key of ["ru", "en"]) {
+    assert.ok(
+      [...pages[key].matchAll(/<a[^>]+href="#([a-z-]+)"/g)].length >= 4,
+      `${key}: expected the section anchors to be in-page links`
+    );
+  }
+  assert.match(pages.notFound, /href="\/#work"/);
 });
 
 test("the portrait exposes one person, not two images", () => {
@@ -308,27 +320,52 @@ test("the collapsed mobile nav leaves the tab order", () => {
   assert.ok(closed, "the collapsed nav rule is missing");
   assert.match(closed[0], /visibility:\s*hidden/);
 
-  /* `allow-discrete` is what lets the menu animate shut and still drop out of
-     the tab order the moment it closes. A delayed transition would look
-     equivalent and do nothing: the computed value stays `visible` throughout
-     the delay. */
-  assert.match(closed[0], /visibility\s+var\(--dur\)\s+allow-discrete/);
+  /* Visibility must not be transitioned at all. Every way of animating it —
+     a delay, or `allow-discrete` — holds the computed value at `visible` until
+     the animation ends, which leaves a window where Shift+Tab reaches a menu
+     that is already invisible. */
+  const transition = closed[0].match(/transition:[^;]*/)?.[0] ?? "";
   assert.ok(
-    !/visibility\s+0s/.test(closed[0]),
-    "a delayed visibility transition leaves the links focusable"
+    !/visibility/.test(transition),
+    `visibility must not be transitioned, found: ${transition.trim()}`
   );
 });
 
-test("the language links meet the 44 px touch target", () => {
-  const rule = withoutComments(css).match(
-    /\.lang-switch a,\s*\.lang-current\s*\{[^}]*\}/
+test("the toggle only appears once the script can open the menu", () => {
+  /* Without JavaScript `data-collapsed` is never set, so a toggle shown by the
+     media query alone would be a dead button beside a menu it cannot open. */
+  const clean = withoutComments(css);
+  assert.match(clean, /\.site-nav\[data-collapsed\]\s*~\s*\.nav-toggle\s*\{[^}]*display:\s*flex/);
+  assert.ok(
+    !/(^|\})\s*\.nav-toggle\s*\{[^}]*display:\s*flex/.test(clean),
+    "the toggle must not be shown by the breakpoint alone"
   );
-  assert.ok(rule, "the language link rule is missing");
-  const rems = (property) =>
-    Number(rule[0].match(new RegExp(`${property}:\\s*([\\d.]+)rem`))?.[1]);
-  assert.ok(rems("min-width") >= 2.75, "language links need a 44 px wide target");
-  assert.ok(rems("min-height") >= 2.75, "language links need a 44 px tall target");
 });
+
+test("every touch target clears 44 px", () => {
+  const clean = withoutComments(css);
+  for (const selector of [
+    /\.lang-switch a,\s*\.lang-current\s*\{[^}]*\}/,
+    /\.footer-social a\s*\{[^}]*\}/,
+    /\.carousel-btn\s*\{[^}]*\}/
+  ]) {
+    const rule = clean.match(selector);
+    assert.ok(rule, `missing rule for ${selector}`);
+    const size = (property) => {
+      const rems = rule[0].match(new RegExp(`${property}:\\s*([\\d.]+)rem`))?.[1];
+      return rems ? Number(rems) : 0;
+    };
+    assert.ok(
+      size("min-width") >= 2.75 || size("width") >= 2.75,
+      `${rule[0].split("{")[0].trim()} needs a 44 px wide target`
+    );
+    assert.ok(
+      size("min-height") >= 2.75 || size("height") >= 2.75,
+      `${rule[0].split("{")[0].trim()} needs a 44 px tall target`
+    );
+  }
+});
+
 
 test("focus is visible and motion can be turned off", () => {
   assert.match(css, /:focus-visible\s*\{/);

@@ -75,16 +75,26 @@ Below that it is an ordinary flowing document.
   carousel is a native scroll container until the script adds buttons, and the
   portrait swaps on hover in pure CSS. A test asserts the markup ships nothing
   pre-hidden.
-- **The collapsed menu leaves the tab order through CSS `visibility`, not
-  through `inert`.** Clip-path, opacity and pointer-events hide it from the eye
-  and the mouse but leave every link keyboard-focusable. `visibility` is
-  transitioned with `allow-discrete` so the menu still animates shut and still
-  drops out of the tab order the instant it closes. Do not replace this with a
-  delayed `visibility` transition — the computed value stays `visible` for the
-  whole delay, so it looks right and does nothing. Keeping it in CSS rather
-  than toggling `inert` from the script means it tracks the media query exactly
-  and cannot go stale; a script-held copy of the breakpoint got the desktop
-  navigation inert and keyboard-unreachable while this was being built.
+- **The collapsed menu leaves the tab order through CSS `visibility`, and that
+  property is never transitioned.** Clip-path, opacity and pointer-events hide
+  it from the eye and the mouse but leave every link keyboard-focusable. Every
+  way of animating `visibility` — a delay, or `allow-discrete` — holds the
+  computed value at `visible` until the animation ends, leaving a window in
+  which Shift+Tab reaches a menu that went invisible 100ms ago. Both were tried
+  and both were wrong. The menu therefore closes instantly and only opening
+  animates; that is the deliberate price of the guarantee.
+  Keeping this in CSS rather than toggling `inert` from the script means it
+  tracks the media query exactly and cannot go stale — a script-held copy of
+  the breakpoint got the desktop navigation inert and keyboard-unreachable
+  while this was being built.
+- **The hamburger is shown by `.site-nav[data-collapsed] ~ .nav-toggle`, never
+  by the breakpoint alone.** `data-collapsed` is set by the script, so without
+  JavaScript the toggle stays hidden instead of sitting there dead beside a
+  menu it cannot open. In that no-script case the header drops out of `fixed`
+  and wraps, because four tracked links plus the wordmark and the language
+  switch do not fit one 360px row.
+- **Every tap target is at least 44px**, including the language switch, the
+  footer social icons and the carousel arrows. A test measures the rules.
 - No external origins at all: no CDN, no analytics, no remote fonts or images.
   The Worker's CSP is `script-src 'self'` and there are no inline `<script>`
   elements — the test enforces both.

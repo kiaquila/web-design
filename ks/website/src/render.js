@@ -78,11 +78,18 @@ function langSwitch(lang, copy) {
   return `<nav class="lang-switch" aria-label="${escapeHtml(copy.langSwitch.label)}">${entry("ru")}<span class="lang-divider" aria-hidden="true">/</span>${entry("en")}</nav>`;
 }
 
-function header(lang, copy) {
+/** `anchorBase` is empty on the landing page, where the sections are on the
+ *  page already. The 404 page reuses this header but has none of those ids, so
+ *  it passes the home path and the links become `/#work` rather than a `#work`
+ *  that silently does nothing. */
+function header(lang, copy, anchorBase = "") {
   const home = languages[lang].path;
   /* Each nav key is also the id of the section it points at. */
   const navItems = ["work", "process", "services", "contact"]
-    .map((key) => `<li><a href="#${key}">${escapeHtml(copy.nav[key])}</a></li>`)
+    .map(
+      (key) =>
+        `<li><a href="${anchorBase}#${key}">${escapeHtml(copy.nav[key])}</a></li>`
+    )
     .join("");
 
   return `<header class="site-header" data-header>
@@ -93,7 +100,7 @@ function header(lang, copy) {
       </nav>
       <div class="header-actions">
         ${langSwitch(lang, copy)}
-        <a class="btn btn-solid btn-compact header-cta" href="#contact">${escapeHtml(copy.nav.cta)}</a>
+        <a class="btn btn-solid btn-compact header-cta" href="${anchorBase}#contact">${escapeHtml(copy.nav.cta)}</a>
       </div>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
         <span class="visually-hidden">${escapeHtml(copy.nav.label)}</span>
@@ -423,7 +430,9 @@ export function renderPage(lang, origin) {
 
 export function renderNotFound(lang, origin) {
   const copy = content[lang];
-  const body = `${header(lang, copy)}
+  /* None of the section ids exist here, so the header's anchors are qualified
+     with the home path instead of pointing at nothing. */
+  const body = `${header(lang, copy, languages[lang].path)}
   <main id="main">
     <section class="slide section not-found">
       <div class="container">

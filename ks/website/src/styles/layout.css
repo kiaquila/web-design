@@ -255,9 +255,14 @@
   margin-top: 0.5rem;
 }
 
+/* A 20px glyph with padding came to 37.6px; these sit on phones like anything
+   else, so they get the same 44px minimum as the rest of the page. */
 .footer-social a {
   display: inline-flex;
-  padding: 0.55rem;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   color: var(--ink-mute);
   transition: color var(--dur-fast) var(--ease);
 }
@@ -276,8 +281,31 @@
     gap: var(--space-md);
   }
 
-  .nav-toggle {
+  /* The toggle appears only once the script has claimed the collapsed state.
+     Without JavaScript there is nothing for it to open, and showing a dead
+     button next to an unreachable menu is worse than showing no button. */
+  .site-nav[data-collapsed] ~ .nav-toggle {
     display: flex;
+  }
+
+  /* The no-script path: the nav stays a plain list, and four tracked links
+     plus the wordmark and the language switch cannot fit one 360px row. The
+     header stops being fixed so a wrapped two-row header takes its own space
+     instead of covering the page. */
+  .site-header:has(.site-nav:not([data-collapsed])) {
+    position: static;
+    height: auto;
+  }
+
+  .site-header:has(.site-nav:not([data-collapsed])) .header-inner {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+    padding-block: 0.5rem;
+  }
+
+  .site-nav:not([data-collapsed]) ul {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
   }
 
   /* Closed by default on small screens; the toggle opens it. Without a script
@@ -286,11 +314,13 @@
   /* `visibility` is the load-bearing line. Clip-path, opacity and
      pointer-events hide the closed menu from the eye and the mouse but leave
      its links keyboard-focusable, so Tab would walk an invisible menu.
-     `allow-discrete` flips visibility to `visible` immediately on opening and
-     back to `hidden` only when the closing animation ends — so the menu still
-     animates shut and is still out of the tab order the moment it is closed.
-     A plain delayed `visibility` transition does NOT work here: the computed
-     value stays `visible` for the whole delay, which looks correct and is not.
+
+     It is deliberately NOT transitioned. Every way of animating it — a delay,
+     or `allow-discrete` — holds the computed value at `visible` until the
+     animation ends, so for those 260ms Shift+Tab still reaches a menu that
+     went invisible after 140ms. The cost of correctness here is that the menu
+     closes instantly rather than animating shut; opening still animates.
+
      Keeping this in CSS rather than toggling `inert` from the script means it
      follows the media query exactly and can never go stale. */
   .site-nav[data-collapsed] {
@@ -306,8 +336,7 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: clip-path var(--dur) var(--ease), opacity var(--dur-fast) var(--ease),
-      visibility var(--dur) allow-discrete;
+    transition: clip-path var(--dur) var(--ease), opacity var(--dur-fast) var(--ease);
   }
 
   .site-nav[data-collapsed][data-open] {
