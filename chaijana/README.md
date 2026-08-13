@@ -23,7 +23,8 @@ removal condition are documented in that directory and in
 [`third-party-notices.md`](../third-party-notices.md).
 
 The website lockfile resolves the PostCSS-transitive `nanoid` dependency at
-3.3.18 so installs and the repository OSV scan exclude GHSA-2v37-7h3g-55p8
+3.3.18 so installs and the repository OSV scan exclude
+[GHSA-2v37-7h3g-55p8](https://github.com/advisories/GHSA-2v37-7h3g-55p8)
 without a package override.
 
 The temporary customer stage is deployed as the `chaijana` Cloudflare Worker at
