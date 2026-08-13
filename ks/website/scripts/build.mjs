@@ -14,7 +14,7 @@ import { renderNotFound, renderPage } from "../src/render.js";
 const root = resolve(import.meta.dirname, "..");
 const dist = join(root, "dist");
 
-const ORIGIN = "https://ks.ks-design.workers.dev";
+const ORIGIN = "https://ks-design.art";
 
 /* Order matters: later layers are expected to win, so a component's own
    media query can override the generic frame. */

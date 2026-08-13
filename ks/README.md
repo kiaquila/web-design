@@ -14,8 +14,10 @@ with snap points. On phones it is an ordinary flowing document.
 5. Kind Words
 6. Get in touch — full-width band, then the footer
 
-Implementation lives in `website/`: static HTML/CSS/JS with no framework,
-served by a Cloudflare Worker that only adds security headers.
+Implementation lives in `website/`: static HTML/CSS/JS with no framework.
+The customer stage remains on Cloudflare Workers; production is
+[ks-design.art](https://ks-design.art), served from an isolated Docker Compose
+project on the owner's `cz` server.
 
 ## Source of truth
 
@@ -65,9 +67,18 @@ screenshots of those stages, regenerated with the command in
   and the footer takes LinkedIn, Telegram and Instagram only — so those three
   destinations are currently nowhere. They are still in git history; decide
   whether they belong in the footer before launch.
-- **Stage not deployed.** `wrangler.json` and the repository stage entry are in
-  place, but nothing has been published. Deployment needs the owner's explicit
-  go-ahead.
+
+## Production hosting
+
+The production origin is `https://ks-design.art`; `www.ks-design.art` redirects
+to it. Spaceship DNS points the apex to the server's public IPv4 and IPv6
+addresses and aliases `www` to the apex. The server layout and repeatable
+deployment procedure live in [`website/production/`](./website/production/).
+
+Production uses the Compose project `ks-design-portfolio`, publishes its Nginx
+container only on `127.0.0.1:3100`, and is routed by a dedicated host-Nginx
+virtual host. It does not join, restart, or edit the `capsule-zero` Compose
+project or its ports.
 
 ## Checks
 

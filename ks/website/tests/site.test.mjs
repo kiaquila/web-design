@@ -24,6 +24,10 @@ const pages = {};
 let css = "";
 let ogGenerator = "";
 let siteScript = "";
+let productionCompose = "";
+let productionDockerfile = "";
+let productionNginx = "";
+let productionEdge = "";
 
 /* Compares against what a reader sees: tags dropped and entities decoded, so
    an apostrophe in the copy is matched as "'" and not as "&#039;". */
@@ -48,6 +52,22 @@ before(async () => {
   css = await readFile(join(dist, "assets/styles.css"), "utf8");
   ogGenerator = await readFile(join(root, "scripts/make-og.mjs"), "utf8");
   siteScript = await readFile(join(root, "src/js/site.js"), "utf8");
+  productionCompose = await readFile(
+    join(root, "production/docker-compose.yml"),
+    "utf8"
+  );
+  productionDockerfile = await readFile(
+    join(root, "production/Dockerfile"),
+    "utf8"
+  );
+  productionNginx = await readFile(
+    join(root, "production/nginx.conf"),
+    "utf8"
+  );
+  productionEdge = await readFile(
+    join(root, "production/ks-design.art.conf"),
+    "utf8"
+  );
   for (const key of ["ru", "en", "notFound"]) {
     pages[`${key}Text`] = stripTags(pages[key]);
   }
@@ -137,6 +157,10 @@ test("each page declares its own language and links the other one", () => {
   }
   assert.match(pages.ru, /<link rel="canonical" href="[^"]+\/">/);
   assert.match(pages.en, /<link rel="canonical" href="[^"]+\/en\/">/);
+  for (const key of ["ru", "en", "notFound"]) {
+    assert.match(pages[key], /https:\/\/ks-design\.art\//);
+    assert.doesNotMatch(pages[key], /ks\.ks-design\.workers\.dev/);
+  }
 });
 
 test("the language switch is a plain link, so it works without scripts", () => {
@@ -173,7 +197,7 @@ test("the only external links are the approved destinations", () => {
     for (const [, url] of pages[key].matchAll(/(?:href|src)="(https?:\/\/[^"]+)"/g)) {
       const { origin } = new URL(url);
       /* Canonical and og:url point at this site's own origin. */
-      if (origin.endsWith("ks-design.workers.dev")) continue;
+      if (origin === "https://ks-design.art") continue;
       assert.ok(approved.has(origin), `${key}: unapproved external origin ${origin}`);
     }
   }
@@ -486,6 +510,34 @@ test("robots.txt and the sitemap list both languages", async () => {
   assert.match(robots, /Sitemap: https:\/\/[^\s]+\/sitemap\.xml/);
   assert.match(sitemap, /<loc>https:\/\/[^<]+\/<\/loc>/);
   assert.match(sitemap, /<loc>https:\/\/[^<]+\/en\/<\/loc>/);
+  assert.match(robots, /Sitemap: https:\/\/ks-design\.art\/sitemap\.xml/);
+  assert.match(sitemap, /<loc>https:\/\/ks-design\.art\/<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/ks-design\.art\/en\/<\/loc>/);
+});
+
+test("production runs as an isolated, hardened container", () => {
+  assert.match(productionCompose, /^name:\s*ks-design-portfolio/m);
+  assert.match(productionCompose, /127\.0\.0\.1:3100:8080/);
+  assert.match(productionCompose, /read_only:\s*true/);
+  assert.match(productionCompose, /cap_drop:\s*\n\s*- ALL/);
+  assert.match(productionCompose, /no-new-privileges:true/);
+  assert.doesNotMatch(productionCompose, /network_mode:\s*host/);
+  assert.doesNotMatch(productionCompose, /capsule-zero/i);
+
+  assert.match(productionDockerfile, /^USER nginx$/m);
+  assert.equal(
+    productionDockerfile.match(/^FROM .+@sha256:[0-9a-f]{64}/gm)?.length,
+    2,
+    "both production base images must be pinned by digest"
+  );
+  assert.match(productionNginx, /listen 8080;/);
+  assert.match(productionNginx, /error_page 404 \/en\/404\.html;/);
+  assert.match(productionNginx, /Content-Security-Policy/);
+
+  assert.match(productionEdge, /server_name ks-design\.art;/);
+  assert.match(productionEdge, /server_name www\.ks-design\.art;/);
+  assert.match(productionEdge, /proxy_pass http:\/\/127\.0\.0\.1:3100;/);
+  assert.doesNotMatch(productionEdge, /127\.0\.0\.1:(?:3000|8080|4433)/);
 });
 
 test("the shipped JavaScript stays within its budget", async () => {
