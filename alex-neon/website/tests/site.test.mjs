@@ -72,7 +72,8 @@ const REMOVED_TEXT = [
 const REQUIRED_LINKS = [
   "https://t.me/AlexOxitocin",
   "https://t.me/+uzk17Dr2rREyNmRi",
-  "https://www.linkedin.com/in/aleksei-grishchenko/"
+  "https://www.linkedin.com/in/aleksei-grishchenko/",
+  "https://ks-design.art/"
 ];
 
 /* Any URL in built output must start with one of these. */
@@ -472,10 +473,23 @@ test("the social card carries the current renderer fingerprint", async () => {
   );
 });
 
-test("the footer carries only the copyright line", () => {
+test("the footer pairs the copyright with the linked KS Design signature", async () => {
   const footer = html.slice(html.indexOf("<footer"));
   assert.ok(footer.includes("© Alex Oxitocin"), "copyright line missing");
   assert.ok(!footer.includes("<use"), "the footer no longer repeats the logo");
+  assert.ok(
+    /<a[^>]*class="footer-signature"[^>]*href="https:\/\/ks-design\.art\/"/.test(footer),
+    "KS Design signature must link to the portfolio"
+  );
+  assert.ok(
+    /<a[^>]*class="footer-signature"[^>]*aria-label="[^"]+"/.test(footer),
+    "the image-only signature link needs an accessible name"
+  );
+  assert.ok(
+    footer.includes('src="./assets/ks-design-signature.png"'),
+    "KS Design signature image missing"
+  );
+  await access(join(dist, "assets/ks-design-signature.png"));
   for (const phrase of REMOVED_TEXT) {
     assert.ok(!text.includes(phrase), `text was removed but is still present: ${phrase}`);
   }
