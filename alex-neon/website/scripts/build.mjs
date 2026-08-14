@@ -51,6 +51,10 @@ async function main() {
     join(root, "assets/community-mark.jpg"),
     join(dist, "assets/community-mark.jpg")
   );
+  await cp(
+    join(root, "assets/ks-design-signature.png"),
+    join(dist, "assets/ks-design-signature.png")
+  );
 
   await writeFile(
     join(dist, "robots.txt"),

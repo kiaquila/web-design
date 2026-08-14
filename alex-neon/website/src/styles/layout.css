@@ -385,10 +385,30 @@
   flex-wrap: wrap;
 }
 
-/* Plain grey text, not the wordmark: the footer only signs the page. */
 .footer-copyright {
   color: var(--text-3);
   font-size: var(--fs-small);
+}
+
+.footer-signature {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--r-sm);
+}
+
+.footer-signature img {
+  width: clamp(7.5rem, 12vw, 9rem);
+  height: auto;
+  opacity: 0.68;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.footer-signature:hover img,
+.footer-signature:focus-visible img {
+  opacity: 1;
 }
 
 /* ---- Reveal on scroll (JS present; ≤ 250ms, fade + 10px rise) ------- */
