@@ -1,0 +1,103 @@
+name: KS Production Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "ks/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ks-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  required-checks:
+    name: production-required-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      checks: read
+      pull-requests: read
+    steps:
+      - name: Checkout production revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Wait for required push and pull-request checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.sha }}
+        run: node scripts/wait-for-production-checks.mjs
+
+  deploy:
+    name: production-deploy
+    needs: required-checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, linux, x64, ks-production]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      deployments: write
+    environment:
+      name: production
+      url: https://ks-design.art
+    steps:
+      - name: Checkout validated production revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Deploy validated commit to cz
+        env:
+          GITHUB_ACTIONS: "true"
+          GITHUB_REF: refs/heads/main
+          KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}
+          KS_DESIGN_DEPLOY_TARGET: local
+        run: |
+          ks/website/production/deploy.sh
+
+      - name: Check public pages
+        run: |
+          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/
+          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/en/
+
+      - name: Purge the production Cloudflare cache
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+        run: |
+          set -euo pipefail
+          [[ "$CLOUDFLARE_ZONE_ID" =~ ^[a-f0-9]{32}$ ]]
+          test -n "$CLOUDFLARE_API_TOKEN"
+          response="$RUNNER_TEMP/cloudflare-purge.json"
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data '{"purge_everything":true}' \
+            --output "$response" \
+            "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache"
+          python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["success"] is True' "$response"
+
+      - name: Match the production asset to the deployed commit
+        shell: bash
+        env:
+          REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          production_asset="$RUNNER_TEMP/production-site.js"
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            --header 'Cache-Control: no-cache' \
+            --output "$production_asset" \
+            "https://ks-design.art/assets/site.js?revision=$REVISION"
+          expected="$(sha256sum ks/website/src/js/site.js | cut -d ' ' -f 1)"
+          actual="$(sha256sum "$production_asset" | cut -d ' ' -f 1)"
+          test "$actual" = "$expected"

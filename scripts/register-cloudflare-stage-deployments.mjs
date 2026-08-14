@@ -17,7 +17,9 @@ function assertProjectSlug(value) {
 }
 
 export function configuredStages(config) {
-  const entries = Object.entries(config.stageProjects ?? {});
+  const entries = Object.entries(config.stageProjects ?? {}).filter(
+    ([, stage]) => stage?.permanentUrl !== false
+  );
 
   return entries.map(([project, stage]) => {
     assertProjectSlug(project);

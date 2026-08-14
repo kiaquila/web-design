@@ -49,6 +49,7 @@ const requiredRootFiles = [
   ".github/workflows/codex-review-request.yml",
   ".github/workflows/codex-review-rerun.yml",
   ".github/workflows/cloudflare-stage-deployments.yml",
+  ".github/workflows/ks-production-deploy.yml",
   ".github/workflows/repository-guard.yml",
   "AGENTS.md",
   "CLAUDE.md",
@@ -60,9 +61,11 @@ const requiredRootFiles = [
   "scripts/codex-review-request.mjs",
   "scripts/codex-review-rerun.mjs",
   "scripts/register-cloudflare-stage-deployments.mjs",
+  "scripts/wait-for-production-checks.mjs",
   "scripts/check-repository.mjs",
   "tests/cloudflare-stage-deployments.test.mjs",
   "tests/codex-review-gate.test.mjs",
+  "tests/ks-production-deploy.test.mjs",
   "tests/repository-guard.test.mjs",
   "third-party-notices.md"
 ];
@@ -195,7 +198,11 @@ if (
     if (!/^\d{4}-\d{2}-\d{2}$/.test(wrangler.compatibility_date ?? "")) {
       fail(`Stage Worker for ${project} must pin a compatibility_date`);
     }
-    if (wrangler.workers_dev !== true) {
+    if (stage.permanentUrl === false) {
+      if (wrangler.workers_dev !== false) {
+        fail(`Preview-only Worker for ${project} must disable workers_dev`);
+      }
+    } else if (wrangler.workers_dev !== true) {
       fail(`Stage Worker for ${project} must enable workers_dev`);
     }
     if (wrangler.preview_urls !== true) {
@@ -381,6 +388,40 @@ if (files.includes(codexReviewRequestWorkflow)) {
     : requestJobTail.slice(0, nextJobOffset);
   if (!requestJobMatch || /^ {4}(?:permissions|["']permissions["'])[ \t]*:/m.test(requestJob)) {
     fail("Codex Review Request job must not override its trusted workflow permissions.");
+  }
+}
+
+const ksProductionWorkflow = ".github/workflows/ks-production-deploy.yml";
+if (files.includes(ksProductionWorkflow)) {
+  const executableYaml = readFileSync(join(root, ksProductionWorkflow), "utf8")
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
+  const requiredFragments = [
+    "name: KS Production Deploy",
+    "  push:",
+    "      - main",
+    '      - "ks/**"',
+    "group: ks-production-deploy",
+    "cancel-in-progress: true",
+    "needs: required-checks",
+    "if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
+    "name: production",
+    "KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}",
+    "ks/website/production/deploy.sh",
+    "purge_cache",
+    "sha256sum ks/website/src/js/site.js"
+  ];
+  for (const fragment of requiredFragments) {
+    if (!executableYaml.includes(fragment)) {
+      fail(`KS production workflow is missing deployment invariant: ${fragment}`);
+    }
+  }
+  if (/^\s*pull_request\s*:/m.test(executableYaml)) {
+    fail("KS production workflow must never run for pull_request events");
+  }
+  if (/^\s*workflow_dispatch\s*:/m.test(executableYaml)) {
+    fail("KS production workflow must not expose a manual production trigger");
   }
 }
 

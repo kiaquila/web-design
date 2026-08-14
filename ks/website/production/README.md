@@ -30,7 +30,34 @@ Spaceship Advanced DNS carries these records with a 30-minute TTL:
 
 ## Deployment
 
-Run only from a clean `main` that contains the intended production commit:
+Production deploys automatically after a merged pull request changes `ks/**`
+and the resulting push to `main` passes every push check plus the required
+checks on the reviewed pull-request head. A direct push, a pull-request event,
+or a red/missing check fails closed before production credentials are exposed.
+
+The workflow is [`.github/workflows/ks-production-deploy.yml`](../../../.github/workflows/ks-production-deploy.yml).
+It uses the GitHub Environment `production`, whose deployment branch policy
+must allow `main` only. Configure these Environment values:
+
+| Kind | Name | Purpose |
+| --- | --- | --- |
+| Variable | `CLOUDFLARE_ZONE_ID` | Public zone ID for `ks-design.art` |
+| Secret | `CLOUDFLARE_API_TOKEN` | Token scoped to Cache Purge for the single zone |
+
+The deploy job runs on the repo-scoped `ks-production` runner installed on
+`cz`, while the credential-free gate job stays on GitHub-hosted infrastructure.
+The production host accepts SSH through Tailscale only, so running locally on
+the server avoids opening port 22 and removes the need for an SSH secret
+entirely. No Cloudflare account token, global API key, or zone ID is stored as a
+secret. The runner service account needs non-interactive permission for the
+Docker and `/opt/ks-design-portfolio` operations performed by `deploy.sh`.
+
+The workflow's concurrency group cancels an older in-progress production run
+when a newer eligible `main` commit arrives, so only the newest revision can
+finish deployment.
+
+For an intentional manual recovery, run from a clean local `main` that contains
+the intended production commit:
 
 ```bash
 ks/website/production/deploy.sh
@@ -50,6 +77,12 @@ reload, or the final health check fails. Every Nginx change is checked with
 `nginx -t` before reload.
 
 ## Verification
+
+Automation verifies that Compose reports the container `healthy`, the image
+label `org.opencontainers.image.revision` equals the triggering `github.sha`,
+and both `/` and `/en/` return successfully. It then purges the Cloudflare zone
+cache and compares the SHA-256 of live `/assets/site.js` with
+`ks/website/src/js/site.js` from that exact commit.
 
 ```bash
 dig +short A ks-design.art

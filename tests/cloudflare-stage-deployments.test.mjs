@@ -48,6 +48,21 @@ test("derives a permanent environment and URL for each configured stage", () => 
   );
 });
 
+test("does not register a permanent deployment for a preview-only Worker", () => {
+  assert.deepEqual(
+    configuredStages({
+      stageProjects: {
+        ks: {
+          rootDirectory: "ks/website",
+          watchPath: "ks/*",
+          permanentUrl: false
+        }
+      }
+    }),
+    []
+  );
+});
+
 test("selects only stages whose project paths changed", () => {
   const stages = configuredStages({
     stageProjects: {

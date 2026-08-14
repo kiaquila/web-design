@@ -25,7 +25,8 @@
     },
     "ks": {
       "rootDirectory": "ks/website",
-      "watchPath": "ks/*"
+      "watchPath": "ks/*",
+      "permanentUrl": false
     }
   }
 }
