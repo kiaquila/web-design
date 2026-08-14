@@ -400,7 +400,7 @@
 }
 
 .footer-signature img {
-  width: clamp(3rem, 4.8vw, 3.6rem);
+  width: clamp(4.5rem, 7.2vw, 5.4rem);
   height: auto;
   opacity: 0.68;
   transition: opacity var(--t-fast) var(--ease);
