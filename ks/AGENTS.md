@@ -115,13 +115,17 @@ Below that it is an ordinary flowing document.
 - Two frames cross-fade in the same box: `assets/portrait/calm-*` and
   `assets/portrait/wink-*`. The hover expression comes from the client's exact
   reference in `source-assets/portrait-rock-reference.png`. Register that source
-  rigidly by the ears and crown, then keep its complete face — from the brows
-  through the open mouth, lower oval and elongated chin — at the source
+  rigidly to the fixed head position, then keep its complete face — from the
+  brows through the open mouth, lower oval and elongated chin — at the source
   proportions. Do not morph its jaw toward the shorter calm-frame jaw. The head
-  position, ear positions, hairline, neck, shoulders, clothes, background and
-  crop stay fixed; only a narrow seam below the chin may be feathered into the
-  calm body. Moving anything else between frames breaks the illusion of a single
-  continuous shot.
+  position, crown, hair, headband, loose strands, neck, shoulders, clothes,
+  background and crop stay fixed to the calm frame. The viewer-right ear and its
+  cheek seam belong to the registered hover reference; never preserve the calm
+  ear there, because it creates a double contour. Only that local ear region and
+  a narrow seam below the chin may change outside the face. Moving the fixed
+  regions between frames breaks the illusion of a single continuous shot.
+- Remove the source photo's narrow dark sliver at the extreme bottom-right from
+  both exported frames so that defect neither remains visible nor flickers.
 - The frame is `aspect-ratio: 776 / 971`, the exact aspect of the source pair,
   and the images are `object-fit: cover` with no `object-position` shift. Zero
   crop means zero drift between the two states.
