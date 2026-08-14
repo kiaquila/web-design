@@ -21,9 +21,11 @@ project on the owner's `cz` server.
 
 The hero's rock-expression source is preserved at
 [`source-assets/portrait-rock-reference.png`](./source-assets/portrait-rock-reference.png).
-The published hover exports transfer the complete facial oval, including the
-jawline and chin, while keeping the head position, hair, neck, shoulders and
-body fixed so the cross-fade reads as one continuous portrait.
+The published hover exports rigidly register that exact source by the ears and
+crown, preserving its open mouth, complete lower oval and elongated chin without
+morphing them toward the calm face. The body, shoulders, background, ear
+positions and overall head placement stay fixed so the cross-fade reads as one
+continuous portrait.
 
 ## Source of truth
 
