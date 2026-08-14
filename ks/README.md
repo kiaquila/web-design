@@ -25,8 +25,10 @@ The published hover exports rigidly register that exact source to the fixed head
 position, preserving its open mouth, complete lower oval and elongated chin
 without morphing them toward the calm face. The crown, hair, headband, loose
 strands, body, shoulders, background and overall head placement stay fixed to
-the calm frame. The viewer-right ear and adjacent cheek seam instead come from
-the registered hover reference so no calm-frame ear survives as a ghost contour.
+the calm frame. The viewer-right ear also stays literally fixed to the calm
+frame. A narrow curved transition through the outer cheek and jaw keeps the
+rock-expression lower oval intact while removing any double contour or drift at
+the chin-to-neck junction.
 
 ## Source of truth
 
