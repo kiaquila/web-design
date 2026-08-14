@@ -125,6 +125,9 @@ Below that it is an ordinary flowing document.
   chin shadow, with the smooth outer seam running outside that contour and
   fading into the fixed calm neck before the garment. Do not scale or stretch
   the face to meet the ear, and do not import the reference garment edge.
+  Immediately outside the single hover jaw line, keep a clean calm-background
+  field with only the natural 1–2 px edge antialiasing: no second skin edge,
+  translucent halo or triangular matte before the shoulder.
   Moving the fixed regions between frames breaks the illusion of a single
   continuous shot.
 - Remove the source photo's narrow dark sliver at the extreme bottom-right from

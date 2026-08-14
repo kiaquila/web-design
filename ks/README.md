@@ -29,6 +29,8 @@ the calm frame. The viewer-right ear also stays literally fixed to the calm
 frame. A narrow curved transition outside the outer cheek and jaw keeps the
 complete rock-expression lower oval and its elongating chin shadow intact, then
 fades into the fixed calm neck without a double contour, clothing leak or drift.
+Immediately outside that single jaw line, the hover frame must read as clean
+calm-frame background rather than a face-coloured halo or triangular matte.
 
 ## Source of truth
 
