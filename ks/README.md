@@ -26,9 +26,9 @@ position, preserving its open mouth, complete lower oval and elongated chin
 without morphing them toward the calm face. The crown, hair, headband, loose
 strands, body, shoulders, background and overall head placement stay fixed to
 the calm frame. The viewer-right ear also stays literally fixed to the calm
-frame. A narrow curved transition through the outer cheek and jaw keeps the
-rock-expression lower oval intact while removing any double contour or drift at
-the chin-to-neck junction.
+frame. A narrow curved transition outside the outer cheek and jaw keeps the
+complete rock-expression lower oval and its elongating chin shadow intact, then
+fades into the fixed calm neck without a double contour, clothing leak or drift.
 
 ## Source of truth
 

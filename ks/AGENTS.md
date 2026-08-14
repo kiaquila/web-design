@@ -121,10 +121,12 @@ Below that it is an ordinary flowing document.
   position, crown, hair, headband, loose strands, neck, shoulders, clothes,
   background and crop stay fixed to the calm frame. The viewer-right ear,
   earring and adjacent edge hair remain literal calm-frame pixels in the hover
-  export. Transfer the hover face only up to the smooth outer-cheek/jaw seam;
-  the marked chin-to-neck junction also stays calm so it cannot drift during
-  the cross-fade. Do not scale or stretch the face to meet the ear. Moving the
-  fixed regions between frames breaks the illusion of a single continuous shot.
+  export. Transfer the hover face through the full lower oval and its elongated
+  chin shadow, with the smooth outer seam running outside that contour and
+  fading into the fixed calm neck before the garment. Do not scale or stretch
+  the face to meet the ear, and do not import the reference garment edge.
+  Moving the fixed regions between frames breaks the illusion of a single
+  continuous shot.
 - Remove the source photo's narrow dark sliver at the extreme bottom-right from
   both exported frames so that defect neither remains visible nor flickers.
 - The frame is `aspect-ratio: 776 / 971`, the exact aspect of the source pair,
