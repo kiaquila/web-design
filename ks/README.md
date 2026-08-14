@@ -19,6 +19,19 @@ The customer stage remains on Cloudflare Workers; production is
 [ks-design.art](https://ks-design.art), served from an isolated Docker Compose
 project on the owner's `cz` server.
 
+The hero's rock-expression source is preserved at
+[`source-assets/portrait-rock-reference.png`](./source-assets/portrait-rock-reference.png).
+The published hover exports rigidly register that exact source to the fixed head
+position, preserving its open mouth, complete lower oval and elongated chin
+without morphing them toward the calm face. The crown, hair, headband, loose
+strands, body, shoulders, background and overall head placement stay fixed to
+the calm frame. The viewer-right ear also stays literally fixed to the calm
+frame. A narrow curved transition outside the outer cheek and jaw keeps the
+complete rock-expression lower oval and its elongating chin shadow intact, then
+fades into the fixed calm neck without a double contour, clothing leak or drift.
+Immediately outside that single jaw line, the hover frame must read as clean
+calm-frame background rather than a face-coloured halo or triangular matte.
+
 ## Source of truth
 
 | Item | Value | Source |

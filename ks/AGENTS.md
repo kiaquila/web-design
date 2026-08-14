@@ -113,11 +113,25 @@ Below that it is an ordinary flowing document.
 ## The hero portrait
 
 - Two frames cross-fade in the same box: `assets/portrait/calm-*` and
-  `assets/portrait/wink-*`. They are **two halves of one diptych the client
-  drew herself**, already identically framed, so the swap needs no compositing,
-  no scaling and no alignment work — the build just splits, trims and exports
-  them. Do not "improve" the alignment; anything that moves one frame relative
-  to the other breaks the illusion of a single continuous shot.
+  `assets/portrait/wink-*`. The hover expression comes from the client's exact
+  reference in `source-assets/portrait-rock-reference.png`. Register that source
+  rigidly to the fixed head position, then keep its complete face — from the
+  brows through the open mouth, lower oval and elongated chin — at the source
+  proportions. Do not morph its jaw toward the shorter calm-frame jaw. The head
+  position, crown, hair, headband, loose strands, neck, shoulders, clothes,
+  background and crop stay fixed to the calm frame. The viewer-right ear,
+  earring and adjacent edge hair remain literal calm-frame pixels in the hover
+  export. Transfer the hover face through the full lower oval and its elongated
+  chin shadow, with the smooth outer seam running outside that contour and
+  fading into the fixed calm neck before the garment. Do not scale or stretch
+  the face to meet the ear, and do not import the reference garment edge.
+  Immediately outside the single hover jaw line, keep a clean calm-background
+  field with only the natural 1–2 px edge antialiasing: no second skin edge,
+  translucent halo or triangular matte before the shoulder.
+  Moving the fixed regions between frames breaks the illusion of a single
+  continuous shot.
+- Remove the source photo's narrow dark sliver at the extreme bottom-right from
+  both exported frames so that defect neither remains visible nor flickers.
 - The frame is `aspect-ratio: 776 / 971`, the exact aspect of the source pair,
   and the images are `object-fit: cover` with no `object-position` shift. Zero
   crop means zero drift between the two states.
