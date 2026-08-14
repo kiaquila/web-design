@@ -21,8 +21,9 @@ project on the owner's `cz` server.
 
 The hero's rock-expression source is preserved at
 [`source-assets/portrait-rock-reference.png`](./source-assets/portrait-rock-reference.png).
-The published hover exports keep the calm frame fixed outside the blended
-facial-expression region so the cross-fade reads as one continuous portrait.
+The published hover exports transfer the complete facial oval, including the
+jawline and chin, while keeping the head position, hair, neck, shoulders and
+body fixed so the cross-fade reads as one continuous portrait.
 
 ## Source of truth
 

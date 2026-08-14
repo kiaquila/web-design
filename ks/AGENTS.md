@@ -114,11 +114,12 @@ Below that it is an ordinary flowing document.
 
 - Two frames cross-fade in the same box: `assets/portrait/calm-*` and
   `assets/portrait/wink-*`. The hover expression comes from the client's exact
-  reference in `source-assets/portrait-rock-reference.png`; its face is
-  registered into the calm frame while the background, hair, headband, clothes
-  and crop stay fixed. Do not independently crop, scale or reposition either
-  export — anything outside the facial-expression blend moving between frames
-  breaks the illusion of a single continuous shot.
+  reference in `source-assets/portrait-rock-reference.png`; its complete face,
+  including the lower oval, jawline and chin, is registered into the calm frame.
+  The head position, hair, headband, neck, shoulders, clothes, background and
+  crop stay fixed. Do not independently crop, scale or reposition either export
+  — anything outside the facial-expression blend moving between frames breaks
+  the illusion of a single continuous shot.
 - The frame is `aspect-ratio: 776 / 971`, the exact aspect of the source pair,
   and the images are `object-fit: cover` with no `object-position` shift. Zero
   crop means zero drift between the two states.
