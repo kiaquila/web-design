@@ -55,9 +55,10 @@ Docker and `/opt/ks-design-portfolio` operations performed by `deploy.sh`.
 After its required checks, the deploy job takes an advisory `flock` on the
 dedicated `cz` runner. This serializes the entire production mutation,
 verification, and cache purge without GitHub Actions' one-pending-job limit
-dropping a newer eligible deployment. Each candidate re-checks that its commit
-is still the `main` tip after taking the lock; stale revisions exit without
-changing production.
+dropping a newer eligible deployment. Each candidate re-checks the `ks/` tree
+against current `main` after taking the lock; a stale KS revision exits without
+changing production, while unrelated repository pushes do not block an eligible
+KS deploy.
 
 For an intentional manual recovery, run from a clean local `main` that contains
 the intended production commit:

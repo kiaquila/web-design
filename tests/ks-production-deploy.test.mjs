@@ -25,7 +25,8 @@ test("production deploy is push-only, KS-scoped, main-only, and serialized", () 
   assert.match(deployJob, /lock_file=\/tmp\/ks-production-deploy\.lock/);
   assert.match(deployJob, /flock --exclusive 9/);
   assert.match(workflow, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
-  assert.match(deployJob, /git ls-remote origin refs\/heads\/main/);
+  assert.match(deployJob, /git rev-parse "\$REVISION:ks"/);
+  assert.match(deployJob, /git rev-parse "origin\/main:ks"/);
 });
 
 test("production credentials are isolated to the production environment", () => {

@@ -418,7 +418,8 @@ if (files.includes(ksProductionWorkflow)) {
     "if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
     "name: production",
     "KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}",
-    "git ls-remote origin refs/heads/main",
+    "git rev-parse \"$REVISION:ks\"",
+    "git rev-parse \"origin/main:ks\"",
     "ks/website/production/deploy.sh",
     "purge_cache",
     "sha256sum ks/website/src/js/site.js"

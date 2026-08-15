@@ -65,14 +65,16 @@ jobs:
 
           # GitHub Actions concurrency keeps only one pending job and can drop a
           # newer candidate when an older gate completes late. This advisory
-          # lock is FIFO on the dedicated cz runner, so every candidate gets to
-          # re-check main after the current mutation completes.
+          # lock on the dedicated cz runner lets every candidate re-check the
+          # current KS tree after the current mutation completes.
           lock_file=/tmp/ks-production-deploy.lock
           exec 9>"$lock_file"
           flock --exclusive 9
 
-          main_tip="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          test "$main_tip" = "$REVISION"
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          validated_ks_tree="$(git rev-parse "$REVISION:ks")"
+          current_ks_tree="$(git rev-parse "origin/main:ks")"
+          test "$validated_ks_tree" = "$current_ks_tree"
           ks/website/production/deploy.sh
           curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/
           curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/en/
