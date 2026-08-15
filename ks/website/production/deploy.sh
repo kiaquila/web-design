@@ -7,6 +7,8 @@ repo_dir="$(git -C "$website_dir" rev-parse --show-toplevel)"
 target="${KS_DESIGN_DEPLOY_TARGET:-cz}"
 remote_dir="${KS_DESIGN_REMOTE_DIR:-/opt/ks-design-portfolio}"
 ssh_config="${KS_DESIGN_SSH_CONFIG:-}"
+deploy_run_id="${KS_DESIGN_DEPLOY_RUN_ID:-0}"
+deploy_status_file="${KS_DESIGN_DEPLOY_STATUS_FILE:-}"
 ssh_options=()
 
 if [[ ! "$target" =~ ^[a-zA-Z0-9._@-]+$ ]]; then
@@ -25,6 +27,10 @@ if [[ -n "$ssh_config" ]]; then
   ssh_options=(-F "$ssh_config")
   export RSYNC_RSH="ssh -F $ssh_config"
 fi
+if [[ ! "$deploy_run_id" =~ ^[0-9]+$ ]]; then
+  echo "KS_DESIGN_DEPLOY_RUN_ID must be a decimal GitHub Actions run ID." >&2
+  exit 1
+fi
 
 if ! git -C "$repo_dir" diff --quiet || ! git -C "$repo_dir" diff --cached --quiet; then
   echo "Refusing to deploy a dirty working tree." >&2
@@ -33,6 +39,7 @@ fi
 
 branch="$(git -C "$repo_dir" branch --show-current)"
 revision="$(git -C "$repo_dir" rev-parse HEAD)"
+ks_tree="$(git -C "$repo_dir" rev-parse "$revision:ks")"
 expected_revision="${KS_DESIGN_EXPECTED_REVISION:-}"
 if [[ -n "$expected_revision" ]]; then
   if [[ ! "$expected_revision" =~ ^[a-f0-9]{40}$ ]]; then
@@ -64,8 +71,28 @@ if [[ "$target" == "local" ]]; then
   sudo install -d -o "$(id -un)" -g "$(id -gn)" "$remote_dir"
   rsync --archive --delete "$payload_dir/" "$remote_dir/"
 else
-  ssh "${ssh_options[@]}" "$target" "sudo install -d -o \"\$(id -un)\" -g \"\$(id -gn)\" '$remote_dir'"
-  rsync --archive --delete "$payload_dir/" "$target:$remote_dir/"
+  remote_stage="/var/lib/ks-production/staging/ks-$revision-${RANDOM}-${RANDOM}"
+  ssh "${ssh_options[@]}" "$target" "umask 077; mkdir '$remote_stage'"
+  rsync --archive "$payload_dir/" "$target:$remote_stage/"
+  deploy_output="$(ssh "${ssh_options[@]}" "$target" \
+    "sudo /usr/local/sbin/ks-production-deploy '$revision' '$ks_tree' '$deploy_run_id' '$remote_stage'")"
+  printf '%s\n' "$deploy_output"
+  if grep --quiet --fixed-strings --line-regexp 'KS_PRODUCTION_DEPLOY_SKIPPED' <<<"$deploy_output"; then
+    if [[ -n "$deploy_status_file" ]]; then
+      printf 'skipped\n' > "$deploy_status_file"
+    fi
+    echo "Skipped stale KS production candidate $revision."
+    exit 0
+  fi
+  grep --quiet --fixed-strings --line-regexp 'KS_PRODUCTION_DEPLOYED' <<<"$deploy_output" || {
+    echo "Production wrapper did not confirm deployment." >&2
+    exit 1
+  }
+  if [[ -n "$deploy_status_file" ]]; then
+    printf 'deployed\n' > "$deploy_status_file"
+  fi
+  echo "Deployed ks-design.art source revision $revision to $target:$remote_dir."
+  exit 0
 fi
 
 # The validated directory and hexadecimal revision intentionally expand here.
@@ -100,9 +127,6 @@ deploy_command="
 "
 if [[ "$target" == "local" ]]; then
   bash -c "$deploy_command"
-else
-  # shellcheck disable=SC2029
-  ssh "${ssh_options[@]}" "$target" "$deploy_command"
 fi
 
 echo "Deployed ks-design.art source revision $revision to $target:$remote_dir."

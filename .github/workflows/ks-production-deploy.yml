@@ -35,11 +35,17 @@ jobs:
     name: production-deploy
     needs: required-checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, linux, x64, ks-production]
+    # GitHub retains only the newest pending candidate. The root-owned server
+    # wrapper also rejects an older run ID that reaches it after a newer one.
+    concurrency:
+      group: ks-production-deploy
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
       deployments: write
+      id-token: write
     environment:
       name: production
       url: https://ks-design.art
@@ -50,6 +56,14 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
+      - name: Connect to the deployment Tailnet
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4
+        with:
+          oauth-client-id: ${{ vars.TAILSCALE_OAUTH_CLIENT_ID }}
+          audience: ${{ vars.TAILSCALE_AUDIENCE }}
+          tags: tag:ci
+          ping: ${{ vars.KS_DESIGN_SSH_HOST }}
+
       - name: Deploy, validate, purge, and verify the latest revision
         shell: bash
         env:
@@ -57,25 +71,39 @@ jobs:
           GITHUB_ACTIONS: "true"
           GITHUB_REF: refs/heads/main
           KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}
-          KS_DESIGN_DEPLOY_TARGET: local
+          KS_DESIGN_DEPLOY_RUN_ID: ${{ github.run_id }}
+          KS_DESIGN_DEPLOY_TARGET: ks-production
+          KS_DESIGN_SSH_CONFIG: ${{ runner.temp }}/ks-production-ssh-config
+          KS_DESIGN_DEPLOY_STATUS_FILE: ${{ runner.temp }}/ks-production-deploy-status
+          KS_DESIGN_SSH_PRIVATE_KEY: ${{ secrets.KS_DESIGN_SSH_PRIVATE_KEY }}
+          KS_DESIGN_SSH_HOST: ${{ vars.KS_DESIGN_SSH_HOST }}
+          KS_DESIGN_SSH_KNOWN_HOSTS: ${{ vars.KS_DESIGN_SSH_KNOWN_HOSTS }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
 
-          # GitHub Actions concurrency keeps only one pending job and can drop a
-          # newer candidate when an older gate completes late. This advisory
-          # lock on the dedicated cz runner lets every candidate re-check the
-          # current KS tree after the current mutation completes.
-          lock_file=/tmp/ks-production-deploy.lock
-          exec 9>"$lock_file"
-          flock --exclusive 9
+          umask 077
+          key_file="$RUNNER_TEMP/ks-production-deploy-key"
+          known_hosts_file="$RUNNER_TEMP/ks-production-known-hosts"
+          printf '%s\n' "$KS_DESIGN_SSH_PRIVATE_KEY" > "$key_file"
+          printf '%s\n' "$KS_DESIGN_SSH_KNOWN_HOSTS" > "$known_hosts_file"
+          cat > "$KS_DESIGN_SSH_CONFIG" <<EOF
+          Host ks-production
+            HostName $KS_DESIGN_SSH_HOST
+            User ksdeploy
+            IdentityFile $key_file
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile $known_hosts_file
+          EOF
 
-          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          validated_ks_tree="$(git rev-parse "$REVISION:ks")"
-          current_ks_tree="$(git rev-parse "origin/main:ks")"
-          test "$validated_ks_tree" = "$current_ks_tree"
           ks/website/production/deploy.sh
+          if [[ -f "$KS_DESIGN_DEPLOY_STATUS_FILE" ]] &&
+            [[ "$(<"$KS_DESIGN_DEPLOY_STATUS_FILE")" == "skipped" ]]; then
+            echo "A newer eligible KS deployment has already reached cz."
+            exit 0
+          fi
           [[ "$CLOUDFLARE_ZONE_ID" =~ ^[a-f0-9]{32}$ ]]
           test -n "$CLOUDFLARE_API_TOKEN"
           response="$RUNNER_TEMP/cloudflare-purge.json"

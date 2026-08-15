@@ -42,29 +42,37 @@ must allow `main` only. Configure these Environment values:
 | Kind | Name | Purpose |
 | --- | --- | --- |
 | Variable | `CLOUDFLARE_ZONE_ID` | Public zone ID for `ks-design.art` |
+| Variable | `KS_DESIGN_SSH_HOST` | cz Tailnet IP or MagicDNS name |
+| Variable | `KS_DESIGN_SSH_KNOWN_HOSTS` | Pinned cz SSH host key in `known_hosts` format |
+| Variable | `TAILSCALE_OAUTH_CLIENT_ID` | Tailnet workload-identity OAuth client ID |
+| Variable | `TAILSCALE_AUDIENCE` | Audience configured for the GitHub workload identity |
 | Secret | `CLOUDFLARE_API_TOKEN` | Token scoped to Cache Purge for the single zone |
+| Secret | `KS_DESIGN_SSH_PRIVATE_KEY` | Deploy-only key for the `ksdeploy` account on cz |
 
-The deploy job runs on the repo-scoped `ks-production` runner installed on
-`cz`, while the credential-free gate job stays on GitHub-hosted infrastructure.
-The production host accepts SSH through Tailscale only, so running locally on
-the server avoids opening port 22 and removes the need for an SSH secret
-entirely. No Cloudflare account token, global API key, or zone ID is stored as a
-secret. The runner service account needs non-interactive permission for the
-Docker and `/opt/ks-design-portfolio` operations performed by `deploy.sh`.
+Both jobs run on GitHub-hosted infrastructure. Only the deployment job joins
+the private Tailnet through Tailscale workload identity federation, after its
+required checks have passed and the `production` Environment has released its
+credentials. cz accepts the deploy-only `ksdeploy` SSH key over that Tailnet;
+no public SSH exposure or long-lived Tailscale auth key is used. The key can
+run only the root-owned `/usr/local/sbin/ks-production-deploy` wrapper. That
+wrapper validates its staged input, owns the Docker and `/opt` mutation, and
+cannot be used to invoke arbitrary Docker commands.
 
-After its required checks, the deploy job takes an advisory `flock` on the
-dedicated `cz` runner. This serializes the entire production mutation,
-verification, and cache purge without GitHub Actions' one-pending-job limit
-dropping a newer eligible deployment. Each candidate re-checks the `ks/` tree
-against current `main` after taking the lock; a stale KS revision exits without
-changing production, while unrelated repository pushes do not block an eligible
-KS deploy.
+The deploy job has a `ks-production-deploy` concurrency group, so GitHub keeps
+only one active deployment and its newest pending candidate. The server wrapper
+also serializes the mutation with `flock` and records the greatest GitHub run
+ID it has accepted. If an older gate completes after a newer eligible
+deployment, its staged revision is skipped before it can overwrite production.
+This protects against GitHub's one-pending-job behavior without treating an
+unrelated repository push as a KS deployment.
 
-For an intentional manual recovery, run from a clean local `main` that contains
-the intended production commit:
+One-time cz setup installs the reviewed wrapper and creates the restricted
+account and staging directory. This is an administrator operation; normal
+production recovery uses a GitHub Actions re-run rather than an interactive SSH
+session:
 
 ```bash
-ks/website/production/deploy.sh
+sudo ks/website/production/install-deploy-access.sh 'ssh-ed25519 AAAA… github-production'
 ```
 
 The first server installation, or an intentional TLS/edge refresh, is:
@@ -96,3 +104,7 @@ curl -I https://ks-design.art/en/
 curl -I https://www.ks-design.art/
 ssh cz 'sudo docker compose -f /opt/ks-design-portfolio/production/docker-compose.yml ps'
 ```
+
+Cloudflare preview deployments for pull requests remain unchanged at
+`*-ks.ks-design.workers.dev`. The permanent Worker URL
+`ks.ks-design.workers.dev` remains disabled and is not a production fallback.

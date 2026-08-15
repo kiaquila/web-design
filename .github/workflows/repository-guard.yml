@@ -45,7 +45,7 @@ jobs:
         run: node --test tests/cloudflare-stage-deployments.test.mjs
 
       - name: Test KS production deployment policy
-        run: node --test tests/ks-production-deploy.test.mjs
+        run: node --test tests/ks-production-deploy.test.mjs tests/ks-production-server-deploy.test.mjs
 
       - name: Test trusted Codex gate regressions
         shell: bash

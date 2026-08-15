@@ -22,11 +22,11 @@ test("production deploy is push-only, KS-scoped, main-only, and serialized", () 
   assert.match(workflow, /paths:\n\s+- "ks\/\*\*"/);
   assert.doesNotMatch(workflow, /^\s*pull_request:/m);
   const deployJob = workflow.slice(workflow.indexOf("  deploy:"));
-  assert.match(deployJob, /lock_file=\/tmp\/ks-production-deploy\.lock/);
-  assert.match(deployJob, /flock --exclusive 9/);
+  assert.match(deployJob, /group: ks-production-deploy/);
+  assert.match(deployJob, /cancel-in-progress: false/);
   assert.match(workflow, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
-  assert.match(deployJob, /git rev-parse "\$REVISION:ks"/);
-  assert.match(deployJob, /git rev-parse "origin\/main:ks"/);
+  assert.match(deployJob, /KS_DESIGN_DEPLOY_RUN_ID: \$\{\{ github\.run_id \}\}/);
+  assert.match(deployJob, /KS_DESIGN_DEPLOY_STATUS_FILE/);
 });
 
 test("production credentials are isolated to the production environment", () => {
@@ -36,10 +36,14 @@ test("production credentials are isolated to the production environment", () => 
   assert.match(deployJob, /environment:\n\s+name: production/);
   assert.deepEqual(
     [...deployJob.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((match) => match[1]).sort(),
-    ["CLOUDFLARE_API_TOKEN"]
+    ["CLOUDFLARE_API_TOKEN", "KS_DESIGN_SSH_PRIVATE_KEY"]
   );
-  assert.match(deployJob, /runs-on: \[self-hosted, linux, x64, ks-production\]/);
-  assert.match(deployJob, /KS_DESIGN_DEPLOY_TARGET: local/);
+  assert.match(deployJob, /runs-on: ubuntu-latest/);
+  assert.doesNotMatch(deployJob, /self-hosted/);
+  assert.match(deployJob, /id-token: write/);
+  assert.match(deployJob, /tailscale\/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8/);
+  assert.match(deployJob, /oauth-client-id: \$\{\{ vars\.TAILSCALE_OAUTH_CLIENT_ID \}\}/);
+  assert.match(deployJob, /KS_DESIGN_DEPLOY_TARGET: ks-production/);
 });
 
 test("production deploy verifies the revision, pages, cache purge, and asset hash", () => {

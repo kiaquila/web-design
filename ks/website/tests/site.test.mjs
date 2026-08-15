@@ -29,6 +29,7 @@ let productionDockerfile = "";
 let productionNginx = "";
 let productionEdge = "";
 let productionDeploy = "";
+let productionServerDeploy = "";
 let productionEdgeInstaller = "";
 
 /* Compares against what a reader sees: tags dropped and entities decoded, so
@@ -71,6 +72,10 @@ before(async () => {
     "utf8"
   );
   productionDeploy = await readFile(join(root, "production/deploy.sh"), "utf8");
+  productionServerDeploy = await readFile(
+    join(root, "production/server-deploy.sh"),
+    "utf8"
+  );
   productionEdgeInstaller = await readFile(
     join(root, "production/install-edge.sh"),
     "utf8"
@@ -547,12 +552,14 @@ test("production runs as an isolated, hardened container", () => {
   assert.doesNotMatch(productionEdge, /127\.0\.0\.1:(?:3000|8080|4433)/);
 
   assert.match(productionDeploy, /git .* archive --format=tar/);
-  assert.match(productionDeploy, /"\$payload_dir\/" "\$target:\$remote_dir\/"/);
+  assert.match(productionDeploy, /"\$payload_dir\/" "\$target:\$remote_stage\/"/);
   assert.doesNotMatch(productionDeploy, /"\$website_dir\/" "\$target:/);
   assert.match(productionDeploy, /KS_DESIGN_EXPECTED_REVISION/);
   assert.match(productionDeploy, /"\$target" == "local"/);
-  assert.match(productionDeploy, /\.State\.Health\.Status/);
-  assert.match(productionDeploy, /org\.opencontainers\.image\.revision/);
+  assert.match(productionDeploy, /\/usr\/local\/sbin\/ks-production-deploy/);
+  assert.match(productionServerDeploy, /\.State\.Health\.Status/);
+  assert.match(productionServerDeploy, /org\.opencontainers\.image\.revision/);
+  assert.match(productionServerDeploy, /flock --exclusive 9/);
   assert.match(productionEdgeInstaller, /had_live_tls=false/);
   assert.match(productionEdgeInstaller, /backup_ready=false/);
   assert.match(productionEdgeInstaller, /restore_live_edge/);
