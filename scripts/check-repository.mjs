@@ -413,11 +413,12 @@ if (files.includes(ksProductionWorkflow)) {
     "      - main",
     '      - "ks/**"',
     "group: ks-production-deploy",
-    "cancel-in-progress: true",
+    "cancel-in-progress: false",
     "needs: required-checks",
     "if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
     "name: production",
     "KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}",
+    "git ls-remote origin refs/heads/main",
     "ks/website/production/deploy.sh",
     "purge_cache",
     "sha256sum ks/website/src/js/site.js"

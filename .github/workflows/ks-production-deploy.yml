@@ -37,7 +37,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     concurrency:
       group: ks-production-deploy
-      cancel-in-progress: true
+      cancel-in-progress: false
     runs-on: [self-hosted, linux, x64, ks-production]
     timeout-minutes: 20
     permissions:
@@ -52,6 +52,14 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+
+      - name: Confirm revision remains the main tip
+        env:
+          REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          main_tip="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$main_tip" = "$REVISION"
 
       - name: Deploy validated commit to cz
         env:

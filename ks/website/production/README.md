@@ -53,9 +53,9 @@ secret. The runner service account needs non-interactive permission for the
 Docker and `/opt/ks-design-portfolio` operations performed by `deploy.sh`.
 
 The deploy job enters its concurrency group only after its required checks have
-passed. A newer eligible `main` revision then cancels an older in-progress
-production deploy, so only the newest validated revision can finish deployment
-without a failing candidate interrupting an already eligible rollout.
+passed. It serializes production mutations without interrupting an active
+rollout, then confirms that its SHA is still the tip of `main` immediately
+before deployment. A stale queued revision exits without changing production.
 
 For an intentional manual recovery, run from a clean local `main` that contains
 the intended production commit:
