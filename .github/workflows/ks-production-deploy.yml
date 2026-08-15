@@ -76,8 +76,6 @@ jobs:
           current_ks_tree="$(git rev-parse "origin/main:ks")"
           test "$validated_ks_tree" = "$current_ks_tree"
           ks/website/production/deploy.sh
-          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/
-          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/en/
           [[ "$CLOUDFLARE_ZONE_ID" =~ ^[a-f0-9]{32}$ ]]
           test -n "$CLOUDFLARE_API_TOKEN"
           response="$RUNNER_TEMP/cloudflare-purge.json"
@@ -89,6 +87,8 @@ jobs:
             --output "$response" \
             "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache"
           python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["success"] is True' "$response"
+          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/
+          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/en/
           production_asset="$RUNNER_TEMP/production-site.js"
           curl --fail --silent --show-error --retry 5 --retry-all-errors \
             --header 'Cache-Control: no-cache' \

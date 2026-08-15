@@ -48,6 +48,7 @@ test("production deploy verifies the revision, pages, cache purge, and asset has
   assert.match(workflow, /https:\/\/ks-design\.art\/en\//);
   assert.match(workflow, /purge_cache/);
   assert.match(workflow, /sha256sum ks\/website\/src\/js\/site\.js/);
+  assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/en/"));
 });
 
 test("required checks include every push gate and the PR-only Codex gate", () => {
