@@ -114,17 +114,30 @@ if (!Array.isArray(config.projects) || config.projects.length === 0) {
   }
 }
 
-const stageProjects = config.stageProjects ?? {};
-if (
-  typeof stageProjects !== "object" ||
-  stageProjects === null ||
-  Array.isArray(stageProjects)
-) {
-  fail(".repo-guard.json stageProjects must be an object");
-} else {
-  for (const [project, stage] of Object.entries(stageProjects)) {
+const workerProjectGroups = [
+  ["stageProjects", config.stageProjects ?? {}, true],
+  ["previewProjects", config.previewProjects ?? {}, false]
+];
+const configuredWorkerProjects = new Set();
+
+for (const [groupName, workerProjects, workersDev] of workerProjectGroups) {
+  if (
+    typeof workerProjects !== "object" ||
+    workerProjects === null ||
+    Array.isArray(workerProjects)
+  ) {
+    fail(`.repo-guard.json ${groupName} must be an object`);
+    continue;
+  }
+
+  for (const [project, stage] of Object.entries(workerProjects)) {
+    if (configuredWorkerProjects.has(project)) {
+      fail(`Worker project must not be both permanent and preview-only: ${project}`);
+      continue;
+    }
+    configuredWorkerProjects.add(project);
     if (!config.projects?.includes(project)) {
-      fail(`Stage project is not listed in projects: ${project}`);
+      fail(`${groupName} project is not listed in projects: ${project}`);
       continue;
     }
     if (typeof stage !== "object" || stage === null || Array.isArray(stage)) {
@@ -198,12 +211,9 @@ if (
     if (!/^\d{4}-\d{2}-\d{2}$/.test(wrangler.compatibility_date ?? "")) {
       fail(`Stage Worker for ${project} must pin a compatibility_date`);
     }
-    if (stage.permanentUrl === false) {
-      if (wrangler.workers_dev !== false) {
-        fail(`Preview-only Worker for ${project} must disable workers_dev`);
-      }
-    } else if (wrangler.workers_dev !== true) {
-      fail(`Stage Worker for ${project} must enable workers_dev`);
+    if (wrangler.workers_dev !== workersDev) {
+      const expectation = workersDev ? "enable" : "disable";
+      fail(`${groupName} Worker for ${project} must ${expectation} workers_dev`);
     }
     if (wrangler.preview_urls !== true) {
       fail(`Stage Worker for ${project} must enable preview_urls`);

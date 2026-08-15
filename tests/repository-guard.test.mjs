@@ -269,11 +269,10 @@ test("accepts a project-named Worker with the temporary stage contract", () => {
       JSON.stringify({
         infrastructureDirectories: ["docs", "scripts", "tests"],
         projects: ["demo"],
-        stageProjects: {
+        previewProjects: {
           demo: {
             rootDirectory: "demo/website",
-            watchPath: "demo/*",
-            permanentUrl: false
+            watchPath: "demo/*"
           }
         }
       })

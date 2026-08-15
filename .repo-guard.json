@@ -22,11 +22,12 @@
     "chaijana": {
       "rootDirectory": "chaijana/website",
       "watchPath": "chaijana/*"
-    },
+    }
+  },
+  "previewProjects": {
     "ks": {
       "rootDirectory": "ks/website",
-      "watchPath": "ks/*",
-      "permanentUrl": false
+      "watchPath": "ks/*"
     }
   }
 }
