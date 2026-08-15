@@ -10,10 +10,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ks-production-deploy
-  cancel-in-progress: true
-
 jobs:
   required-checks:
     name: production-required-checks
@@ -39,6 +35,9 @@ jobs:
     name: production-deploy
     needs: required-checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: ks-production-deploy
+      cancel-in-progress: true
     runs-on: [self-hosted, linux, x64, ks-production]
     timeout-minutes: 20
     permissions:

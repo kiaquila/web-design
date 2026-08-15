@@ -52,9 +52,10 @@ entirely. No Cloudflare account token, global API key, or zone ID is stored as a
 secret. The runner service account needs non-interactive permission for the
 Docker and `/opt/ks-design-portfolio` operations performed by `deploy.sh`.
 
-The workflow's concurrency group cancels an older in-progress production run
-when a newer eligible `main` commit arrives, so only the newest revision can
-finish deployment.
+The deploy job enters its concurrency group only after its required checks have
+passed. A newer eligible `main` revision then cancels an older in-progress
+production deploy, so only the newest validated revision can finish deployment
+without a failing candidate interrupting an already eligible rollout.
 
 For an intentional manual recovery, run from a clean local `main` that contains
 the intended production commit:

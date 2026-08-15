@@ -21,8 +21,9 @@ test("production deploy is push-only, KS-scoped, main-only, and serialized", () 
   assert.match(workflow, /branches:\n\s+- main/);
   assert.match(workflow, /paths:\n\s+- "ks\/\*\*"/);
   assert.doesNotMatch(workflow, /^\s*pull_request:/m);
-  assert.match(workflow, /group: ks-production-deploy/);
-  assert.match(workflow, /cancel-in-progress: true/);
+  const deployJob = workflow.slice(workflow.indexOf("  deploy:"));
+  assert.match(deployJob, /concurrency:\n\s+group: ks-production-deploy/);
+  assert.match(deployJob, /cancel-in-progress: true/);
   assert.match(workflow, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
 });
 
