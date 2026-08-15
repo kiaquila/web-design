@@ -52,10 +52,12 @@ entirely. No Cloudflare account token, global API key, or zone ID is stored as a
 secret. The runner service account needs non-interactive permission for the
 Docker and `/opt/ks-design-portfolio` operations performed by `deploy.sh`.
 
-The deploy job enters its concurrency group only after its required checks have
-passed. It serializes production mutations without interrupting an active
-rollout, then confirms that its SHA is still the tip of `main` immediately
-before deployment. A stale queued revision exits without changing production.
+After its required checks, the deploy job takes an advisory `flock` on the
+dedicated `cz` runner. This serializes the entire production mutation,
+verification, and cache purge without GitHub Actions' one-pending-job limit
+dropping a newer eligible deployment. Each candidate re-checks that its commit
+is still the `main` tip after taking the lock; stale revisions exit without
+changing production.
 
 For an intentional manual recovery, run from a clean local `main` that contains
 the intended production commit:

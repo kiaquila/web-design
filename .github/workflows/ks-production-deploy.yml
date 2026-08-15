@@ -35,9 +35,6 @@ jobs:
     name: production-deploy
     needs: required-checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    concurrency:
-      group: ks-production-deploy
-      cancel-in-progress: false
     runs-on: [self-hosted, linux, x64, ks-production]
     timeout-minutes: 20
     permissions:
@@ -53,35 +50,32 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Confirm revision remains the main tip
+      - name: Deploy, validate, purge, and verify the latest revision
+        shell: bash
         env:
           REVISION: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          main_tip="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          test "$main_tip" = "$REVISION"
-
-      - name: Deploy validated commit to cz
-        env:
           GITHUB_ACTIONS: "true"
           GITHUB_REF: refs/heads/main
           KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}
           KS_DESIGN_DEPLOY_TARGET: local
-        run: |
-          ks/website/production/deploy.sh
-
-      - name: Check public pages
-        run: |
-          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/
-          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/en/
-
-      - name: Purge the production Cloudflare cache
-        shell: bash
-        env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
+
+          # GitHub Actions concurrency keeps only one pending job and can drop a
+          # newer candidate when an older gate completes late. This advisory
+          # lock is FIFO on the dedicated cz runner, so every candidate gets to
+          # re-check main after the current mutation completes.
+          lock_file=/tmp/ks-production-deploy.lock
+          exec 9>"$lock_file"
+          flock --exclusive 9
+
+          main_tip="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$main_tip" = "$REVISION"
+          ks/website/production/deploy.sh
+          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/
+          curl --fail --location --silent --show-error --retry 5 --retry-all-errors --output /dev/null https://ks-design.art/en/
           [[ "$CLOUDFLARE_ZONE_ID" =~ ^[a-f0-9]{32}$ ]]
           test -n "$CLOUDFLARE_API_TOKEN"
           response="$RUNNER_TEMP/cloudflare-purge.json"
@@ -93,13 +87,6 @@ jobs:
             --output "$response" \
             "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache"
           python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["success"] is True' "$response"
-
-      - name: Match the production asset to the deployed commit
-        shell: bash
-        env:
-          REVISION: ${{ github.sha }}
-        run: |
-          set -euo pipefail
           production_asset="$RUNNER_TEMP/production-site.js"
           curl --fail --silent --show-error --retry 5 --retry-all-errors \
             --header 'Cache-Control: no-cache' \
