@@ -63,6 +63,13 @@ fail-closed behavior.
 6. missing markers, missing results, unclassified inline findings, untrusted
    authors, and API errors all fail closed.
 
+For a maintainer-run `workflow_dispatch`, the workflow must be started from
+the trusted default branch with the PR number and its exact current head SHA.
+That read-only gate then publishes a `Codex Review` result directly onto the
+validated SHA. The write-capable publisher is isolated in a dispatch-only job
+and executes only the default-branch checkout; pull-request jobs remain
+read-only and never run proposed helper code with write permissions.
+
 The gate polls briefly to close event-order races between the initial PR run,
 the trusted request marker, and the native Codex result. Gate code is checked
 out from the default branch. The proposed copy is used only when installing the
