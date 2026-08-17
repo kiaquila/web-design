@@ -49,27 +49,38 @@ must allow `main` only. Configure these Environment values:
 | Secret | `CLOUDFLARE_API_TOKEN` | Token scoped to Cache Purge for the single zone |
 | Secret | `KS_DESIGN_SSH_PRIVATE_KEY` | Deploy-only key for the `ksdeploy` account on cz |
 
-Both jobs run on GitHub-hosted infrastructure. Only the deployment job joins
-the private Tailnet through Tailscale workload identity federation, after its
-required checks have passed and the `production` Environment has released its
-credentials. cz accepts the deploy-only `ksdeploy` SSH key over that Tailnet;
-no public SSH exposure or long-lived Tailscale auth key is used. The key can
-run only the root-owned `/usr/local/sbin/ks-production-deploy` wrapper. That
-wrapper validates its staged input, owns the Docker and `/opt` mutation, and
-cannot be used to invoke arbitrary Docker commands.
+Both jobs run on GitHub-hosted infrastructure. Only the registration and
+deployment jobs join the private Tailnet through Tailscale workload identity
+federation, after their required checks have passed and the `production`
+Environment has released the deploy key. cz accepts the deploy-only `ksdeploy`
+SSH key over that Tailnet; no public SSH exposure or long-lived Tailscale auth
+key is used. The key can run only the root-owned
+`/usr/local/sbin/ks-production-deploy` wrapper. The registration job receives
+no Cloudflare token.
 
-The deploy job has a `ks-production-deploy` concurrency group, so GitHub keeps
-only one active deployment and its newest pending candidate. The server wrapper
-also serializes the mutation with `flock` and records the greatest GitHub run
-ID it has accepted. If an older gate completes after a newer eligible
-deployment, its staged revision is skipped before it can overwrite production.
-This protects against GitHub's one-pending-job behavior without treating an
-unrelated repository push as a KS deployment.
+After checks pass, every candidate first registers its GitHub run ID with cz.
+Only a candidate still recorded as newest can enter the
+`ks-production-deploy` concurrency group. The root-owned wrapper serializes
+registration and mutation with `flock`, so a late stale gate cannot evict the
+newest pending job through GitHub's one-pending-job behavior. An unrelated
+repository push does not register a KS candidate.
 
-One-time cz setup installs the reviewed wrapper and creates the restricted
-account and staging directory. This is an administrator operation; normal
-production recovery uses a GitHub Actions re-run rather than an interactive SSH
-session:
+The wrapper treats the staged directory as untrusted. It independently fetches
+`main` with a root-owned, read-only GitHub deploy key, requires that trusted
+tip and `ks` tree to equal the candidate, archives `ks/website` from that
+trusted object, and byte-compares it with the staged payload before Docker can
+read it. The root source mirror is `/var/lib/ks-production/source.git`; its
+key is `/root/.ssh/ks-production-source` and is separate from the GitHub
+Actions SSH key.
+
+One-time cz setup first creates an Ed25519 key at
+`/root/.ssh/ks-production-source`, adds its public half to this private
+repository as a **read-only GitHub deploy key**, and pins GitHub's SSH host key
+in `/root/.ssh/known_hosts`. The private key must remain root-readable only;
+it is never a GitHub Environment secret. Then install the reviewed wrapper and
+create the restricted account and staging directory. This is an administrator
+operation; normal production recovery uses a GitHub Actions re-run rather than
+an interactive SSH session:
 
 ```bash
 sudo ks/website/production/install-deploy-access.sh 'ssh-ed25519 AAAA… github-production'
@@ -92,8 +103,8 @@ reload, or the final health check fails. Every Nginx change is checked with
 
 Automation verifies that Compose reports the container `healthy`, the image
 label `org.opencontainers.image.revision` equals the triggering `github.sha`,
-and both `/` and `/en/` return successfully. It then purges the Cloudflare zone
-cache and compares the SHA-256 of live `/assets/site.js` with
+and both `/` and `/en/` return successfully after the Cloudflare cache purge.
+It then compares the SHA-256 of live `/assets/site.js` with
 `ks/website/src/js/site.js` from that exact commit.
 
 ```bash

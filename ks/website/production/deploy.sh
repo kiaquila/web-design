@@ -9,6 +9,7 @@ remote_dir="${KS_DESIGN_REMOTE_DIR:-/opt/ks-design-portfolio}"
 ssh_config="${KS_DESIGN_SSH_CONFIG:-}"
 deploy_run_id="${KS_DESIGN_DEPLOY_RUN_ID:-0}"
 deploy_status_file="${KS_DESIGN_DEPLOY_STATUS_FILE:-}"
+deploy_mode="${KS_DESIGN_DEPLOY_MODE:-deploy}"
 ssh_options=()
 
 if [[ ! "$target" =~ ^[a-zA-Z0-9._@-]+$ ]]; then
@@ -29,6 +30,10 @@ if [[ -n "$ssh_config" ]]; then
 fi
 if [[ ! "$deploy_run_id" =~ ^[0-9]+$ ]]; then
   echo "KS_DESIGN_DEPLOY_RUN_ID must be a decimal GitHub Actions run ID." >&2
+  exit 1
+fi
+if [[ "$deploy_mode" != "deploy" && "$deploy_mode" != "register" ]]; then
+  echo "KS_DESIGN_DEPLOY_MODE must be deploy or register." >&2
   exit 1
 fi
 
@@ -57,11 +62,44 @@ if [[ "$branch" != "main" ]] &&
   exit 1
 fi
 
+if [[ "$deploy_mode" == "register" ]]; then
+  if [[ "$target" == "local" ]]; then
+    echo "Registering a production candidate requires the cz wrapper." >&2
+    exit 1
+  fi
+  deploy_output="$(ssh "${ssh_options[@]}" "$target" \
+    "sudo /usr/local/sbin/ks-production-deploy register '$revision' '$ks_tree' '$deploy_run_id'")"
+  printf '%s\n' "$deploy_output"
+  if grep --quiet --fixed-strings --line-regexp 'KS_PRODUCTION_DEPLOY_SKIPPED' <<<"$deploy_output"; then
+    if [[ -n "$deploy_status_file" ]]; then
+      printf 'skipped\n' > "$deploy_status_file"
+    fi
+    echo "Skipped stale KS production candidate $revision."
+    exit 0
+  fi
+  grep --quiet --fixed-strings --line-regexp 'KS_PRODUCTION_DEPLOY_REGISTERED' <<<"$deploy_output" || {
+    echo "Production wrapper did not register the deployment candidate." >&2
+    exit 1
+  }
+  if [[ -n "$deploy_status_file" ]]; then
+    printf 'registered\n' > "$deploy_status_file"
+  fi
+  echo "Registered ks-design.art source revision $revision on $target."
+  exit 0
+fi
+
 # Build the payload from the validated commit, never from the working tree.
 # This excludes untracked and ignored files (including local credentials) and
 # guarantees that the deployed bytes match the image revision label.
 payload_dir="$(mktemp -d "${TMPDIR:-/tmp}/ks-design-deploy.XXXXXX")"
-trap 'rm -rf -- "$payload_dir"' EXIT
+remote_stage=""
+cleanup() {
+  rm -rf -- "$payload_dir"
+  if [[ -n "$remote_stage" && "$target" != "local" ]]; then
+    ssh "${ssh_options[@]}" "$target" "rm -rf -- '$remote_stage'" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
 git -C "$repo_dir" archive --format=tar "$revision:ks/website" |
   tar -xf - -C "$payload_dir"
 
@@ -75,9 +113,10 @@ else
   ssh "${ssh_options[@]}" "$target" "umask 077; mkdir '$remote_stage'"
   rsync --archive "$payload_dir/" "$target:$remote_stage/"
   deploy_output="$(ssh "${ssh_options[@]}" "$target" \
-    "sudo /usr/local/sbin/ks-production-deploy '$revision' '$ks_tree' '$deploy_run_id' '$remote_stage'")"
+    "sudo /usr/local/sbin/ks-production-deploy deploy '$revision' '$ks_tree' '$deploy_run_id' '$remote_stage'")"
   printf '%s\n' "$deploy_output"
   if grep --quiet --fixed-strings --line-regexp 'KS_PRODUCTION_DEPLOY_SKIPPED' <<<"$deploy_output"; then
+    remote_stage=""
     if [[ -n "$deploy_status_file" ]]; then
       printf 'skipped\n' > "$deploy_status_file"
     fi
@@ -88,6 +127,7 @@ else
     echo "Production wrapper did not confirm deployment." >&2
     exit 1
   }
+  remote_stage=""
   if [[ -n "$deploy_status_file" ]]; then
     printf 'deployed\n' > "$deploy_status_file"
   fi

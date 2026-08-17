@@ -3,13 +3,14 @@
 # server-side entrypoint allowed to mutate the KS production Compose project.
 set -euo pipefail
 
-revision="${1:-}"
-ks_tree="${2:-}"
-run_id="${3:-}"
-staging_dir="${4:-}"
+command="${1:-}"
 project_dir="/opt/ks-design-portfolio"
 state_file="/var/lib/ks-production/latest-candidate"
 lock_file="/var/lock/ks-production-deploy.lock"
+source_git_dir="/var/lib/ks-production/source.git"
+source_remote="git@github.com:kiaquila/web-design.git"
+source_key="/root/.ssh/ks-production-source"
+source_known_hosts="/root/.ssh/known_hosts"
 
 fail() {
   echo "$*" >&2
@@ -17,13 +18,34 @@ fail() {
 }
 
 [[ "${EUID}" -eq 0 ]] || fail "This wrapper must run as root."
+case "$command" in
+  register)
+    [[ "$#" -eq 4 ]] || fail "Usage: register <revision> <ks-tree> <run-id>."
+    revision="$2"
+    ks_tree="$3"
+    run_id="$4"
+    staging_dir=""
+    ;;
+  deploy)
+    [[ "$#" -eq 5 ]] || fail "Usage: deploy <revision> <ks-tree> <run-id> <staging-dir>."
+    revision="$2"
+    ks_tree="$3"
+    run_id="$4"
+    staging_dir="$5"
+    ;;
+  *)
+    fail "Unknown deployment command."
+    ;;
+esac
 [[ "$revision" =~ ^[a-f0-9]{40}$ ]] || fail "Invalid source revision."
 [[ "$ks_tree" =~ ^[a-f0-9]{40}$ ]] || fail "Invalid ks tree hash."
 [[ "$run_id" =~ ^[0-9]+$ ]] || fail "Invalid GitHub Actions run ID."
-[[ "$staging_dir" =~ ^/var/lib/ks-production/staging/ks-"$revision"-[a-zA-Z0-9._-]+$ ]] ||
-  fail "Invalid staging directory."
-[[ -d "$staging_dir" && ! -L "$staging_dir" ]] || fail "Staging directory is missing or unsafe."
-[[ "$(stat -c '%U' "$staging_dir")" == "ksdeploy" ]] || fail "Staging directory owner must be ksdeploy."
+if [[ "$command" == "deploy" ]]; then
+  [[ "$staging_dir" =~ ^/var/lib/ks-production/staging/ks-"$revision"-[a-zA-Z0-9._-]+$ ]] ||
+    fail "Invalid staging directory."
+  [[ -d "$staging_dir" && ! -L "$staging_dir" ]] || fail "Staging directory is missing or unsafe."
+  [[ "$(stat -c '%U' "$staging_dir")" == "ksdeploy" ]] || fail "Staging directory owner must be ksdeploy."
+fi
 
 install -d -o root -g root -m 0700 "$(dirname "$state_file")"
 exec 9>"$lock_file"
@@ -37,24 +59,62 @@ if [[ -s "$state_file" ]]; then
     fail "Invalid deployment state file."
 fi
 
-if (( run_id < latest_run )); then
+if [[ "$command" == "register" ]]; then
+  if (( run_id < latest_run )); then
+    echo "KS_PRODUCTION_DEPLOY_SKIPPED"
+    exit 0
+  fi
+  if (( run_id == latest_run )) && [[ -n "$latest_tree" && "$ks_tree" != "$latest_tree" ]]; then
+    fail "Run ID is already associated with a different ks tree."
+  fi
+  if (( run_id > latest_run )); then
+    state_tmp="${state_file}.tmp.$$"
+    umask 077
+    printf '%s %s\n' "$run_id" "$ks_tree" > "$state_tmp"
+    chown root:root "$state_tmp"
+    mv -f "$state_tmp" "$state_file"
+  fi
+  echo "KS_PRODUCTION_DEPLOY_REGISTERED"
+  exit 0
+fi
+
+if (( run_id != latest_run )); then
   echo "KS_PRODUCTION_DEPLOY_SKIPPED"
   exit 0
 fi
-if (( run_id == latest_run )) && [[ -n "$latest_tree" && "$ks_tree" != "$latest_tree" ]]; then
-  fail "Run ID is already associated with a different ks tree."
-fi
-if (( run_id > latest_run )); then
-  state_tmp="${state_file}.tmp.$$"
-  umask 077
-  printf '%s %s\n' "$run_id" "$ks_tree" > "$state_tmp"
-  chown root:root "$state_tmp"
-  mv -f "$state_tmp" "$state_file"
+[[ "$ks_tree" == "$latest_tree" ]] || fail "Registered deployment tree mismatch."
+
+# The deploy SSH credential may only stage bytes; it cannot choose what Docker
+# executes. Fetch the current main tip through a separate root-owned read-only
+# GitHub key, require the requested revision and tree to match, and compare the
+# staged payload with a fresh archive before copying it into /opt.
+[[ -d "$source_git_dir" ]] || fail "Trusted source mirror is missing."
+[[ -f "$source_key" && -f "$source_known_hosts" ]] ||
+  fail "Trusted source GitHub credentials are missing."
+[[ "$(git --git-dir="$source_git_dir" config --get remote.origin.url)" == "$source_remote" ]] ||
+  fail "Trusted source mirror remote is invalid."
+GIT_SSH_COMMAND="ssh -i $source_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$source_known_hosts" \
+  git --git-dir="$source_git_dir" fetch --force --no-tags origin \
+  '+refs/heads/main:refs/remotes/origin/main'
+[[ "$(git --git-dir="$source_git_dir" rev-parse refs/remotes/origin/main)" == "$revision" ]] ||
+  fail "Requested revision is not the current trusted main tip."
+[[ "$(git --git-dir="$source_git_dir" rev-parse "$revision:ks")" == "$ks_tree" ]] ||
+  fail "Requested ks tree does not match the trusted revision."
+
+trusted_payload="$(mktemp -d /var/lib/ks-production/trusted-payload.XXXXXX)"
+cleanup() {
+  rm -rf -- "$trusted_payload" "$staging_dir"
+}
+trap cleanup EXIT
+git --git-dir="$source_git_dir" archive --format=tar "$revision:ks/website" |
+  tar -xf - -C "$trusted_payload"
+if ! diff --recursive --brief --no-dereference "$trusted_payload" "$staging_dir"; then
+  fail "Staged deployment payload does not match the trusted source revision."
 fi
 
 before="$(docker ps --filter 'name=^/capsule-zero-' --format '{{.ID}} {{.Names}}' | sort)"
 install -d -o root -g root -m 0755 "$project_dir"
-rsync --archive --delete --chown=root:root "$staging_dir/" "$project_dir/"
+rsync --archive --delete --chown=root:root "$trusted_payload/" "$project_dir/"
 cd "$project_dir"
 KS_DESIGN_SOURCE_REVISION="$revision" KS_DESIGN_IMAGE_TAG="$revision" \
   docker compose -f production/docker-compose.yml up --build --detach --remove-orphans --wait --wait-timeout 120
@@ -71,5 +131,4 @@ deployed_revision="$(docker inspect --format '{{index .Config.Labels \"org.openc
   fail "KS production revision mismatch: expected $revision, received $deployed_revision"
 docker compose -f production/docker-compose.yml ps
 
-rm -rf -- "$staging_dir"
 echo "KS_PRODUCTION_DEPLOYED"

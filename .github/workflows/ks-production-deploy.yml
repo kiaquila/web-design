@@ -31,12 +31,88 @@ jobs:
           TARGET_SHA: ${{ github.sha }}
         run: node scripts/wait-for-production-checks.mjs
 
-  deploy:
-    name: production-deploy
+  register-latest:
+    name: production-register-latest
     needs: required-checks
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    # GitHub retains only the newest pending candidate. The root-owned server
-    # wrapper also rejects an older run ID that reaches it after a newer one.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      current: ${{ steps.register.outputs.current }}
+    environment:
+      name: production
+      url: https://ks-design.art
+    steps:
+      - name: Checkout validated production revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Connect to the deployment Tailnet
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4
+        with:
+          oauth-client-id: ${{ vars.TAILSCALE_OAUTH_CLIENT_ID }}
+          audience: ${{ vars.TAILSCALE_AUDIENCE }}
+          tags: tag:ci
+          ping: ${{ vars.KS_DESIGN_SSH_HOST }}
+
+      - name: Register the newest eligible KS candidate
+        id: register
+        shell: bash
+        env:
+          REVISION: ${{ github.sha }}
+          GITHUB_ACTIONS: "true"
+          GITHUB_REF: refs/heads/main
+          KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}
+          KS_DESIGN_DEPLOY_RUN_ID: ${{ github.run_id }}
+          KS_DESIGN_DEPLOY_TARGET: ks-production
+          KS_DESIGN_DEPLOY_MODE: register
+          KS_DESIGN_SSH_CONFIG: ${{ runner.temp }}/ks-production-ssh-config
+          KS_DESIGN_DEPLOY_STATUS_FILE: ${{ runner.temp }}/ks-production-deploy-status
+          KS_DESIGN_SSH_PRIVATE_KEY: ${{ secrets.KS_DESIGN_SSH_PRIVATE_KEY }}
+          KS_DESIGN_SSH_HOST: ${{ vars.KS_DESIGN_SSH_HOST }}
+          KS_DESIGN_SSH_KNOWN_HOSTS: ${{ vars.KS_DESIGN_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+
+          umask 077
+          key_file="$RUNNER_TEMP/ks-production-deploy-key"
+          known_hosts_file="$RUNNER_TEMP/ks-production-known-hosts"
+          printf '%s\n' "$KS_DESIGN_SSH_PRIVATE_KEY" > "$key_file"
+          printf '%s\n' "$KS_DESIGN_SSH_KNOWN_HOSTS" > "$known_hosts_file"
+          cat > "$KS_DESIGN_SSH_CONFIG" <<EOF
+          Host ks-production
+            HostName $KS_DESIGN_SSH_HOST
+            User ksdeploy
+            IdentityFile $key_file
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile $known_hosts_file
+          EOF
+
+          ks/website/production/deploy.sh
+          if [[ -f "$KS_DESIGN_DEPLOY_STATUS_FILE" ]] &&
+            [[ "$(<"$KS_DESIGN_DEPLOY_STATUS_FILE")" == "skipped" ]]; then
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [[ "$(<"$KS_DESIGN_DEPLOY_STATUS_FILE")" == "registered" ]]
+          echo "current=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: production-deploy
+    needs:
+      - required-checks
+      - register-latest
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.register-latest.outputs.current == 'true'
+    # Only candidates already registered on cz enter this group. That prevents a
+    # late stale gate from replacing the newest pending GitHub job.
     concurrency:
       group: ks-production-deploy
       cancel-in-progress: false
@@ -50,7 +126,7 @@ jobs:
       name: production
       url: https://ks-design.art
     steps:
-      - name: Checkout validated production revision
+      - name: Checkout registered production revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           ref: ${{ github.sha }}

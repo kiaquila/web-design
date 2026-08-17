@@ -27,10 +27,16 @@ test("production deploy is push-only, KS-scoped, main-only, and serialized", () 
   assert.match(workflow, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
   assert.match(deployJob, /KS_DESIGN_DEPLOY_RUN_ID: \$\{\{ github\.run_id \}\}/);
   assert.match(deployJob, /KS_DESIGN_DEPLOY_STATUS_FILE/);
+  assert.match(workflow, /register-latest:/);
+  assert.match(workflow, /KS_DESIGN_DEPLOY_MODE: register/);
+  assert.match(workflow, /needs\.register-latest\.outputs\.current == 'true'/);
 });
 
 test("production credentials are isolated to the production environment", () => {
-  const gateJob = workflow.slice(workflow.indexOf("  required-checks:"), workflow.indexOf("  deploy:"));
+  const gateJob = workflow.slice(
+    workflow.indexOf("  required-checks:"),
+    workflow.indexOf("  register-latest:")
+  );
   const deployJob = workflow.slice(workflow.indexOf("  deploy:"));
   assert.doesNotMatch(gateJob, /secrets\./);
   assert.match(deployJob, /environment:\n\s+name: production/);
@@ -44,6 +50,13 @@ test("production credentials are isolated to the production environment", () => 
   assert.match(deployJob, /tailscale\/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8/);
   assert.match(deployJob, /oauth-client-id: \$\{\{ vars\.TAILSCALE_OAUTH_CLIENT_ID \}\}/);
   assert.match(deployJob, /KS_DESIGN_DEPLOY_TARGET: ks-production/);
+  const registrationJob = workflow.slice(
+    workflow.indexOf("  register-latest:"),
+    workflow.indexOf("  deploy:")
+  );
+  assert.match(registrationJob, /environment:\n\s+name: production/);
+  assert.match(registrationJob, /KS_DESIGN_SSH_PRIVATE_KEY/);
+  assert.doesNotMatch(registrationJob, /CLOUDFLARE_API_TOKEN/);
 });
 
 test("production deploy verifies the revision, pages, cache purge, and asset hash", () => {

@@ -19,13 +19,21 @@ test("the server wrapper accepts only validated staged candidates", () => {
   assert.match(wrapper, /\^\[0-9\]\+\$/);
   assert.match(wrapper, /staging directory owner must be ksdeploy/i);
   assert.match(wrapper, /flock --exclusive 9/);
+  assert.match(wrapper, /KS_PRODUCTION_DEPLOY_REGISTERED/);
   assert.match(wrapper, /KS_PRODUCTION_DEPLOY_SKIPPED/);
   assert.match(wrapper, /KS_PRODUCTION_DEPLOYED/);
+  assert.match(wrapper, /Requested revision is not the current trusted main tip/);
+  assert.match(wrapper, /Staged deployment payload does not match the trusted source revision/);
+  assert.match(wrapper, /diff --recursive --brief --no-dereference/);
+  assert.match(wrapper, /trap cleanup EXIT/);
+  assert.match(wrapper, /rsync --archive --delete --chown=root:root "\$trusted_payload\//);
 });
 
 test("the deploy account is limited to the root-owned wrapper", () => {
   assert.match(installer, /useradd --create-home --shell \/bin\/bash/);
   assert.match(installer, /install -o root -g root -m 0755/);
   assert.match(installer, /NOPASSWD: \$wrapper_target \*/);
+  assert.match(installer, /ks-production-source/);
+  assert.match(installer, /git init --bare/);
   assert.doesNotMatch(installer, /docker \*/i);
 });
