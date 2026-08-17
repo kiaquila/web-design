@@ -51,10 +51,16 @@ reload, or the final health check fails. Every Nginx change is checked with
 
 ## Verification
 
+`/` serves English. `/ru/` and `/es/` serve the other two locales, and `/en/`
+is the retired English prefix, which answers `301` to the root so links
+published before the move keep working.
+
 ```bash
 dig +short A ks-design.art
 dig +short AAAA ks-design.art
 curl -I https://ks-design.art/
+curl -I https://ks-design.art/ru/
+curl -I https://ks-design.art/es/
 curl -I https://ks-design.art/en/
 curl -I https://www.ks-design.art/
 ssh cz 'sudo docker compose -f /opt/ks-design-portfolio/production/docker-compose.yml ps'

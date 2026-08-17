@@ -4,16 +4,20 @@
        icon reads on both. Favicons cannot load webfonts, so the stack leans
        on the system's closest grotesk. -->
   <style>
+    /* Sized to nearly fill the 64px square: at a tab's 16px the previous 40px
+       type left a third of the icon as margin and read as a smudge. The
+       baseline sits at 51 so the cap height, which is all "ks" has, is centred
+       rather than hanging low in the box. */
     text {
       font-family: ui-sans-serif, -apple-system, "Helvetica Neue", Arial, sans-serif;
-      font-size: 40px;
+      font-size: 56px;
       font-weight: 800;
-      letter-spacing: -1.5px;
+      letter-spacing: -2.5px;
       fill: #0b0b0c;
     }
     @media (prefers-color-scheme: dark) {
       text { fill: #ffffff; }
     }
   </style>
-  <text x="32" y="46" text-anchor="middle">ks</text>
+  <text x="32" y="51" text-anchor="middle">ks</text>
 </svg>

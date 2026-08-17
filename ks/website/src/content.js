@@ -1,4 +1,4 @@
-/* Single source of truth for every string on the page, in both languages.
+/* Single source of truth for every string on the page, in every language.
    The build renders one static page per language from this file, so a locale
    can never drift out of sync with the markup: a missing key is a build error,
    not a half-translated page in production.
@@ -28,18 +28,174 @@ export const links = {
   }
 };
 
+/* English is the default: it is what `https://ks-design.art/` serves and what
+   `hreflang="x-default"` points at. Russian and Spanish are the additional
+   locales, each on its own prefix. The declaration order is also the order the
+   language switch renders in. */
 export const languages = {
-  ru: { locale: "ru-RU", ogLocale: "ru_RU", label: "RU", path: "/" },
-  en: { locale: "en", ogLocale: "en_US", label: "EN", path: "/en/" }
+  en: { locale: "en", ogLocale: "en_US", label: "EN", path: "/" },
+  ru: { locale: "ru-RU", ogLocale: "ru_RU", label: "RU", path: "/ru/" },
+  es: { locale: "es-AR", ogLocale: "es_AR", label: "ES", path: "/es/" }
 };
 
-/** One social card per language — sharing the English page with a card that
- *  carries the Russian headline is a mixed-language preview. Rendered by
+/** Locales whose copy is a translation the owner has not signed off on yet.
+ *  The build names them on every run, the way unfinished sections are named,
+ *  so a draft translation cannot quietly become the published wording. */
+export const localesAwaitingReview = ["es"];
+
+/** One social card per language — sharing a page with a card that carries
+ *  another language's headline is a mixed-language preview. Rendered by
  *  `scripts/make-og.mjs`, copied by the build, referenced by the renderer;
  *  named here so those three cannot disagree. */
-export const ogImages = { ru: "og.png", en: "og-en.png" };
+export const ogImages = { en: "og-en.png", ru: "og-ru.png", es: "og-es.png" };
 
 export const content = {
+  en: {
+    meta: {
+      title: "ks-design — Kristina Aquila, web designer",
+      description:
+        "Landing pages and websites designed to pull people in and sell. I work with AI, so it lands faster and costs less. Based in Buenos Aires, working remotely.",
+      ogTitle: "I'll design something that pulls people in",
+      ogDescription:
+        "Web design for landing pages and websites. A concept, two rounds of edits, a finished site."
+    },
+    nav: {
+      label: "Page sections",
+      work: "Work",
+      process: "Process",
+      services: "Services",
+      contact: "Contact"
+    },
+    langSwitch: { label: "Language", en: "EN", ru: "RU", es: "ES" },
+    skipLink: "Skip to content",
+    hero: {
+      title: "I'll design something that pulls people in",
+      subtitle: "The kind of work people remember — and come back to",
+      primary: "Start a project",
+      secondary: "See the work",
+      portraitAlt: "Kristina Aquila, portrait",
+      /* Lives on the frosted panel that rises over the portrait on hover. A
+         stat with no label is a single claim, not a number and a caption. */
+      portraitStats: [
+        { value: "%YEARS%", label: "years of web development experience" },
+        { value: "AI Expert", label: null }
+      ]
+    },
+    work: {
+      id: "work",
+      title: "Selected projects",
+      previous: "Previous projects",
+      next: "Next projects",
+      visit: "Open the site",
+      items: [
+        {
+          slug: "chaijana",
+          name: "Chaijaná Noir",
+          kind: "Restaurant · site and menu",
+          year: "2026",
+          summary:
+            "A dark, warm treatment for a Buenos Aires chaikhana: website, a menu in three languages, and dish photo retouching.",
+          href: links.work.chaijana,
+          image: "chaijana",
+          alt: "Chaijaná Noir website home page"
+        },
+        {
+          slug: "alex-neon",
+          name: "Alex Neon",
+          kind: "Landing page",
+          year: "2026",
+          summary:
+            "A redesign of the «ИИ по делу» landing: dark theme, a single neon accent, and a live neural canvas.",
+          href: links.work.alexNeon,
+          image: "alex-neon",
+          alt: "Alex Neon landing page, first screen"
+        }
+      ]
+    },
+    process: {
+      id: "process",
+      title: "How the work goes",
+      steps: [
+        {
+          n: "01",
+          title: "We find the meaning",
+          body:
+            "We carefully gather and sharpen your meaning together — everything you consider important and want the landing page or site to say."
+        },
+        { n: "02", title: "A design concept", body: "I design a concept for you." },
+        { n: "03", title: "Two rounds of edits", body: "We go through two rounds of your edits." },
+        { n: "04", title: "The finished site", body: "You get the finished site." }
+      ]
+    },
+    services: {
+      id: "services",
+      title: "Services",
+      currencyNote: "Prices are in US dollars.",
+      items: [
+        { name: "Landing page", price: "USD 500", note: "A single-page site, done end to end." },
+        {
+          name: "Website, 5+ pages",
+          price: "USD 1,500",
+          note: "A multi-page site with one consistent structure."
+        },
+        {
+          name: "Illustrations",
+          price: "from USD 25",
+          note: "Illustration work, priced per image."
+        }
+      ]
+    },
+    kindWords: {
+      id: "kind-words",
+      title: "Kind Words",
+      todo: true,
+      todoNote: "Placeholder: replace with real client quotes before publishing.",
+      items: [
+        {
+          quote: "TODO: real client quote.",
+          name: "Alex Oxitocin",
+          role: "Alex Neon · «ИИ по делу» landing",
+          avatar: "alex-oxitocin",
+          avatarAlt: "Alex Oxitocin's avatar",
+          initials: null
+        },
+        {
+          quote: "TODO: real client quote.",
+          name: "TODO: name",
+          role: "TODO: role, company",
+          avatar: null,
+          initials: "—"
+        },
+        {
+          quote: "TODO: real client quote.",
+          name: "TODO: name",
+          role: "TODO: role, company",
+          avatar: null,
+          initials: "—"
+        }
+      ]
+    },
+    contact: {
+      id: "contact",
+      band: {
+        title: "Get in touch",
+        note: "Write me — I'll make you a design that sells."
+      },
+      location: "Buenos Aires, Argentina. Working worldwide.",
+      social: {
+        linkedin: "LinkedIn",
+        telegram: "Telegram",
+        instagram: "Instagram"
+      }
+    },
+    footer: { copyright: "© Kristina Aquila" },
+    notFound: {
+      title: "Page not found",
+      body: "There is no such page here. Head back to the home page.",
+      cta: "Home"
+    }
+  },
+
   ru: {
     meta: {
       title: "ks-design — Кристина Аквила, веб-дизайнер",
@@ -47,39 +203,31 @@ export const content = {
         "Дизайн лендингов и сайтов, который вовлекает и продаёт. Работаю с нейросетями, поэтому получается быстрее и дешевле. Буэнос-Айрес, работаю удалённо.",
       ogTitle: "Сделаю вам дизайн, который вовлекает",
       ogDescription:
-        "Веб-дизайн лендингов, сайтов и меню. Концепт, две серии правок, готовый сайт."
+        "Веб-дизайн лендингов и сайтов. Концепт, две серии правок, готовый сайт."
     },
     nav: {
       label: "Разделы страницы",
       work: "Работы",
       process: "Процесс",
-      services: "Услуги",
-      contact: "Контакты",
-      cta: "Обсудить проект"
+      services: "Сервисы",
+      contact: "Контакты"
     },
-    langSwitch: { label: "Язык", ru: "RU", en: "EN" },
+    langSwitch: { label: "Язык", en: "EN", ru: "RU", es: "ES" },
     skipLink: "К содержанию",
     hero: {
-      eyebrow: "Веб-дизайнер · Буэнос-Айрес",
       title: "Сделаю вам дизайн, который вовлекает",
-      subtitle: "И вас точно запомнят и захотят вернуться.",
+      subtitle: "И вас точно запомнят и захотят вернуться",
       primary: "Обсудить проект",
       secondary: "Смотреть работы",
       portraitAlt: "Кристина Аквила, портрет",
-      /* Lives on the frosted panel that rises over the portrait on hover. */
       portraitStats: [
-        { value: "%YEARS%", label: "лет в вебе" },
-        { value: "2", label: "серии правок включены" },
-        { value: "4", label: "шага до готового сайта" },
-        { value: "500 USD", label: "лендинг под ключ" }
+        { value: "%YEARS%", label: "лет опыта в веб-разработке" },
+        { value: "AI Expert", label: null }
       ]
     },
     work: {
       id: "work",
-      eyebrow: "Работы",
       title: "Избранные проекты",
-      intro:
-        "Редизайны действующих бизнесов: и концепт, и вёрстка, и запуск — целиком мои.",
       previous: "Предыдущие работы",
       next: "Следующие работы",
       visit: "Открыть сайт",
@@ -110,9 +258,7 @@ export const content = {
     },
     process: {
       id: "process",
-      eyebrow: "Процесс",
       title: "Как устроен процесс",
-      intro: "Четыре шага, без сюрпризов по дороге.",
       steps: [
         {
           n: "01",
@@ -127,9 +273,7 @@ export const content = {
     },
     services: {
       id: "services",
-      eyebrow: "Услуги",
-      title: "Services",
-      intro: "Фиксированные цены. Что не входит — обсуждаем до старта, а не после.",
+      title: "Сервисы",
       currencyNote: "Цены указаны в долларах США.",
       items: [
         { name: "Лендинг", price: "500 USD", note: "Одностраничный сайт под ключ." },
@@ -139,23 +283,15 @@ export const content = {
           note: "Многостраничный сайт со сквозной структурой."
         },
         {
-          name: "Вёрстка меню",
-          price: "100 USD",
-          note: "За первую страницу, дальше — 20 USD за каждую следующую."
-        },
-        {
-          name: "Обработка фото блюд",
-          price: "50 USD",
-          note: "За 10 блюд."
+          name: "Иллюстрации",
+          price: "от 25 USD",
+          note: "Создание иллюстраций, цена за одно изображение."
         }
-      ],
-      cta: "Обсудить проект"
+      ]
     },
     kindWords: {
       id: "kind-words",
-      eyebrow: "Отзывы",
       title: "Kind Words",
-      intro: "Что говорят те, с кем мы уже поработали.",
       todo: true,
       todoNote:
         "Заглушка: замените на реальные отзывы клиентов до публикации.",
@@ -190,7 +326,7 @@ export const content = {
         title: "Get in touch",
         note: "Пишите — и сделаю вам классный продающий дизайн."
       },
-      location: "Buenos Aires, Argentina",
+      location: "Buenos Aires, Argentina. Working worldwide.",
       social: {
         linkedin: "LinkedIn",
         telegram: "Telegram",
@@ -205,139 +341,129 @@ export const content = {
     }
   },
 
-  en: {
+  es: {
     meta: {
-      title: "ks-design — Kristina Aquila, web designer",
+      title: "ks-design — Kristina Aquila, diseñadora web",
       description:
-        "Landing pages and websites designed to pull people in and sell. I work with AI, so it lands faster and costs less. Based in Buenos Aires, working remotely.",
-      ogTitle: "I'll design something that pulls people in",
+        "Diseño de landings y sitios web que atrapan y venden. Trabajo con IA, así que sale más rápido y más barato. Estoy en Buenos Aires y trabajo en remoto.",
+      ogTitle: "Te hago un diseño que atrapa",
       ogDescription:
-        "Web design for landing pages, websites and menus. A concept, two rounds of edits, a finished site."
+        "Diseño web para landings y sitios. Un concepto, dos rondas de cambios, un sitio terminado."
     },
     nav: {
-      label: "Page sections",
-      work: "Work",
-      process: "Process",
-      services: "Services",
-      contact: "Contact",
-      cta: "Start a project"
+      label: "Secciones de la página",
+      work: "Trabajos",
+      process: "Proceso",
+      services: "Servicios",
+      contact: "Contacto"
     },
-    langSwitch: { label: "Language", ru: "RU", en: "EN" },
-    skipLink: "Skip to content",
+    langSwitch: { label: "Idioma", en: "EN", ru: "RU", es: "ES" },
+    skipLink: "Ir al contenido",
     hero: {
-      eyebrow: "Web designer · Buenos Aires",
-      title: "I'll design something that pulls people in",
-      subtitle: "The kind of work people remember — and come back to.",
-      primary: "Start a project",
-      secondary: "See the work",
-      portraitAlt: "Kristina Aquila, portrait",
+      title: "Te hago un diseño que atrapa",
+      subtitle: "Del tipo que la gente recuerda y al que vuelve",
+      primary: "Hablemos del proyecto",
+      secondary: "Ver los trabajos",
+      portraitAlt: "Kristina Aquila, retrato",
       portraitStats: [
-        { value: "%YEARS%", label: "years in web" },
-        { value: "2", label: "rounds of edits included" },
-        { value: "4", label: "steps to a finished site" },
-        { value: "USD 500", label: "landing page, done" }
+        { value: "%YEARS%", label: "años de experiencia en desarrollo web" },
+        { value: "AI Expert", label: null }
       ]
     },
     work: {
       id: "work",
-      eyebrow: "Work",
-      title: "Selected projects",
-      intro:
-        "Redesigns of working businesses — concept, build and launch, all mine.",
-      previous: "Previous projects",
-      next: "Next projects",
-      visit: "Open the site",
+      title: "Proyectos seleccionados",
+      previous: "Proyectos anteriores",
+      next: "Proyectos siguientes",
+      visit: "Abrir el sitio",
       items: [
         {
           slug: "chaijana",
           name: "Chaijaná Noir",
-          kind: "Restaurant · site and menu",
+          kind: "Restaurante · sitio y menú",
           year: "2026",
           summary:
-            "A dark, warm treatment for a Buenos Aires chaikhana: website, a menu in three languages, and dish photo retouching.",
+            "Una puesta oscura y cálida para una chaijaná de Buenos Aires: sitio web, menú en tres idiomas y retoque de las fotos de los platos.",
           href: links.work.chaijana,
           image: "chaijana",
-          alt: "Chaijaná Noir website home page"
+          alt: "Página principal del sitio de Chaijaná Noir"
         },
         {
           slug: "alex-neon",
           name: "Alex Neon",
-          kind: "Landing page",
+          kind: "Landing",
           year: "2026",
           summary:
-            "A redesign of the «ИИ по делу» landing: dark theme, a single neon accent, and a live neural canvas.",
+            "Rediseño de la landing «ИИ по делу»: tema oscuro, un solo acento neón y un canvas neuronal en vivo.",
           href: links.work.alexNeon,
           image: "alex-neon",
-          alt: "Alex Neon landing page, first screen"
+          alt: "Primera pantalla de la landing de Alex Neon"
         }
       ]
     },
     process: {
       id: "process",
-      eyebrow: "Process",
-      title: "How the work goes",
-      intro: "Four steps, no surprises along the way.",
+      title: "Cómo es el proceso",
       steps: [
         {
           n: "01",
-          title: "We find the meaning",
+          title: "Encontramos el sentido",
           body:
-            "We carefully gather and sharpen your meaning together — everything you consider important and want the landing page or site to say."
+            "Juntamos y afinamos el sentido con vos — todo lo que te parece importante y querés que la landing o el sitio digan."
         },
-        { n: "02", title: "A design concept", body: "I design a concept for you." },
-        { n: "03", title: "Two rounds of edits", body: "We go through two rounds of your edits." },
-        { n: "04", title: "The finished site", body: "You get the finished site." }
+        { n: "02", title: "Un concepto de diseño", body: "Diseño un concepto para vos." },
+        {
+          n: "03",
+          title: "Dos rondas de cambios",
+          body: "Pasamos dos rondas de cambios tuyos."
+        },
+        { n: "04", title: "El sitio terminado", body: "Recibís el sitio terminado." }
       ]
     },
     services: {
       id: "services",
-      eyebrow: "Services",
-      title: "Services",
-      intro: "Fixed prices. Anything outside them we agree before we start, not after.",
-      currencyNote: "Prices are in US dollars.",
+      title: "Servicios",
+      currencyNote: "Los precios están en dólares estadounidenses.",
       items: [
-        { name: "Landing page", price: "USD 500", note: "A single-page site, done end to end." },
+        { name: "Landing", price: "USD 500", note: "Un sitio de una página, de punta a punta." },
         {
-          name: "Website, 5+ pages",
-          price: "USD 1,500",
-          note: "A multi-page site with one consistent structure."
+          name: "Sitio de 5+ páginas",
+          price: "USD 1.500",
+          note: "Un sitio de varias páginas con una estructura consistente."
         },
         {
-          name: "Menu build",
-          price: "USD 100",
-          note: "For the first page, then USD 20 for each additional one."
-        },
-        { name: "Dish photo retouching", price: "USD 50", note: "Per 10 dishes." }
-      ],
-      cta: "Start a project"
+          name: "Ilustraciones",
+          price: "desde USD 25",
+          note: "Creación de ilustraciones, precio por imagen."
+        }
+      ]
     },
     kindWords: {
       id: "kind-words",
-      eyebrow: "Testimonials",
       title: "Kind Words",
-      intro: "What the people I've worked with say.",
       todo: true,
-      todoNote: "Placeholder: replace with real client quotes before publishing.",
+      todoNote:
+        "Marcador de posición: reemplazar por reseñas reales antes de publicar.",
       items: [
         {
-          quote: "TODO: real client quote.",
+          quote: "TODO: reseña real de un cliente.",
           name: "Alex Oxitocin",
-          role: "Alex Neon · «ИИ по делу» landing",
+          role: "Alex Neon · landing «ИИ по делу»",
           avatar: "alex-oxitocin",
-          avatarAlt: "Alex Oxitocin's avatar",
+          avatarAlt: "Avatar de Alex Oxitocin",
           initials: null
         },
         {
-          quote: "TODO: real client quote.",
-          name: "TODO: name",
-          role: "TODO: role, company",
+          quote: "TODO: reseña real de un cliente.",
+          name: "TODO: nombre",
+          role: "TODO: rol, empresa",
           avatar: null,
           initials: "—"
         },
         {
-          quote: "TODO: real client quote.",
-          name: "TODO: name",
-          role: "TODO: role, company",
+          quote: "TODO: reseña real de un cliente.",
+          name: "TODO: nombre",
+          role: "TODO: rol, empresa",
           avatar: null,
           initials: "—"
         }
@@ -347,9 +473,9 @@ export const content = {
       id: "contact",
       band: {
         title: "Get in touch",
-        note: "Write me — I'll make you a design that sells."
+        note: "Escribime y te hago un diseño que vende."
       },
-      location: "Buenos Aires, Argentina",
+      location: "Buenos Aires, Argentina. Working worldwide.",
       social: {
         linkedin: "LinkedIn",
         telegram: "Telegram",
@@ -358,9 +484,9 @@ export const content = {
     },
     footer: { copyright: "© Kristina Aquila" },
     notFound: {
-      title: "Page not found",
-      body: "There is no such page here. Head back to the home page.",
-      cta: "Home"
+      title: "Página no encontrada",
+      body: "Acá no hay ninguna página así. Volvé al inicio.",
+      cta: "Inicio"
     }
   }
 };

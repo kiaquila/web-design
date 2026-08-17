@@ -67,15 +67,19 @@ function picture({ dir, base, alt, widths, height, sizes, className, lazy = true
       </picture>`;
 }
 
+/** Three languages no longer fit the old "RU / EN" pair, so the switch is a
+ *  single hairline-framed group of equal cells with the current language set
+ *  solid — a printed stamp rather than a row of loose words. The cells are
+ *  ordinary links, so the switch still works with no script at all. */
 function langSwitch(lang, copy) {
-  const entry = (code) => {
-    const isCurrent = code === lang;
+  const cells = Object.keys(languages).map((code) => {
     const label = escapeHtml(copy.langSwitch[code]);
-    return isCurrent
+    return code === lang
       ? `<span class="lang-current" aria-current="true">${label}</span>`
       : `<a href="${languages[code].path}" hreflang="${code}" lang="${code}">${label}</a>`;
-  };
-  return `<nav class="lang-switch" aria-label="${escapeHtml(copy.langSwitch.label)}">${entry("ru")}<span class="lang-divider" aria-hidden="true">/</span>${entry("en")}</nav>`;
+  });
+  const framed = cells.join('<span class="lang-divider" aria-hidden="true"></span>');
+  return `<nav class="lang-switch" aria-label="${escapeHtml(copy.langSwitch.label)}">${framed}</nav>`;
 }
 
 /** `anchorBase` is empty on the landing page, where the sections are on the
@@ -84,11 +88,16 @@ function langSwitch(lang, copy) {
  *  that silently does nothing. */
 function header(lang, copy, anchorBase = "") {
   const home = languages[lang].path;
-  /* Each nav key is also the id of the section it points at. */
+  /* Each nav key is also the id of the section it points at. Contact is marked
+     so the stylesheet can drop it from the desktop row, where the solid button
+     beside the language switch already carries it — and keep it in the
+     collapsed phone menu, where there is no button. The two rules are exact
+     mirrors of each other, so Contact is reachable at every width and never
+     appears twice. */
   const navItems = ["work", "process", "services", "contact"]
     .map(
       (key) =>
-        `<li><a href="${anchorBase}#${key}">${escapeHtml(copy.nav[key])}</a></li>`
+        `<li${key === "contact" ? ' class="nav-contact"' : ""}><a href="${anchorBase}#${key}">${escapeHtml(copy.nav[key])}</a></li>`
     )
     .join("");
 
@@ -100,7 +109,7 @@ function header(lang, copy, anchorBase = "") {
       </nav>
       <div class="header-actions">
         ${langSwitch(lang, copy)}
-        <a class="btn btn-solid btn-compact header-cta" href="${anchorBase}#contact">${escapeHtml(copy.nav.cta)}</a>
+        <a class="btn btn-solid btn-compact header-cta" href="${anchorBase}#contact">${escapeHtml(copy.nav.contact)}</a>
       </div>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
         <span class="visually-hidden">${escapeHtml(copy.nav.label)}</span>
@@ -134,18 +143,20 @@ function hero(copy, years) {
 
   /* The stats panel is a sibling of the portrait, not a child: the portrait is
      `role="img"`, which makes its descendants presentational — numbers inside
-     it would vanish for screen readers. */
+     it would vanish for screen readers. A stat with no label is one standing
+     claim rather than a figure with a caption, so no empty span is emitted. */
   const stats = copy.hero.portraitStats
-    .map(
-      (stat) =>
-        `<div class="stat"><span class="stat-value">${fill(stat.value, years)}</span><span class="stat-label">${fill(stat.label, years)}</span></div>`
-    )
+    .map((stat) => {
+      const label = stat.label
+        ? `<span class="stat-label">${fill(stat.label, years)}</span>`
+        : "";
+      return `<div class="stat"><span class="stat-value">${fill(stat.value, years)}</span>${label}</div>`;
+    })
     .join("");
 
   return `<section class="slide hero" aria-labelledby="hero-title">
     <div class="container hero-inner">
       <div class="hero-copy">
-        <p class="eyebrow">${escapeHtml(copy.hero.eyebrow)}</p>
         <h1 id="hero-title">${escapeHtml(copy.hero.title)}</h1>
         <p class="hero-subtitle">${escapeHtml(copy.hero.subtitle)}</p>
         <div class="hero-actions">
@@ -194,11 +205,7 @@ function work(copy) {
   return `<section class="slide section work" id="work" aria-labelledby="work-title">
     <div class="container">
       <div class="section-head">
-        <div>
-          <p class="eyebrow">${escapeHtml(copy.work.eyebrow)}</p>
-          <h2 id="work-title">${escapeHtml(copy.work.title)}</h2>
-          <p class="section-intro">${escapeHtml(copy.work.intro)}</p>
-        </div>
+        <h2 id="work-title">${escapeHtml(copy.work.title)}</h2>
         <div class="carousel-controls" data-carousel-controls hidden>
           <button class="carousel-btn" type="button" data-carousel-prev>
             <span class="visually-hidden">${escapeHtml(copy.work.previous)}</span>${icons.chevronLeft}
@@ -229,11 +236,7 @@ function process(copy) {
   return `<section class="slide section process" id="process" aria-labelledby="process-title">
     <div class="container">
       <div class="section-head">
-        <div>
-          <p class="eyebrow">${escapeHtml(copy.process.eyebrow)}</p>
-          <h2 id="process-title">${escapeHtml(copy.process.title)}</h2>
-          <p class="section-intro">${escapeHtml(copy.process.intro)}</p>
-        </div>
+        <h2 id="process-title">${escapeHtml(copy.process.title)}</h2>
       </div>
       <ol class="steps" role="list">
         ${steps}
@@ -260,12 +263,7 @@ function services(copy) {
     <div class="services-blobs" aria-hidden="true"></div>
     <div class="container">
       <div class="section-head">
-        <div>
-          <p class="eyebrow">${escapeHtml(copy.services.eyebrow)}</p>
-          <h2 id="services-title">${escapeHtml(copy.services.title)}</h2>
-          <p class="section-intro">${escapeHtml(copy.services.intro)}</p>
-        </div>
-        <a class="btn btn-solid section-cta" href="#contact">${escapeHtml(copy.services.cta)}</a>
+        <h2 id="services-title">${escapeHtml(copy.services.title)}</h2>
       </div>
       <ul class="service-grid" role="list">
         ${cards}
@@ -302,11 +300,7 @@ function kindWords(copy) {
   return `<section class="slide section kind-words" id="kind-words" aria-labelledby="kind-words-title">
     <div class="container">
       <div class="section-head">
-        <div>
-          <p class="eyebrow">${escapeHtml(copy.kindWords.eyebrow)}</p>
-          <h2 id="kind-words-title">${escapeHtml(copy.kindWords.title)}</h2>
-          <p class="section-intro">${escapeHtml(copy.kindWords.intro)}</p>
-        </div>
+        <h2 id="kind-words-title">${escapeHtml(copy.kindWords.title)}</h2>
       </div>
       <ul class="quote-grid" role="list">
         ${cards}

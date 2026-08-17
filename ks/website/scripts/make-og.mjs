@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Renders assets/og.png — the 1200×630 social card.
+/* Renders one 1200×630 social card per language into assets/.
 
    The card is laid out as an ordinary HTML page using the site's own fonts,
    portrait and headline copy, then photographed by headless Chrome — which is
@@ -10,7 +10,7 @@
    fluid scale does not apply. Change a palette token and change it here too.
 
    This needs Chrome on the machine, so it is deliberately NOT part of
-   `npm run build` — og.png is committed and only regenerated when the hero
+   `npm run build` — the cards are committed and only regenerated when the hero
    copy, the portrait or the palette changes.
 
    Run from the project: node scripts/make-og.mjs */
@@ -76,10 +76,8 @@ async function cardHtml(lang) {
   body { width: 1200px; height: 630px; display: grid; grid-template-columns: 1fr 430px;
          background: #fff; color: #0b0b0c; font-family: "Manrope", sans-serif; overflow: hidden; }
   .copy { padding: 72px 56px 72px 72px; display: flex; flex-direction: column; justify-content: space-between; }
-  .eyebrow { font-size: 18px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
-             color: #0b0b0c; padding-top: 14px; border-top: 3px solid #0b0b0c; align-self: flex-start; }
   h1 { font-size: 52px; font-weight: 800; line-height: 1.1; letter-spacing: 0.05em;
-       text-transform: uppercase; max-width: 16ch; margin-top: 24px; }
+       text-transform: uppercase; max-width: 16ch; }
   .sub { margin-top: 20px; font-size: 23px; line-height: 1.35; color: #55565a; max-width: 30ch; }
   .name { font-size: 26px; font-weight: 800; letter-spacing: -0.015em; }
   .shot { position: relative; }
@@ -87,19 +85,18 @@ async function cardHtml(lang) {
 </style></head>
 <body>
   <div class="copy">
-    <div class="eyebrow">${copy.hero.eyebrow}</div>
+    <div class="name">ks-design</div>
     <div>
       <h1>${copy.hero.title}</h1>
       <p class="sub">${copy.hero.subtitle}</p>
     </div>
-    <div class="name">ks-design</div>
   </div>
   <div class="shot"><img src="${portrait}" alt=""></div>
 </body></html>`;
 }
 
-/** One card per language: the English page would otherwise be shared with a
- *  card carrying the Russian headline. */
+/** One card per language: a page would otherwise be shared with a card
+ *  carrying another language's headline. */
 async function main() {
   const chrome = await findChrome();
   const dir = await mkdtemp(join(tmpdir(), "ks-og-"));

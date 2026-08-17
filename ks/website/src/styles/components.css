@@ -56,9 +56,21 @@
 /* Lives here rather than with the header in layout.css: the layers are
    concatenated in order, so `.btn { display: inline-flex }` in this file would
    win over an equally specific `display: none` written earlier — and the
-   header would overflow the viewport on a phone. */
+   header would overflow the viewport on a phone.
+
+   The Contact pair is kept in one place because the two rules only make sense
+   together: above 900px the solid button carries Contact and the nav row drops
+   its own copy; below it the button is gone and the collapsed menu carries it.
+   Exactly one of them is visible at any width, so Contact is always reachable
+   and never duplicated. */
 @media (max-width: 899px) {
   .header-cta {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .nav-contact {
     display: none;
   }
 }

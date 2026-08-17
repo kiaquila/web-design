@@ -100,9 +100,12 @@
   box-shadow: var(--shadow-lift);
 }
 
+/* The shot takes as much height as the section can spare: dropping the label
+   and the lead paragraph above it freed most of a heading block, and the
+   previews are the point of this slide. */
 .work-shot img {
   width: 100%;
-  height: clamp(180px, 32svh, 430px);
+  height: clamp(220px, 44svh, 560px);
   object-fit: cover;
   object-position: 50% 0;
   transition: transform var(--dur-slow) var(--ease);
@@ -126,7 +129,7 @@
     grid-template-rows: auto minmax(0, 1fr);
     align-content: center;
     max-height: calc(100svh - var(--header-h));
-    padding-block: var(--space-lg);
+    padding-block: var(--space-md);
     min-height: 0;
   }
 
@@ -141,13 +144,27 @@
     min-height: 0;
   }
 
+  /* The `<picture>` between the frame and the image needs the height too: a
+     percentage height against an auto-height parent computes as `auto`, so the
+     image fell back to its intrinsic ratio and was cropped by the frame's
+     `overflow: hidden` instead of filling it. */
+  .work-shot picture {
+    height: 100%;
+  }
+
   .work-shot img {
     height: 100%;
     min-height: 120px;
   }
 
+  /* The meta block is deliberately the tighter of the two now: every pixel it
+     gives back goes to the `1fr` row above it, which is the screenshot. */
   .work-meta {
     padding-top: var(--space-sm);
+  }
+
+  .work > .container > .section-head {
+    margin-bottom: var(--space-md);
   }
 
   /* Two lines on the deck: the summary is a teaser next to the shot, and the
@@ -304,15 +321,18 @@
 
 .service-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-md);
 }
 
-/* The package card: square, rounded, frosted. */
+/* The package card: rounded and frosted, its height set by its width. Three
+   packages make each column half again as wide as four did, and a square at
+   that width opened a hand's width of empty glass between the description and
+   the price — so the ratio is landscape now. */
 .service-card {
   display: flex;
   flex-direction: column;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 4 / 3;
   padding: var(--space-md);
   border-radius: var(--radius-lg);
   background: var(--glass);
@@ -345,7 +365,7 @@
   line-height: 1.5;
 }
 
-/* Pinned to the bottom edge: the four prices then line up across the row
+/* Pinned to the bottom edge: the three prices then line up across the row
    whatever length each description happens to be. */
 .service-price {
   margin-top: auto;
@@ -361,10 +381,6 @@
   margin-top: var(--space-md);
   color: var(--ink-mute);
   font-size: var(--step-small);
-}
-
-.section-cta {
-  flex-shrink: 0;
 }
 
 @media (max-width: 1023px) {
@@ -471,20 +487,19 @@
 
 /* --- contact ----------------------------------------------------------------- */
 
-/* Last slide: the band centred in the space above, the footer pinned to the
-   slide's bottom. `align-content: stretch` overrides the deck's centring so
-   the 1fr row actually absorbs the leftover height. */
+/* Last slide: the band and the footer are one block, centred together. The
+   footer used to be pushed to the slide's bottom edge by a `1fr` spacer, which
+   left a field of white between it and the band and a hairline rule to explain
+   the gap. Neither is needed — the footer belongs directly under the band. */
 .contact {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  align-content: stretch;
+  grid-template-rows: auto auto;
+  align-content: center;
   padding-bottom: 0;
 }
 
 .contact-middle {
   display: grid;
-  align-content: center;
-  min-height: 0;
 }
 
 /* The band runs edge to edge — one printed stripe across the page. */
@@ -584,6 +599,11 @@
   margin-top: var(--space-lg);
 }
 
+/* The error page carries only the copyright, on a page whose every line is
+   centred — and it has no black band above to divide it from the copy, so here
+   the hairline rule stays. */
 .not-found + .site-footer .footer-inner {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
   border-top: 1px solid var(--line);
 }

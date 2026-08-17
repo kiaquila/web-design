@@ -8,7 +8,12 @@
 import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import { content, languages, ogImages } from "../src/content.js";
+import {
+  content,
+  languages,
+  localesAwaitingReview,
+  ogImages
+} from "../src/content.js";
 import { renderNotFound, renderPage } from "../src/render.js";
 
 const root = resolve(import.meta.dirname, "..");
@@ -64,6 +69,17 @@ function reportPlaceholders() {
   );
 }
 
+/** Names any locale whose copy is a translation the owner has not approved,
+ *  for the same reason placeholders are named: a draft must not become the
+ *  published wording just because nobody looked. */
+function reportTranslationReviews() {
+  if (localesAwaitingReview.length === 0) return;
+  console.warn(
+    `\n  ! Locale copy still awaiting the owner's review: ${localesAwaitingReview.join(", ")}\n` +
+      "    Have the wording confirmed, then drop it from localesAwaitingReview.\n"
+  );
+}
+
 async function main() {
   await rm(dist, { recursive: true, force: true });
   await mkdir(join(dist, "assets"), { recursive: true });
@@ -77,8 +93,8 @@ async function main() {
 
   /* One 404 per language, each beside the pages it covers. Workers Static
      Assets walks up from the requested path to find the nearest `404.html`,
-     so a missing `/en/...` URL lands on the English one instead of answering
-     an English visitor in Russian. */
+     so a missing `/es/...` URL lands on the Spanish one instead of answering
+     a Spanish visitor in English. */
   for (const lang of Object.keys(languages)) {
     const path = languages[lang].path;
     const target = path === "/" ? join(dist, "404.html") : join(dist, path, "404.html");
@@ -114,6 +130,7 @@ async function main() {
     `Built the KS portfolio into dist/ (${Object.keys(languages).join(", ")}).`
   );
   reportPlaceholders();
+  reportTranslationReviews();
 }
 
 await main();
