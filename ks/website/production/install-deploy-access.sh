@@ -44,6 +44,10 @@ if [[ ! -d "$source_git_dir" ]]; then
 fi
 [[ "$(git --git-dir="$source_git_dir" rev-parse --is-bare-repository)" == "true" ]] ||
   fail "Trusted source directory is not a bare Git repository."
+# git init follows the invoking umask. The mirror contains private repository
+# history, so it must stay root-traversable only regardless of that umask.
+chown root:root "$source_git_dir"
+chmod 0700 "$source_git_dir"
 if ! git --git-dir="$source_git_dir" remote get-url origin >/dev/null 2>&1; then
   git --git-dir="$source_git_dir" remote add origin "$source_remote"
 fi

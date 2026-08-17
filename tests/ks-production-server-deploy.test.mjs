@@ -37,6 +37,7 @@ test("the deploy account is limited to the root-owned wrapper", () => {
   assert.match(installer, /NOPASSWD: \$wrapper_target \*/);
   assert.match(installer, /ks-production-source/);
   assert.match(installer, /git init --bare/);
+  assert.match(installer, /chmod 0700 "\$source_git_dir"/);
   assert.match(installer, /-g "\$deploy_user" -m 0710/);
   assert.doesNotMatch(installer, /docker \*/i);
 });
