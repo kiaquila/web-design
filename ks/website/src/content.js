@@ -9,8 +9,8 @@
 
 /** Kristina has been working in web development since this year. The page
  *  states a duration, so it is derived at build time rather than typed in —
- *  a hardcoded "10 years" silently becomes a lie every January. */
-export const CAREER_START_YEAR = 2016;
+ *  a hardcoded "9 years" silently becomes a lie every January. */
+export const CAREER_START_YEAR = 2017;
 
 export const experienceYears = (now = new Date()) =>
   now.getUTCFullYear() - CAREER_START_YEAR;

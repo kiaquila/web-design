@@ -48,7 +48,7 @@ calm-frame background rather than a face-coloured halo or triangular matte.
 | Telegram | [@ks_aquila](https://t.me/ks_aquila) | client |
 | LinkedIn | [kiaquila](https://www.linkedin.com/in/kiaquila) | client |
 | Instagram | [ks_aquila](https://www.instagram.com/ks_aquila) | client |
-| In web development since | 2016 | client |
+| In web development since | 2017 | client |
 
 Every string lives in [`website/src/content.js`](./website/src/content.js).
 Nothing on the page is written anywhere else.
@@ -77,6 +77,18 @@ screenshots of those stages, regenerated with the command in
 
 ## Open items
 
+- **A replacement hover frame is on the table and not yet chosen.** The owner's
+  own session of the same shoot is preserved at
+  [`source-assets/hover-candidates/`](./source-assets/hover-candidates): a calm
+  frame and an open-mouth frame, both 1139×1381. Registered onto the published
+  crop they scale by 0.787 at offset (75, 39) — but they are two separate
+  exposures, and she leaned between them. Measured against the calm frame the
+  headband moves 24 px, the crown 32 px and the left shoulder 40 px, in
+  different directions, so no single scale and offset holds the face, the crown
+  and the shoulders still at once. Using the open-mouth frame as-is means
+  accepting that the head shifts on hover; keeping the swap motionless means
+  compositing its face onto the calm body, which is how the published frame was
+  made. The published frames ship until that is decided.
 - **The Spanish copy is a translation awaiting the owner's approval.** Every
   string on `/es/` is a rioplatense rendering of the owner's own English
   wording, not new claims — but the repository does not treat an

@@ -203,9 +203,21 @@
   gap: var(--space-lg);
 }
 
+/* Answers a pointer the way the work and service cards do: the whole item
+   lifts 4px. The step has no panel to shade, so its own hairline takes the
+   place of the card's shadow — an inset rule doubles it to 2px without the
+   layout shift a thicker border would cause. */
 .step {
   padding-top: var(--space-md);
   border-top: 1px solid var(--ink);
+  transition: transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.step:hover,
+.step:focus-within {
+  transform: translateY(-4px);
+  box-shadow: inset 0 1px 0 var(--ink);
 }
 
 .step-number {
@@ -225,12 +237,17 @@
   user-select: none;
 }
 
-/* A numeral that leans in slightly when you point at its step — the whole
-   column responds, so the step reads as one object rather than four. Reduced
-   motion switches the transition off wholesale in base.css. */
+/* The numeral grows a little on top of the lift, so the eye lands on the step's
+   own mark. Reduced motion switches every transition off wholesale in
+   base.css. */
 .step:hover .step-number,
 .step:focus-within .step-number {
   transform: scaleY(1.18) scale(1.07);
+}
+
+.step:hover .step-text,
+.step:focus-within .step-text {
+  color: var(--ink);
 }
 
 .step-title {

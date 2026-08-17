@@ -492,6 +492,38 @@ test("the work previews are shown at the screenshots' own proportion", async () 
   assert.match(clean, /\.work-track \{\s*max-width: calc\(\(100svh/);
 });
 
+test("switching language keeps the reader in the same section", () => {
+  /* The hrefs in the markup stay the plain locale paths — the switch is a link
+     first — and the script appends the current slide's id when the reader
+     reaches for it. Binding to pointerdown and focusin as well as click is what
+     makes a middle-click and a keyboard activation carry the section too, and
+     what keeps it working in a tab whose animation frames are suspended. */
+  for (const lang of LOCALES) {
+    for (const other of LOCALES.filter((code) => code !== lang)) {
+      assert.ok(
+        pages[lang].includes(`<a href="${languages[other].path}"`),
+        `${lang}: the switch must ship the plain ${other} path`
+      );
+    }
+    assert.doesNotMatch(pages[lang], /<a href="\/[^"]*#[a-z-]+" hreflang=/);
+  }
+  assert.match(siteScript, /const langSwitch = document\.querySelector\("\.lang-switch"\)/);
+  assert.match(
+    siteScript,
+    /for \(const type of \["pointerdown", "focusin", "click"\]\)/
+  );
+  /* And the arrival: the browser's own fragment scroll is animated by the
+     root's smooth behaviour, so the landing is repeated without it. */
+  assert.match(siteScript, /root\.style\.scrollBehavior = "auto";/);
+  assert.match(siteScript, /addEventListener\("load", land\);/);
+  /* The fragment is matched against the page's own slides, never handed to a
+     selector, so a hand-typed hash cannot become one. */
+  assert.ok(
+    !/querySelector\(location\.hash/.test(siteScript),
+    "the fragment must not be used as a selector"
+  );
+});
+
 test("the process numerals answer a pointer", () => {
   /* A light hover on the chapter numeral, layered on top of the elongation it
      already carries so the figure grows instead of un-stretching. Reduced

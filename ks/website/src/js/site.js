@@ -12,6 +12,8 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const scrollBehavior = () => (reduceMotion.matches ? "auto" : "smooth");
 
+  const slides = document.querySelectorAll(".slide");
+
   /* --- header shadow ----------------------------------------------------- */
 
   const header = document.querySelector("[data-header]");
@@ -33,6 +35,72 @@
       { passive: true }
     );
     sync();
+  }
+
+  /* --- the language switch keeps your place ------------------------------- */
+
+  /* Switching language halfway down the page used to land the reader back at
+     the top, which loses the thing they were reading. The section ids are the
+     same in every locale, so the switch only needs the id of the slide the
+     reader is on appended to its href.
+
+     It is resolved when the reader reaches for the switch rather than on every
+     scroll frame: that costs nothing while reading, survives a background tab
+     where animation frames are suspended, and is equally current for a click,
+     a middle-click and a keyboard activation. The markup is untouched, so with
+     no script at all the switch is the plain link it always was. */
+  const langSwitch = document.querySelector(".lang-switch");
+  if (langSwitch && slides.length) {
+    const roots = new Map(
+      [...langSwitch.querySelectorAll("a[href]")].map((link) => [
+        link,
+        link.getAttribute("href")
+      ])
+    );
+    const stamp = () => {
+      /* The slide crossing the middle of the viewport is the one being read —
+         at a snap point that is unambiguous, and mid-scroll it matches what
+         fills most of the screen. The hero has no id, and lands at the top. */
+      const middle = window.innerHeight / 2;
+      let current = "";
+      for (const slide of slides) {
+        const box = slide.getBoundingClientRect();
+        if (box.top <= middle && box.bottom > middle) {
+          current = slide.id;
+          break;
+        }
+      }
+      for (const [link, root] of roots) {
+        link.setAttribute("href", current ? `${root}#${current}` : root);
+      }
+    };
+    for (const type of ["pointerdown", "focusin", "click"]) {
+      langSwitch.addEventListener(type, stamp);
+    }
+
+    /* And the arrival. A cross-document fragment is scrolled to through the
+       root's `scroll-behavior: smooth`, which is an animation — a tab that is
+       not yet visible suspends it, and the reader lands at the top of the page
+       after all. Repeating the jump without animation makes the landing
+       deterministic. The id is matched against the page's own slides rather
+       than passed to a selector, so a hand-typed fragment cannot become one. */
+    const land = () => {
+      const wanted = location.hash.slice(1);
+      if (!wanted) return;
+      for (const slide of slides) {
+        if (slide.id !== wanted) continue;
+        const root = document.documentElement;
+        const previous = root.style.scrollBehavior;
+        root.style.scrollBehavior = "auto";
+        slide.scrollIntoView();
+        root.style.scrollBehavior = previous;
+        return;
+      }
+    };
+    land();
+    /* Again after load: the browser runs its own fragment scroll around then,
+       and it wins whatever this script did during parsing. */
+    addEventListener("load", land);
   }
 
   /* --- mobile navigation -------------------------------------------------- */
@@ -153,7 +221,6 @@
   /* The hidden initial state is claimed here, not in the markup: a visitor
      without JavaScript (or with reduced motion) gets every slide fully
      visible, because the CSS only hides content under `html.reveal-on`. */
-  const slides = document.querySelectorAll(".slide");
   if (slides.length && "IntersectionObserver" in window && !reduceMotion.matches) {
     document.documentElement.classList.add("reveal-on");
     const io = new IntersectionObserver(
