@@ -9,8 +9,8 @@
 
 /** Kristina has been working in web development since this year. The page
  *  states a duration, so it is derived at build time rather than typed in —
- *  a hardcoded "9 years" silently becomes a lie every January. */
-export const CAREER_START_YEAR = 2017;
+ *  a hardcoded "10 years" silently becomes a lie every January. */
+export const CAREER_START_YEAR = 2016;
 
 export const experienceYears = (now = new Date()) =>
   now.getUTCFullYear() - CAREER_START_YEAR;
@@ -29,12 +29,11 @@ export const links = {
 };
 
 /* English is the default: it is what `https://ks-design.art/` serves and what
-   `hreflang="x-default"` points at. Russian and Spanish are the additional
-   locales, each on its own prefix. The declaration order is also the order the
-   language switch renders in. */
+   `hreflang="x-default"` points at. Argentinian Spanish is the second locale,
+   on its own prefix. The declaration order is also the order the language
+   switch renders in. */
 export const languages = {
   en: { locale: "en", ogLocale: "en_US", label: "EN", path: "/" },
-  ru: { locale: "ru-RU", ogLocale: "ru_RU", label: "RU", path: "/ru/" },
   es: { locale: "es-AR", ogLocale: "es_AR", label: "ES", path: "/es/" }
 };
 
@@ -47,7 +46,7 @@ export const localesAwaitingReview = ["es"];
  *  another language's headline is a mixed-language preview. Rendered by
  *  `scripts/make-og.mjs`, copied by the build, referenced by the renderer;
  *  named here so those three cannot disagree. */
-export const ogImages = { en: "og-en.png", ru: "og-ru.png", es: "og-es.png" };
+export const ogImages = { en: "og-en.png", es: "og-es.png" };
 
 export const content = {
   en: {
@@ -66,7 +65,7 @@ export const content = {
       services: "Services",
       contact: "Contact"
     },
-    langSwitch: { label: "Language", en: "EN", ru: "RU", es: "ES" },
+    langSwitch: { label: "Language", en: "EN", es: "ES" },
     skipLink: "Skip to content",
     hero: {
       title: "I'll design something that pulls people in",
@@ -181,7 +180,7 @@ export const content = {
         title: "Get in touch",
         note: "Write me — I'll make you a design that sells."
       },
-      location: "Buenos Aires, Argentina. Working worldwide.",
+      location: "Buenos Aires, Argentina (GMT-3)",
       social: {
         linkedin: "LinkedIn",
         telegram: "Telegram",
@@ -193,151 +192,6 @@ export const content = {
       title: "Page not found",
       body: "There is no such page here. Head back to the home page.",
       cta: "Home"
-    }
-  },
-
-  ru: {
-    meta: {
-      title: "ks-design — Кристина Аквила, веб-дизайнер",
-      description:
-        "Дизайн лендингов и сайтов, который вовлекает и продаёт. Работаю с нейросетями, поэтому получается быстрее и дешевле. Буэнос-Айрес, работаю удалённо.",
-      ogTitle: "Сделаю вам дизайн, который вовлекает",
-      ogDescription:
-        "Веб-дизайн лендингов и сайтов. Концепт, две серии правок, готовый сайт."
-    },
-    nav: {
-      label: "Разделы страницы",
-      work: "Работы",
-      process: "Процесс",
-      services: "Сервисы",
-      contact: "Контакты"
-    },
-    langSwitch: { label: "Язык", en: "EN", ru: "RU", es: "ES" },
-    skipLink: "К содержанию",
-    hero: {
-      title: "Сделаю вам дизайн, который вовлекает",
-      subtitle: "И вас точно запомнят и захотят вернуться",
-      primary: "Обсудить проект",
-      secondary: "Смотреть работы",
-      portraitAlt: "Кристина Аквила, портрет",
-      portraitStats: [
-        { value: "%YEARS%", label: "лет опыта в веб-разработке" },
-        { value: "AI Expert", label: null }
-      ]
-    },
-    work: {
-      id: "work",
-      title: "Избранные проекты",
-      previous: "Предыдущие работы",
-      next: "Следующие работы",
-      visit: "Открыть сайт",
-      items: [
-        {
-          slug: "chaijana",
-          name: "Chaijaná Noir",
-          kind: "Ресторан · сайт и меню",
-          year: "2026",
-          summary:
-            "Тёмная и тёплая подача для чайханы в Буэнос-Айресе: сайт, трёхъязычное меню и обработка фотографий блюд.",
-          href: links.work.chaijana,
-          image: "chaijana",
-          alt: "Главная страница сайта Chaijaná Noir"
-        },
-        {
-          slug: "alex-neon",
-          name: "Alex Neon",
-          kind: "Лендинг",
-          year: "2026",
-          summary:
-            "Редизайн лендинга «ИИ по делу»: тёмная тема, один неоновый акцент и живая нейро-графика на канвасе.",
-          href: links.work.alexNeon,
-          image: "alex-neon",
-          alt: "Первый экран лендинга Alex Neon"
-        }
-      ]
-    },
-    process: {
-      id: "process",
-      title: "Как устроен процесс",
-      steps: [
-        {
-          n: "01",
-          title: "Собираем смыслы",
-          body:
-            "Аккуратно собираем и формулируем с вами смыслы — всё, что вы считаете важным и хотите отразить в лендинге или сайте."
-        },
-        { n: "02", title: "Концепт дизайна", body: "Делаю для вас концепт дизайна." },
-        { n: "03", title: "Две серии правок", body: "Проходим две серии правок от вас." },
-        { n: "04", title: "Готовый сайт", body: "Вы получаете готовый сайт." }
-      ]
-    },
-    services: {
-      id: "services",
-      title: "Сервисы",
-      currencyNote: "Цены указаны в долларах США.",
-      items: [
-        { name: "Лендинг", price: "500 USD", note: "Одностраничный сайт под ключ." },
-        {
-          name: "Сайт от 5 страниц",
-          price: "1 500 USD",
-          note: "Многостраничный сайт со сквозной структурой."
-        },
-        {
-          name: "Иллюстрации",
-          price: "от 25 USD",
-          note: "Создание иллюстраций, цена за одно изображение."
-        }
-      ]
-    },
-    kindWords: {
-      id: "kind-words",
-      title: "Kind Words",
-      todo: true,
-      todoNote:
-        "Заглушка: замените на реальные отзывы клиентов до публикации.",
-      items: [
-        {
-          quote: "TODO: реальная цитата клиента.",
-          name: "Alex Oxitocin",
-          role: "Alex Neon · лендинг «ИИ по делу»",
-          avatar: "alex-oxitocin",
-          avatarAlt: "Аватар Alex Oxitocin",
-          initials: null
-        },
-        {
-          quote: "TODO: реальная цитата клиента.",
-          name: "TODO: имя",
-          role: "TODO: роль, компания",
-          avatar: null,
-          initials: "—"
-        },
-        {
-          quote: "TODO: реальная цитата клиента.",
-          name: "TODO: имя",
-          role: "TODO: роль, компания",
-          avatar: null,
-          initials: "—"
-        }
-      ]
-    },
-    contact: {
-      id: "contact",
-      band: {
-        title: "Get in touch",
-        note: "Пишите — и сделаю вам классный продающий дизайн."
-      },
-      location: "Buenos Aires, Argentina. Working worldwide.",
-      social: {
-        linkedin: "LinkedIn",
-        telegram: "Telegram",
-        instagram: "Instagram"
-      }
-    },
-    footer: { copyright: "© Kristina Aquila" },
-    notFound: {
-      title: "Страница не найдена",
-      body: "Такой страницы здесь нет. Вернитесь на главную.",
-      cta: "На главную"
     }
   },
 
@@ -357,7 +211,7 @@ export const content = {
       services: "Servicios",
       contact: "Contacto"
     },
-    langSwitch: { label: "Idioma", en: "EN", ru: "RU", es: "ES" },
+    langSwitch: { label: "Idioma", en: "EN", es: "ES" },
     skipLink: "Ir al contenido",
     hero: {
       title: "Te hago un diseño que atrapa",
@@ -475,7 +329,7 @@ export const content = {
         title: "Get in touch",
         note: "Escribime y te hago un diseño que vende."
       },
-      location: "Buenos Aires, Argentina. Working worldwide.",
+      location: "Buenos Aires, Argentina (GMT-3)",
       social: {
         linkedin: "LinkedIn",
         telegram: "Telegram",

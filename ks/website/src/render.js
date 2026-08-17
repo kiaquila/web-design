@@ -52,6 +52,12 @@ const icons = {
     '<rect x="2.8" y="5" width="18.4" height="14" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="m3.6 7 8.4 6 8.4-6"/>',
     "0 0 24 24",
     28
+  ),
+  /* Sized to the footer's 14px type rather than to the 20px social row. */
+  pin: icon(
+    '<path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M12 21.5c4.2-4.6 6.3-8.1 6.3-10.6a6.3 6.3 0 0 0-12.6 0c0 2.5 2.1 6 6.3 10.6Z"/><circle cx="12" cy="10.6" r="2.3" fill="none" stroke="currentColor" stroke-width="1.7"/>',
+    "0 0 24 24",
+    15
   )
 };
 
@@ -67,10 +73,8 @@ function picture({ dir, base, alt, widths, height, sizes, className, lazy = true
       </picture>`;
 }
 
-/** Three languages no longer fit the old "RU / EN" pair, so the switch is a
- *  single hairline-framed group of equal cells with the current language set
- *  solid — a printed stamp rather than a row of loose words. The cells are
- *  ordinary links, so the switch still works with no script at all. */
+/** Two small words separated by a slash — printed, not app-like. The cells are
+ *  ordinary links, so the switch works with no script at all. */
 function langSwitch(lang, copy) {
   const cells = Object.keys(languages).map((code) => {
     const label = escapeHtml(copy.langSwitch[code]);
@@ -78,8 +82,8 @@ function langSwitch(lang, copy) {
       ? `<span class="lang-current" aria-current="true">${label}</span>`
       : `<a href="${languages[code].path}" hreflang="${code}" lang="${code}">${label}</a>`;
   });
-  const framed = cells.join('<span class="lang-divider" aria-hidden="true"></span>');
-  return `<nav class="lang-switch" aria-label="${escapeHtml(copy.langSwitch.label)}">${framed}</nav>`;
+  const cluster = cells.join('<span class="lang-divider" aria-hidden="true">/</span>');
+  return `<nav class="lang-switch" aria-label="${escapeHtml(copy.langSwitch.label)}">${cluster}</nav>`;
 }
 
 /** `anchorBase` is empty on the landing page, where the sections are on the
@@ -340,7 +344,7 @@ function contact(copy) {
     <footer class="site-footer">
       <div class="container footer-inner">
         <p class="footer-copyright">${escapeHtml(copy.footer.copyright)}</p>
-        <p class="footer-location">${escapeHtml(copy.contact.location)}</p>
+        <p class="footer-location">${icons.pin}${escapeHtml(copy.contact.location)}</p>
         <div class="footer-social">${social}</div>
       </div>
     </footer>

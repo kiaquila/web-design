@@ -1,12 +1,12 @@
 # KS — Kristina Aquila portfolio
 
-Trilingual selling landing page for Kristina Aquila's web design practice. It is
+Bilingual selling landing page for Kristina Aquila's web design practice. It is
 an original design rather than a redesign: the business, the offer and the
 copy are the owner's own.
 
 English is the default and is served at
-[ks-design.art](https://ks-design.art); Russian is at `/ru/` and Argentinian
-Spanish at `/es/`. The old `/en/` prefix redirects permanently to the root.
+[ks-design.art](https://ks-design.art); Argentinian Spanish is at `/es/`. The
+old `/en/` prefix redirects permanently to the root.
 
 The page is a **deck**: six sections, each one screen tall on desktop, scrolling
 with snap points. On phones it is an ordinary flowing document. Each section is
@@ -14,7 +14,7 @@ opened by its heading and nothing else — the label above it and the lead
 paragraph under it repeated what the heading already said.
 
 1. Hero — headline and the portrait with its hover state
-2. Selected projects
+2. Selected projects — screenshots at their own 8:5 proportion
 3. Process — `01`–`04`
 4. Services — three package cards
 5. Kind Words
@@ -38,12 +38,6 @@ fades into the fixed calm neck without a double contour, clothing leak or drift.
 Immediately outside that single jaw line, the hover frame must read as clean
 calm-frame background rather than a face-coloured halo or triangular matte.
 
-Everything below the hover chin is literal calm-frame neck. The published
-exports carried two thin contour lines there — a second fold parallel to the
-real one on the viewer-left, and a line down the neck on the viewer-right — both
-left over from the transplant's edge. They are gone: the neck below the chin is
-now restored calm pixels, so the hover frame has one jaw line and no ghosts.
-
 ## Source of truth
 
 | Item | Value | Source |
@@ -54,7 +48,7 @@ now restored calm pixels, so the hover frame has one jaw line and no ghosts.
 | Telegram | [@ks_aquila](https://t.me/ks_aquila) | client |
 | LinkedIn | [kiaquila](https://www.linkedin.com/in/kiaquila) | client |
 | Instagram | [ks_aquila](https://www.instagram.com/ks_aquila) | client |
-| In web development since | 2017 | client |
+| In web development since | 2016 | client |
 
 Every string lives in [`website/src/content.js`](./website/src/content.js).
 Nothing on the page is written anywhere else.
@@ -84,15 +78,11 @@ screenshots of those stages, regenerated with the command in
 ## Open items
 
 - **The Spanish copy is a translation awaiting the owner's approval.** Every
-  string on `/es/` is a rioplatense rendering of the owner's own Russian and
-  English wording, not new claims — but the repository does not treat an
+  string on `/es/` is a rioplatense rendering of the owner's own English
+  wording, not new claims — but the repository does not treat an
   unapproved translation as final copy, so `es` is listed in
   `localesAwaitingReview` and the build names it on every run. Read the page,
   correct the wording, then drop `es` from that list.
-- **The hover panel states the derived number of years, not a round one.**
-  `CAREER_START_YEAR` is 2017, so the panel reads 9 in 2026. If the intended
-  claim is ten years, the start year is the thing to change — the copy must stay
-  derived, or it becomes a lie every January.
 - **Kind Words is unfilled and hidden from published pages.** The section is
   built and styled, and the first
   card already carries Alex Oxitocin's name, role and avatar — but all three

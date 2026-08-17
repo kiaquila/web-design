@@ -96,11 +96,10 @@ before(async () => {
 
 test("the hero carries the approved headline in every language", () => {
   assert.match(pages.enText, /I'll design something that pulls people in/);
-  assert.match(pages.ruText, /Сделаю вам дизайн, который вовлекает/);
   assert.match(pages.esText, /Te hago un diseño que atrapa/);
   /* The subtitle is a single line with no full stop — it is a caption under the
      headline, not a sentence in a paragraph. */
-  assert.match(pages.ruText, /И вас точно запомнят и захотят вернуться(?!\.)/);
+  assert.match(pages.enText, /The kind of work people remember — and come back to(?!\.)/);
   for (const lang of LOCALES) {
     assert.ok(
       !content[lang].hero.subtitle.endsWith("."),
@@ -125,7 +124,6 @@ test("every process step appears in order", () => {
 test("the price list is rendered exactly as quoted", () => {
   const expected = {
     en: ["USD 500", "USD 1,500", "from USD 25"],
-    ru: ["500 USD", "1 500 USD", "от 25 USD"],
     es: ["USD 500", "USD 1.500", "desde USD 25"]
   };
   for (const [lang, prices] of Object.entries(expected)) {
@@ -156,7 +154,7 @@ test("the years of experience are derived, never hardcoded", () => {
   const years = new Date().getUTCFullYear() - CAREER_START_YEAR;
   assert.equal(experienceYears(), years);
   assert.ok(
-    pages.ruText.includes(`${years} лет опыта в веб-разработке`),
+    pages.enText.includes(`${years} years of web development experience`),
     `expected the page to state ${years} years`
   );
   /* A literal "9" in the source would pass today and lie next January. */
@@ -255,26 +253,23 @@ test("Contact is reachable at every width and duplicated at none", () => {
 
 /* --- the multilingual contract --------------------------------------------- */
 
-test("English is the default and the other locales are prefixed", () => {
+test("English is the default and Spanish is the prefixed second locale", () => {
+  assert.deepEqual(Object.keys(languages), ["en", "es"]);
   assert.equal(languages.en.path, "/");
-  assert.equal(languages.ru.path, "/ru/");
   assert.equal(languages.es.path, "/es/");
   assert.match(pages.en, /<html lang="en">/);
-  assert.match(pages.ru, /<html lang="ru">/);
   assert.match(pages.es, /<html lang="es">/);
 });
 
 test("each page declares its own language and links the others", () => {
   for (const key of LOCALES) {
     assert.match(pages[key], /<link rel="alternate" hreflang="en" href="[^"]+\/">/);
-    assert.match(pages[key], /<link rel="alternate" hreflang="ru" href="[^"]+\/ru\/">/);
     assert.match(pages[key], /<link rel="alternate" hreflang="es" href="[^"]+\/es\/">/);
     /* x-default must be the page an unmatched visitor gets, which is now the
        English document at the origin root. */
     assert.match(pages[key], /<link rel="alternate" hreflang="x-default" href="[^"]+\/">/);
   }
   assert.match(pages.en, /<link rel="canonical" href="[^"]+\/">/);
-  assert.match(pages.ru, /<link rel="canonical" href="[^"]+\/ru\/">/);
   assert.match(pages.es, /<link rel="canonical" href="[^"]+\/es\/">/);
   for (const key of DOCUMENTS) {
     assert.match(pages[key], /https:\/\/ks-design\.art\//);
@@ -282,7 +277,7 @@ test("each page declares its own language and links the others", () => {
   }
 });
 
-test("the language switch is three plain links, so it works without scripts", () => {
+test("the language switch is plain links, so it works without scripts", () => {
   const cell = (lang, code) => {
     const label = content[lang].langSwitch[code];
     return code === lang
@@ -302,11 +297,11 @@ test("the language switch is three plain links, so it works without scripts", ()
 });
 
 test("no language leaks into another page's document", () => {
-  /* A Cyrillic word in a page that is not the Russian one means a key was never
-     translated. Brand names are Latin, so this is a safe blanket check — the
-     one exception is the Alex Neon landing's own Russian title, quoted as the
-     name of the thing that was redesigned. */
-  for (const lang of LOCALES.filter((code) => code !== "ru")) {
+  /* Cyrillic anywhere means a key was never translated. Brand names are Latin,
+     so this is a safe blanket check — the one exception is the Alex Neon
+     landing's own Russian title, quoted as the name of the thing that was
+     redesigned. */
+  for (const lang of LOCALES) {
     const cyrillic = pages[`${lang}Text`].match(/[А-Яа-яЁё]+/g) ?? [];
     assert.deepEqual(
       cyrillic.filter((word) => !["ИИ", "по", "делу"].includes(word)),
@@ -468,9 +463,46 @@ test("the footer is one horizontal row under the contact band", () => {
     /\.not-found \+ \.site-footer \.footer-inner \{[^}]*border-top/
   );
   /* And the contact slide must not reserve a spacer row that pushes the footer
-     away from the band it belongs under. */
+     away from the band it belongs under, nor leave a field of white below the
+     footer: the pair closes the page at its bottom edge. */
   const contact = clean.match(/(?:^|\})\s*\.contact \{[^}]*\}/)[0];
   assert.doesNotMatch(contact, /1fr/);
+  assert.match(contact, /align-content:\s*end/);
+});
+
+test("the work previews are shown at the screenshots' own proportion", async () => {
+  /* Every card image in assets/work is 1200×750. The card must neither crop it
+     nor stretch it, so the frame sets no height and no object-fit — height
+     follows width, and the ratio is the file's own. */
+  const shots = await readdir(join(dist, "assets/work"));
+  assert.ok(shots.length > 0);
+
+  const clean = withoutComments(css);
+  const rule = clean.match(/\.work-shot img \{[^}]*\}/);
+  assert.ok(rule, "the work shot rule is missing");
+  assert.match(rule[0], /height:\s*auto/);
+  assert.ok(!/object-fit/.test(rule[0]), "a fitted image is a cropped image");
+  assert.ok(
+    !/aspect-ratio|min-height|max-height/.test(rule[0]),
+    "the shot must take its proportion from the file, not from CSS"
+  );
+
+  /* On the deck the slide still fits one screen — by narrowing the cards, never
+     by shortening them out of ratio. */
+  assert.match(clean, /\.work-track \{\s*max-width: calc\(\(100svh/);
+});
+
+test("the process numerals answer a pointer", () => {
+  /* A light hover on the chapter numeral, layered on top of the elongation it
+     already carries so the figure grows instead of un-stretching. Reduced
+     motion kills the transition wholesale in base.css. */
+  const clean = withoutComments(css);
+  assert.match(clean, /\.step-number \{[^}]*transition:\s*transform/);
+  const hover = clean.match(
+    /\.step:hover \.step-number,\s*\.step:focus-within \.step-number \{[^}]*\}/
+  );
+  assert.ok(hover, "the step hover rule is missing");
+  assert.match(hover[0], /transform:\s*scaleY\(1\.18\) scale\(1\.0[0-9]\)/);
 });
 
 test("every grey that carries text clears AA on white", () => {

@@ -148,55 +148,57 @@
   gap: var(--space-md);
 }
 
-/* Three languages will not read as a loose row of words the way two did, so
-   the switch is one hairline-framed block of equal cells — a stamp printed on
-   the card. The current language is set solid, which needs no underline and no
-   colour, and stays unmistakable at a glance. */
+/* EN / ES as plain text, separated by a slash — printed, not app-like. */
 .lang-switch {
   display: inline-flex;
-  align-items: stretch;
-  overflow: hidden;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  font-size: 0.72rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
 }
 
-/* The visual is three two-letter words, but each hit area is a full 44 px
-   square — at this size they would otherwise be the hardest things on the page
-   to tap. */
+/* The visual is two small words, but each hit area is a full 44 px square —
+   set at 0.78rem with a few pixels of padding these were the hardest things on
+   the page to tap. */
 .lang-switch a,
 .lang-current {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 2.75rem;
   min-height: 2.75rem;
-  transition: color var(--dur-fast) var(--ease),
-    background-color var(--dur-fast) var(--ease);
+  transition: color var(--dur-fast) var(--ease);
 }
 
 .lang-switch a {
   color: var(--ink-mute);
 }
 
-.lang-switch a:hover,
-.lang-switch a:focus-visible {
+.lang-switch a:hover {
   color: var(--ink);
-  background: var(--ground-alt);
 }
 
 .lang-current {
-  background: var(--ink);
-  color: var(--ground);
+  color: var(--ink);
 }
 
-/* A hairline between the cells, not a slash: inside a frame the punctuation
-   would be one mark too many. */
+/* A pseudo-element rather than a border, so the rule sits under the word
+   instead of at the bottom edge of the 44 px box. */
+.lang-current::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(50% - 0.8rem);
+  width: 1.6rem;
+  height: 1.5px;
+  background: var(--ink);
+  transform: translateX(-50%);
+}
+
 .lang-divider {
-  width: 1px;
-  background: var(--ink-faint);
+  color: var(--ink-faint);
 }
 
 .nav-toggle {
@@ -246,8 +248,18 @@
   font-size: var(--step-small);
 }
 
+/* The pin is a mark on a label, not an icon in its own right: it sits on the
+   text baseline's line box and takes the same muted grey. */
 .footer-location {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   text-align: center;
+}
+
+.footer-location svg {
+  flex-shrink: 0;
 }
 
 .footer-social {
@@ -282,9 +294,9 @@
     gap: var(--space-md);
   }
 
-  /* The wordmark, a three-cell language switch and the toggle come to 270px of
-     controls; at 360px there are only 320px to put them in, so the row gaps
-     shrink rather than the 44px targets. */
+  /* The wordmark, the language switch and the toggle come to 230px of controls;
+     at 360px there are only 320px to put them in, so the row gaps shrink rather
+     than the 44px targets. */
   .header-inner {
     gap: var(--space-xs);
   }

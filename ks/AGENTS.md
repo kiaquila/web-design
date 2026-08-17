@@ -1,8 +1,8 @@
 # AGENTS.md — KS
 
-Original selling landing for Kristina Aquila's web design practice. Trilingual:
-**English is the default and serves `/`**, Russian is at `/ru/`, Argentinian
-Spanish at `/es/`, and the retired `/en/` prefix redirects to the root. Read
+Original selling landing for Kristina Aquila's web design practice. Bilingual:
+**English is the default and serves `/`**, Argentinian Spanish is at `/es/`, and
+the retired `/en/` prefix redirects to the root. Read
 [`README.md`](./README.md) first for the verified facts and the open items.
 
 ## Identity
@@ -30,18 +30,25 @@ rules, heavy tracked capitals. Everything below follows from that.
 - **One call to action per screen.** "Start a project" belongs to the hero. The
   header's top-right button is Contact, and the services head carries no button
   at all; a test counts the hero's label and fails at two.
-- The language switch is one hairline-framed group of three equal cells with the
-  current language set solid — a stamp printed on the card, not a row of loose
-  words. Each cell is still a 44px target and still a plain link.
+- The language switch is two small words separated by a slash, the current one
+  underlined — printed, not app-like. Each is a 44px target and a plain link.
+- **Portfolio screenshots are shown at their own 8:5 proportion**, never cropped
+  and never stretched: a card that reframes the work is showing something the
+  client never designed. The shot sets no height and no `object-fit`. When the
+  slide is too short for the cards at that ratio, `.work-track` narrows them —
+  the container is left alone so the heading keeps the section's left edge.
+- The process numerals grow slightly on hover. Any motion added here stays at
+  that scale: a transform on one element, killed by `prefers-reduced-motion`.
 - The wordmark is **typography, not a mark**: `ks-design`, bold lowercase
   Manrope. There is no logo image; the old gradient monogram is gone and should
   not come back.
-- The footer is **one horizontal row directly under the contact band**:
-  copyright hard left, location centred on the page, social icons with no labels
-  hard right (LinkedIn, Telegram, Instagram). Its outer grid columns are `1fr`
-  so the middle one centres on the page rather than on the copyright. It carries
-  no rule on top — the black band above it already divides the page, and the
-  band must not be pushed away from it by a spacer row.
+- The footer is **one horizontal row directly under the contact band**, and the
+  pair is anchored to the bottom of the last slide: copyright hard left, a pin
+  icon and the location centred on the page, social icons with no labels hard
+  right (LinkedIn, Telegram, Instagram). Its outer grid columns are `1fr` so the
+  middle one centres on the page rather than on the copyright. It carries no
+  rule on top — the black band above it already divides the page, and the band
+  must not be pushed away from it by a spacer row.
 - Tone: calm, concrete, premium. No urgency timers, no invented counters, no
   exclamation marks.
 
@@ -70,6 +77,8 @@ Below that it is an ordinary flowing document.
   on the page comes from there, in every language. A key that exists in one
   language must exist in all of them, and `languages` declares both the URL for
   each locale and the order the switch renders in.
+- The years of experience are derived from `CAREER_START_YEAR`, never typed. A
+  literal number passes today and lies next January.
 - Do not invent facts, prices, testimonials, client names or dates. Kind Words
   is deliberately unfilled and must remain absent from published pages while
   its content is marked `todo`; see README.
@@ -121,11 +130,9 @@ Below that it is an ordinary flowing document.
   exact mirrors and live side by side in `components.css` for that reason —
   changing one without the other either loses Contact on phones or prints it
   twice on desktop. A test asserts both rules exist.
-- **Every tap target is at least 44px**, including all three language cells, the
+- **Every tap target is at least 44px**, including both language words, the
   footer social icons and the carousel arrows. A test measures the rules. On
-  phones the header row's gaps shrink rather than the targets: the wordmark, the
-  three-cell switch and the toggle come to 270px, against 320px of content width
-  at 360px wide.
+  phones the header row's gaps shrink rather than the targets.
 - No external origins at all: no CDN, no analytics, no remote fonts or images.
   The Worker's CSP is `script-src 'self'` and there are no inline `<script>`
   elements — the test enforces both.
@@ -160,12 +167,6 @@ Below that it is an ordinary flowing document.
   translucent halo or triangular matte before the shoulder.
   Moving the fixed regions between frames breaks the illusion of a single
   continuous shot.
-- **Everything below the hover chin is literal calm-frame neck.** The transplant
-  left two thin contour lines there — a second fold parallel to the real one on
-  the viewer-left and a line down the viewer-right of the neck — and both are
-  now removed by restoring calm pixels under the chin. If the hover frame is
-  ever re-exported, diff it against the calm frame: below the jaw the two must
-  differ nowhere. A residual line there is drift, not anatomy.
 - Remove the source photo's narrow dark sliver at the extreme bottom-right from
   both exported frames so that defect neither remains visible nor flickers.
 - The frame is `aspect-ratio: 776 / 971`, the exact aspect of the source pair,
@@ -221,14 +222,14 @@ npm --prefix ks/website run check
 ```
 
 Tests cover the client's wording, the price list, the multilingual contract
-(English at `/` as `x-default`, `hreflang` for all three, no untranslated
-Russian in the English or Spanish page, one `404.html` per locale, the `/en/`
-redirect), the one-meaning-per-section and one-CTA-per-screen rules, the footer
-row, approved outbound links, local-only assets, the no-JavaScript guarantee,
+(English at `/` as `x-default`, `hreflang` for both, no untranslated Russian in
+either page, one `404.html` per locale, the `/en/` redirect), the
+one-meaning-per-section and one-CTA-per-screen rules, the footer row, the
+screenshots' fixed proportion, approved outbound links, local-only assets, the no-JavaScript guarantee,
 the achromatic palette, grey contrast against AA, the accessibility structure,
 and the script budget. Do not weaken a test to make a change pass.
 
-Visually: 360 px and 1280 px+, all three locales, keyboard focus, the portrait
+Visually: 360 px and 1280 px+, both locales, keyboard focus, the portrait
 swap on hover and on tap, the carousel at every breakpoint,
 `prefers-reduced-motion`, and a console with no errors.
 
