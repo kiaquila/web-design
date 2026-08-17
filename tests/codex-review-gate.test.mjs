@@ -12,6 +12,9 @@ const helpers = await import(pathToFileURL(
 const rerun = await import(pathToFileURL(
   resolve(repositoryRoot, "scripts/codex-review-rerun.mjs")
 ).href);
+const publisher = await import(pathToFileURL(
+  resolve(repositoryRoot, "scripts/publish-codex-review-check.mjs")
+).href);
 
 const {
   classifyCodexNativeReview,
@@ -31,6 +34,7 @@ const {
   selectCodexReviewRun,
   shouldRouteCodexReviewRerunEvent
 } = rerun;
+const { checkRunPayload, publishCodexReviewCheck } = publisher;
 
 const headSha = "abc123def456";
 const codexUser = { login: "chatgpt-codex-connector[bot]" };
@@ -179,6 +183,44 @@ test("native Codex reviews are current-head and P0-P2 blocking", () => {
   assert.equal(
     classifyCodexNativeReview({ ...review, user: { login: "fake-codex[bot]" } }, [], headSha),
     null
+  );
+});
+
+test("manual trusted validation publishes a head-bound check result", async () => {
+  const requests = [];
+  const request = async (url, options) => {
+    requests.push({ url, options });
+    return { ok: true, json: async () => ({ id: 1 }) };
+  };
+  await publishCodexReviewCheck({
+    token: "token",
+    repository: "owner/repo",
+    headSha: "a".repeat(40),
+    conclusion: "success",
+    detailsUrl: "https://github.com/owner/repo/actions/runs/1",
+    request
+  });
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, "https://api.github.com/repos/owner/repo/check-runs");
+  assert.equal(requests[0].options.method, "POST");
+  assert.deepEqual(JSON.parse(requests[0].options.body), {
+    name: "Codex Review",
+    head_sha: "a".repeat(40),
+    status: "completed",
+    conclusion: "success",
+    details_url: "https://github.com/owner/repo/actions/runs/1",
+    output: {
+      title: "Codex Review passed",
+      summary: `Trusted manual validation passed for ${"a".repeat(40)}.`
+    }
+  });
+  assert.throws(
+    () => checkRunPayload({ headSha: "short", conclusion: "success", detailsUrl: "https://example.com" }),
+    /40-character commit SHA/
+  );
+  assert.throws(
+    () => checkRunPayload({ headSha: "a".repeat(40), conclusion: "neutral", detailsUrl: "https://example.com" }),
+    /success or failure/
   );
 });
 
