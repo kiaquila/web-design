@@ -68,7 +68,7 @@ if [[ "$deploy_mode" == "register" ]]; then
     exit 1
   fi
   deploy_output="$(ssh "${ssh_options[@]}" "$target" \
-    "sudo /usr/local/sbin/ks-production-deploy register '$revision' '$ks_tree' '$deploy_run_id'")"
+    "sudo /usr/local/sbin/ks-production-deploy register $revision $ks_tree $deploy_run_id")"
   printf '%s\n' "$deploy_output"
   if grep --quiet --fixed-strings --line-regexp 'KS_PRODUCTION_DEPLOY_SKIPPED' <<<"$deploy_output"; then
     if [[ -n "$deploy_status_file" ]]; then
@@ -96,7 +96,7 @@ remote_stage=""
 cleanup() {
   rm -rf -- "$payload_dir"
   if [[ -n "$remote_stage" && "$target" != "local" ]]; then
-    ssh "${ssh_options[@]}" "$target" "rm -rf -- '$remote_stage'" >/dev/null 2>&1 || true
+    ssh "${ssh_options[@]}" "$target" "rm -rf -- $remote_stage" >/dev/null 2>&1 || true
   fi
 }
 trap cleanup EXIT
@@ -110,10 +110,11 @@ if [[ "$target" == "local" ]]; then
   rsync --archive --delete "$payload_dir/" "$remote_dir/"
 else
   remote_stage="/var/lib/ks-production/staging/ks-$revision-${RANDOM}-${RANDOM}"
-  ssh "${ssh_options[@]}" "$target" "umask 077; mkdir '$remote_stage'"
-  rsync --archive "$payload_dir/" "$target:$remote_stage/"
+  ssh "${ssh_options[@]}" "$target" "umask 077; mkdir $remote_stage"
+  tar -C "$payload_dir" -cf - . |
+    ssh "${ssh_options[@]}" "$target" "tar -xf - -C $remote_stage"
   deploy_output="$(ssh "${ssh_options[@]}" "$target" \
-    "sudo /usr/local/sbin/ks-production-deploy deploy '$revision' '$ks_tree' '$deploy_run_id' '$remote_stage'")"
+    "sudo /usr/local/sbin/ks-production-deploy deploy $revision $ks_tree $deploy_run_id $remote_stage")"
   printf '%s\n' "$deploy_output"
   if grep --quiet --fixed-strings --line-regexp 'KS_PRODUCTION_DEPLOY_SKIPPED' <<<"$deploy_output"; then
     remote_stage=""

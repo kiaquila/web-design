@@ -54,9 +54,12 @@ deployment jobs join the private Tailnet through Tailscale workload identity
 federation, after their required checks have passed and the `production`
 Environment has released the deploy key. cz accepts the deploy-only `ksdeploy`
 SSH key over that Tailnet; no public SSH exposure or long-lived Tailscale auth
-key is used. The key can run only the root-owned
-`/usr/local/sbin/ks-production-deploy` wrapper. The registration job receives
-no Cloudflare token.
+key is used. SSH admits the key through the root-owned
+`/usr/local/sbin/ks-production-ssh-command` forced-command handler with
+`restrict`: it has no shell, forwarding, or ability to alter its own
+`authorized_keys`. The handler permits only the fixed staging commands and the
+root-owned `/usr/local/sbin/ks-production-deploy` wrapper. The registration job
+receives no Cloudflare token.
 
 After checks pass, every candidate first registers its GitHub run ID with cz.
 Only a candidate still recorded as newest can enter the

@@ -12,6 +12,8 @@ source_key="/root/.ssh/ks-production-source"
 source_known_hosts="/root/.ssh/known_hosts"
 wrapper_source="$script_dir/server-deploy.sh"
 wrapper_target="/usr/local/sbin/ks-production-deploy"
+ssh_command_source="$script_dir/ssh-command.sh"
+ssh_command_target="/usr/local/sbin/ks-production-ssh-command"
 sudoers_file="/etc/sudoers.d/ks-production-deploy"
 
 fail() {
@@ -21,6 +23,7 @@ fail() {
 
 [[ "${EUID}" -eq 0 ]] || fail "Run this one-time installer with sudo."
 [[ -f "$wrapper_source" ]] || fail "Missing server-deploy.sh next to this installer."
+[[ -f "$ssh_command_source" ]] || fail "Missing ssh-command.sh next to this installer."
 [[ "$deploy_key" =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+([[:space:]].*)?$ ]] ||
   fail "Pass one SSH Ed25519 public key as the only argument."
 [[ -f "$source_key" && -f "$source_known_hosts" ]] ||
@@ -30,9 +33,9 @@ if ! id "$deploy_user" >/dev/null 2>&1; then
   useradd --create-home --shell /bin/bash "$deploy_user"
 fi
 
-install -d -o "$deploy_user" -g "$deploy_user" -m 0700 "/home/$deploy_user/.ssh"
-printf '%s\n' "$deploy_key" > "/home/$deploy_user/.ssh/authorized_keys"
-chown "$deploy_user:$deploy_user" "/home/$deploy_user/.ssh/authorized_keys"
+install -d -o root -g root -m 0755 "/home/$deploy_user/.ssh"
+printf 'restrict,command="%s" %s\n' "$ssh_command_target" "$deploy_key" > "/home/$deploy_user/.ssh/authorized_keys"
+chown root:root "/home/$deploy_user/.ssh/authorized_keys"
 chmod 0600 "/home/$deploy_user/.ssh/authorized_keys"
 
 # ksdeploy can traverse this parent to its own 0700 staging directory, but it
@@ -57,6 +60,7 @@ GIT_SSH_COMMAND="ssh -i $source_key -o IdentitiesOnly=yes -o StrictHostKeyChecki
   git --git-dir="$source_git_dir" fetch --force --no-tags origin \
   '+refs/heads/main:refs/remotes/origin/main'
 install -o root -g root -m 0755 "$wrapper_source" "$wrapper_target"
+install -o root -g root -m 0755 "$ssh_command_source" "$ssh_command_target"
 
 tmp_sudoers="${sudoers_file}.tmp.$$"
 printf '%s\n' \

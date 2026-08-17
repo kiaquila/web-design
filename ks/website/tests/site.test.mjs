@@ -552,7 +552,8 @@ test("production runs as an isolated, hardened container", () => {
   assert.doesNotMatch(productionEdge, /127\.0\.0\.1:(?:3000|8080|4433)/);
 
   assert.match(productionDeploy, /git .* archive --format=tar/);
-  assert.match(productionDeploy, /"\$payload_dir\/" "\$target:\$remote_stage\/"/);
+  assert.match(productionDeploy, /tar -C "\$payload_dir" -cf - \./);
+  assert.match(productionDeploy, /tar -xf - -C \$remote_stage/);
   assert.doesNotMatch(productionDeploy, /"\$website_dir\/" "\$target:/);
   assert.match(productionDeploy, /KS_DESIGN_EXPECTED_REVISION/);
   assert.match(productionDeploy, /"\$target" == "local"/);

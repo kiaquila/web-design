@@ -12,6 +12,10 @@ const installer = await readFile(
   resolve(root, "ks/website/production/install-deploy-access.sh"),
   "utf8"
 );
+const sshCommand = await readFile(
+  resolve(root, "ks/website/production/ssh-command.sh"),
+  "utf8"
+);
 
 test("the server wrapper accepts only validated staged candidates", () => {
   assert.match(wrapper, /\[\[ "\$\{EUID\}" -eq 0 \]\]/);
@@ -35,9 +39,22 @@ test("the deploy account is limited to the root-owned wrapper", () => {
   assert.match(installer, /useradd --create-home --shell \/bin\/bash/);
   assert.match(installer, /install -o root -g root -m 0755/);
   assert.match(installer, /NOPASSWD: \$wrapper_target \*/);
+  assert.match(installer, /restrict,command=/);
+  assert.match(installer, /chown root:root "\/home\/\$deploy_user\/.ssh\/authorized_keys"/);
+  assert.match(installer, /ssh-command\.sh/);
   assert.match(installer, /ks-production-source/);
   assert.match(installer, /git init --bare/);
   assert.match(installer, /chmod 0700 "\$source_git_dir"/);
   assert.match(installer, /-g "\$deploy_user" -m 0710/);
   assert.doesNotMatch(installer, /docker \*/i);
+});
+
+test("the deploy key has no arbitrary SSH command path", () => {
+  assert.match(sshCommand, /SSH_ORIGINAL_COMMAND/);
+  assert.match(sshCommand, /Rejected SSH command/);
+  assert.match(sshCommand, /wrapper=.*ks-production-deploy/);
+  assert.match(sshCommand, /\$wrapper\\ register/);
+  assert.match(sshCommand, /\$wrapper\\ deploy/);
+  assert.match(sshCommand, /tar -xf - -C/);
+  assert.doesNotMatch(sshCommand, /bash -c/);
 });
