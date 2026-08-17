@@ -93,8 +93,12 @@ The landing is static, so Cloudflare serves it with Workers Static Assets from
 `dist/`. `ks/website/worker/index.ts` exists only to attach the security
 headers the asset pipeline does not set on its own.
 
-The stable URL is `https://ks.ks-design.workers.dev`. Pull-request previews use
-the same versioned URL shape documented for Chaijaná above.
+KS is preview-only on Workers. `workers_dev: false` keeps the permanent
+`https://ks.ks-design.workers.dev` service disabled, while the explicit
+`preview_urls: true` setting preserves pull-request previews at
+`https://<version>-ks.ks-design.workers.dev`. Production is deployed separately
+to `https://ks-design.art`; successful KS builds from `main` are therefore not
+mirrored as a permanent stage deployment in GitHub.
 
 **The build watch path is not optional.** Left at the default, this Worker
 builds on every pull request in the repository, and any branch that does not
@@ -127,7 +131,7 @@ GitHub Actions.
 After this one-time connection, normal work needs no deployment command:
 
 - push a PR branch to refresh its public preview;
-- merge the PR to refresh the stable stage;
+- merge the PR to refresh the stable stage when `workers_dev` is enabled;
 - changes outside a project's watch path do not consume that project's build.
 
 ## GitHub deployment history
@@ -144,9 +148,12 @@ environments or deployment history. A retried workflow is idempotent for the
 same Cloudflare check, so it does not move a stage's update time forward unless
 a new build actually succeeded.
 
-The workflow discovers permanent stages from `stageProjects` in
-`.repo-guard.json`. Adding or retiring a stage through the documented project
-procedure therefore also updates GitHub tracking without another workflow edit.
+The workflow discovers permanent stages only from `stageProjects` in
+`.repo-guard.json`. Preview-only Workers belong in `previewProjects`, which
+keeps their PR previews but excludes them from GitHub stage deployment history.
+Adding, retiring, or making a Worker preview-only through the documented
+project procedure therefore also updates GitHub tracking without another
+workflow edit.
 For a one-time history bootstrap, run **Cloudflare Stage Deployments** manually
 with the project slug and the commit SHA from its latest successful production
 build.
@@ -159,7 +166,8 @@ build.
    `preview_urls: true`.
 3. Add `stage:deploy` and `stage:preview` scripts matching the Chaijaná package.
 4. Add the project to `stageProjects` in `.repo-guard.json` with root
-   `<slug>/website` and watch path `<slug>/*`.
+   `<slug>/website` and watch path `<slug>/*`. For a preview-only Worker, use
+   `previewProjects` instead and set `workers_dev: false`.
 5. Create and connect a same-named Worker using the one-time procedure above.
    Its stable stage URL will be `https://<slug>.ks-design.workers.dev`.
 6. Run `node scripts/check-repository.mjs` plus that project's own checks. The

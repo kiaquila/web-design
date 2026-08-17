@@ -95,6 +95,13 @@ container only on `127.0.0.1:3100`, and is routed by a dedicated host-Nginx
 virtual host. It does not join, restart, or edit the `capsule-zero` Compose
 project or its ports.
 
+Changes under `ks/**` deploy automatically from merged, fully checked pull
+requests after the resulting push reaches `main`. GitHub Environment
+configuration, verification, cache purge, and recovery steps are documented in
+[`website/production/README.md`](./website/production/README.md). Cloudflare
+Workers remains PR-preview-only; its permanent `ks.ks-design.workers.dev` route
+is disabled.
+
 ## Checks
 
 From the repository root:

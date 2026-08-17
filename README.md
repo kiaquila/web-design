@@ -50,10 +50,11 @@ repository rather than turning this workspace into a menu monorepo.
 
 If the project needs a temporary customer-facing stage, follow
 [`docs/stage-hosting.md`](./docs/stage-hosting.md). Active stages are listed in
-`stageProjects` in [`.repo-guard.json`](./.repo-guard.json); each uses a
-`<business-slug>` Cloudflare Worker at
-`https://<business-slug>.ks-design.workers.dev`, a stable `main` deployment,
-and an isolated public preview for every pull request.
+`stageProjects` and `previewProjects` in [`.repo-guard.json`](./.repo-guard.json); each uses a
+`<business-slug>` Cloudflare Worker and an isolated public preview for every
+pull request. Most also expose a stable
+`https://<business-slug>.ks-design.workers.dev` deployment from `main`; KS is
+explicitly preview-only because its production origin is `ks-design.art`.
 
 ## Guardrails
 

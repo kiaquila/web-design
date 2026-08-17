@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -43,8 +50,10 @@ function makeFixture() {
   write(root, "scripts/codex-review-request.mjs");
   write(root, "scripts/codex-review-rerun.mjs");
   write(root, "scripts/register-cloudflare-stage-deployments.mjs");
+  write(root, "scripts/wait-for-production-checks.mjs");
   write(root, "tests/cloudflare-stage-deployments.test.mjs");
   write(root, "tests/codex-review-gate.test.mjs");
+  write(root, "tests/ks-production-deploy.test.mjs");
   write(root, "tests/repository-guard.test.mjs");
   write(root, "third-party-notices.md");
   mkdirSync(join(root, "scripts"), { recursive: true });
@@ -141,6 +150,50 @@ function makeFixture() {
       ""
     ].join("\n")
   );
+  write(
+    root,
+    ".github/workflows/ks-production-deploy.yml",
+    [
+      "name: KS Production Deploy",
+      "on:",
+      "  push:",
+      "    branches:",
+      "      - main",
+      "    paths:",
+      '      - "ks/**"',
+      "permissions:",
+      "  contents: read",
+      "jobs:",
+      "  required-checks:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - run: node scripts/wait-for-production-checks.mjs",
+      "  deploy:",
+      "    needs: required-checks",
+      "    if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
+      "    concurrency:",
+      "      group: ks-production-deploy",
+      "      cancel-in-progress: false",
+      "    runs-on: ubuntu-latest",
+      "    permissions:",
+      "      id-token: write",
+      "    environment:",
+      "      name: production",
+      "    steps:",
+      `      - uses: actions/checkout@${checkoutSha}`,
+      "      - env:",
+      "          KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}",
+      "          KS_DESIGN_DEPLOY_RUN_ID: ${{ github.run_id }}",
+      "          KS_DESIGN_DEPLOY_TARGET: ks-production",
+      "          KS_DESIGN_SSH_PRIVATE_KEY: ${{ secrets.KS_DESIGN_SSH_PRIVATE_KEY }}",
+      "        run: |",
+      "          tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8",
+      "          ks/website/production/deploy.sh",
+      "          echo purge_cache",
+      "          sha256sum ks/website/src/js/site.js",
+      ""
+    ].join("\n")
+  );
   git(root, "init", "-q");
   git(root, "add", "-A");
   return root;
@@ -215,6 +268,37 @@ test("accepts a project-named Worker with the temporary stage contract", () => {
 
     const result = runGuard(root);
     assert.equal(result.status, 0, result.stderr);
+
+    write(
+      root,
+      ".repo-guard.json",
+      JSON.stringify({
+        infrastructureDirectories: ["docs", "scripts", "tests"],
+        projects: ["demo"],
+        previewProjects: {
+          demo: {
+            rootDirectory: "demo/website",
+            watchPath: "demo/*"
+          }
+        }
+      })
+    );
+    write(
+      root,
+      "demo/website/wrangler.json",
+      JSON.stringify({
+        name: "demo",
+        main: "./worker/index.ts",
+        compatibility_date: "2026-08-05",
+        compatibility_flags: ["nodejs_compat"],
+        workers_dev: false,
+        preview_urls: true
+      })
+    );
+    git(root, "add", "-A");
+
+    const previewOnlyResult = runGuard(root);
+    assert.equal(previewOnlyResult.status, 0, previewOnlyResult.stderr);
   });
 });
 
@@ -264,6 +348,22 @@ test("rejects a stage Worker whose name differs from the project slug", () => {
     const result = runGuard(root);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /must be named demo/);
+  });
+});
+
+test("rejects a pull-request trigger on the production workflow", () => {
+  withFixture((root) => {
+    const workflowPath = join(root, ".github/workflows/ks-production-deploy.yml");
+    const workflow = readFileSync(workflowPath, "utf8").replace(
+      "  push:\n",
+      "  pull_request:\n  push:\n"
+    );
+    writeFileSync(workflowPath, workflow);
+    git(root, "add", "-A");
+
+    const result = runGuard(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /must never run for pull_request events/);
   });
 });
 
