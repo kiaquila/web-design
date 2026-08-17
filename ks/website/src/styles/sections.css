@@ -584,8 +584,23 @@
 /* The error page carries only the copyright, on a page whose every line is
    centred — and it has no black band above to divide it from the copy, so here
    the hairline rule stays. */
-.not-found + .site-footer .footer-inner {
+main + .site-footer .footer-inner {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   border-top: 1px solid var(--line);
+}
+
+/* Keep the process emphasis without moving either the card or its numeral for
+   visitors who have asked the system to reduce motion. This override belongs
+   in the final stylesheet layer so it wins over the interaction rules above. */
+@media (prefers-reduced-motion: reduce) {
+  .step:hover,
+  .step:focus-within {
+    transform: none;
+  }
+
+  .step:hover .step-number,
+  .step:focus-within .step-number {
+    transform: scaleY(1.18);
+  }
 }
