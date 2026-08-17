@@ -8,6 +8,9 @@ on:
       pr_number:
         description: Pull request number to validate
         required: true
+      head_sha:
+        description: Current pull request head SHA to validate
+        required: true
 
 permissions:
   contents: read
@@ -27,7 +30,7 @@ jobs:
       - name: Checkout proposed repository state
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || inputs.head_sha || github.sha }}
 
       - name: Checkout trusted Codex review gate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -41,7 +44,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CODEX_REVIEW_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
-          CODEX_REVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CODEX_REVIEW_HEAD_SHA: ${{ inputs.head_sha || github.event.pull_request.head.sha || github.sha }}
           CODEX_REVIEW_REQUIRE_HEAD_MATCH: ${{ github.event_name == 'workflow_dispatch' }}
           CODEX_REVIEW_WAIT_MS: "30000"
           CODEX_REVIEW_POLL_MS: "5000"
