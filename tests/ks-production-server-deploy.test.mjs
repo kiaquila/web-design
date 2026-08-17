@@ -33,6 +33,11 @@ test("the server wrapper accepts only validated staged candidates", () => {
   assert.match(wrapper, /diff --recursive --brief --no-dereference/);
   assert.match(wrapper, /trap cleanup EXIT/);
   assert.match(wrapper, /rsync --archive --delete --chown=root:root "\$trusted_payload\//);
+  assert.match(
+    wrapper,
+    /docker inspect --format '\{\{index \.Config\.Labels "org\.opencontainers\.image\.revision"\}\}'/
+  );
+  assert.doesNotMatch(wrapper, /Labels \\"org\.opencontainers\.image\.revision\\"/);
 });
 
 test("the deploy account is limited to the root-owned wrapper", () => {

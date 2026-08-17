@@ -130,7 +130,7 @@ curl --fail --silent --show-error http://127.0.0.1:3100/ >/dev/null
 container_id="$(docker compose -f production/docker-compose.yml ps -q portfolio)"
 [[ -n "$container_id" ]] || fail "KS production container was not created."
 health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$container_id")"
-deployed_revision="$(docker inspect --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}' "$container_id")"
+deployed_revision="$(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$container_id")"
 [[ "$health" == "healthy" ]] || fail "KS production container is not healthy: $health"
 [[ "$deployed_revision" == "$revision" ]] ||
   fail "KS production revision mismatch: expected $revision, received $deployed_revision"
