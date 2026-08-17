@@ -66,10 +66,12 @@ newest pending job through GitHub's one-pending-job behavior. An unrelated
 repository push does not register a KS candidate.
 
 The wrapper treats the staged directory as untrusted. It independently fetches
-`main` with a root-owned, read-only GitHub deploy key, requires that trusted
-tip and `ks` tree to equal the candidate, archives `ks/website` from that
-trusted object, and byte-compares it with the staged payload before Docker can
-read it. The root source mirror is `/var/lib/ks-production/source.git`; its
+`main` with a root-owned, read-only GitHub deploy key, requires the current
+trusted `ks` tree to equal the candidate, archives `ks/website` from the
+validated revision, and byte-compares it with the staged payload before Docker
+can read it. This deliberately permits an unrelated later repository commit
+when `ks/` itself has not changed. The root source mirror is
+`/var/lib/ks-production/source.git`; its
 key is `/root/.ssh/ks-production-source` and is separate from the GitHub
 Actions SSH key.
 

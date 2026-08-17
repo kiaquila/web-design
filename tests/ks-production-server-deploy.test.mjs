@@ -22,8 +22,10 @@ test("the server wrapper accepts only validated staged candidates", () => {
   assert.match(wrapper, /KS_PRODUCTION_DEPLOY_REGISTERED/);
   assert.match(wrapper, /KS_PRODUCTION_DEPLOY_SKIPPED/);
   assert.match(wrapper, /KS_PRODUCTION_DEPLOYED/);
-  assert.match(wrapper, /Requested revision is not the current trusted main tip/);
+  assert.match(wrapper, /Requested revision is absent from the trusted source mirror/);
   assert.match(wrapper, /Staged deployment payload does not match the trusted source revision/);
+  assert.match(wrapper, /Current trusted main ks tree differs from the registered candidate/);
+  assert.match(wrapper, /-g ksdeploy -m 0710/);
   assert.match(wrapper, /diff --recursive --brief --no-dereference/);
   assert.match(wrapper, /trap cleanup EXIT/);
   assert.match(wrapper, /rsync --archive --delete --chown=root:root "\$trusted_payload\//);
@@ -35,5 +37,6 @@ test("the deploy account is limited to the root-owned wrapper", () => {
   assert.match(installer, /NOPASSWD: \$wrapper_target \*/);
   assert.match(installer, /ks-production-source/);
   assert.match(installer, /git init --bare/);
+  assert.match(installer, /-g "\$deploy_user" -m 0710/);
   assert.doesNotMatch(installer, /docker \*/i);
 });

@@ -47,7 +47,9 @@ if [[ "$command" == "deploy" ]]; then
   [[ "$(stat -c '%U' "$staging_dir")" == "ksdeploy" ]] || fail "Staging directory owner must be ksdeploy."
 fi
 
-install -d -o root -g root -m 0700 "$(dirname "$state_file")"
+# ksdeploy needs traversal (not listing or reading) to create its staging child.
+# Root-owned source and state files remain inaccessible inside this parent.
+install -d -o root -g ksdeploy -m 0710 "$(dirname "$state_file")"
 exec 9>"$lock_file"
 flock --exclusive 9
 
@@ -96,10 +98,13 @@ fi
 GIT_SSH_COMMAND="ssh -i $source_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$source_known_hosts" \
   git --git-dir="$source_git_dir" fetch --force --no-tags origin \
   '+refs/heads/main:refs/remotes/origin/main'
-[[ "$(git --git-dir="$source_git_dir" rev-parse refs/remotes/origin/main)" == "$revision" ]] ||
-  fail "Requested revision is not the current trusted main tip."
+trusted_main="$(git --git-dir="$source_git_dir" rev-parse refs/remotes/origin/main)"
+git --git-dir="$source_git_dir" cat-file -e "$revision^{commit}" ||
+  fail "Requested revision is absent from the trusted source mirror."
+[[ "$(git --git-dir="$source_git_dir" rev-parse "$trusted_main:ks")" == "$ks_tree" ]] ||
+  fail "Current trusted main ks tree differs from the registered candidate."
 [[ "$(git --git-dir="$source_git_dir" rev-parse "$revision:ks")" == "$ks_tree" ]] ||
-  fail "Requested ks tree does not match the trusted revision."
+  fail "Requested revision ks tree does not match the registered candidate."
 
 trusted_payload="$(mktemp -d /var/lib/ks-production/trusted-payload.XXXXXX)"
 cleanup() {

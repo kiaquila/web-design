@@ -35,8 +35,10 @@ printf '%s\n' "$deploy_key" > "/home/$deploy_user/.ssh/authorized_keys"
 chown "$deploy_user:$deploy_user" "/home/$deploy_user/.ssh/authorized_keys"
 chmod 0600 "/home/$deploy_user/.ssh/authorized_keys"
 
+# ksdeploy can traverse this parent to its own 0700 staging directory, but it
+# cannot list it or read root-owned deployment state and source objects.
+install -d -o root -g "$deploy_user" -m 0710 "$(dirname "$source_git_dir")"
 install -d -o "$deploy_user" -g "$deploy_user" -m 0700 "$staging_dir"
-install -d -o root -g root -m 0700 "$(dirname "$source_git_dir")"
 if [[ ! -d "$source_git_dir" ]]; then
   git init --bare "$source_git_dir"
 fi
