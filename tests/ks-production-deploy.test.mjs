@@ -62,10 +62,11 @@ test("production credentials are isolated to the production environment", () => 
 test("production deploy verifies the revision, pages, cache purge, and asset hash", () => {
   assert.match(workflow, /KS_DESIGN_EXPECTED_REVISION: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /ks\/website\/production\/deploy\.sh/);
-  assert.match(workflow, /https:\/\/ks-design\.art\/en\//);
+  assert.match(workflow, /https:\/\/ks-design\.art\/es\//);
+  assert.doesNotMatch(workflow, /https:\/\/ks-design\.art\/en\//);
   assert.match(workflow, /purge_cache/);
   assert.match(workflow, /sha256sum ks\/website\/src\/js\/site\.js/);
-  assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/en/"));
+  assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/es/"));
 });
 
 test("required checks include every push gate and the PR-only Codex gate", () => {
