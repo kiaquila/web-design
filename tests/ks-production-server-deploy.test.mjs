@@ -45,7 +45,11 @@ test("the deploy account is limited to the root-owned wrapper", () => {
   assert.match(installer, /install -o root -g root -m 0755/);
   assert.match(installer, /NOPASSWD: \$wrapper_target \*/);
   assert.match(installer, /restrict,command=/);
-  assert.match(installer, /chown root:root "\/home\/\$deploy_user\/.ssh\/authorized_keys"/);
+  assert.match(
+    installer,
+    /chown root:"\$deploy_user" "\/home\/\$deploy_user\/.ssh\/authorized_keys"/
+  );
+  assert.match(installer, /chmod 0640 "\/home\/\$deploy_user\/.ssh\/authorized_keys"/);
   assert.match(installer, /ssh-command\.sh/);
   assert.match(installer, /ks-production-source/);
   assert.match(installer, /git init --bare/);

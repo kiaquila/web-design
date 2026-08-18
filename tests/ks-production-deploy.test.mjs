@@ -63,19 +63,29 @@ test("production deploy verifies the revision, pages, cache purge, and asset has
   assert.match(workflow, /KS_DESIGN_EXPECTED_REVISION: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /ks\/website\/production\/deploy\.sh/);
   assert.match(workflow, /https:\/\/ks-design\.art\/es\//);
-  assert.doesNotMatch(workflow, /https:\/\/ks-design\.art\/en\//);
+  assert.match(workflow, /https:\/\/ks-design\.art\/en\//);
   const spanishSmokeCheck = workflow
     .split("\n")
     .find((line) => line.includes("https://ks-design.art/es/"));
   assert.ok(spanishSmokeCheck);
   assert.doesNotMatch(spanishSmokeCheck, /--location/);
+  const legacyEnglishSmokeCheck = workflow
+    .split("\n")
+    .find((line) => line.includes("https://ks-design.art/en/"));
+  assert.ok(legacyEnglishSmokeCheck);
+  assert.doesNotMatch(legacyEnglishSmokeCheck, /--location/);
   const pageSmokeChecks = workflow.slice(
     workflow.indexOf('root_status="$('),
     workflow.indexOf('production_asset="$RUNNER_TEMP/production-site.js"')
   );
   assert.equal(pageSmokeChecks.match(/--write-out '%\{http_code\}'/g)?.length, 2);
+  assert.equal(pageSmokeChecks.match(/--write-out '%\{redirect_url\}'/g)?.length, 1);
   assert.match(pageSmokeChecks, /test "\$root_status" = "200"/);
   assert.match(pageSmokeChecks, /test "\$spanish_status" = "200"/);
+  assert.match(
+    pageSmokeChecks,
+    /test "\$legacy_english_redirect" = "https:\/\/ks-design\.art\/"/
+  );
   assert.match(workflow, /purge_cache/);
   assert.match(workflow, /sha256sum ks\/website\/src\/js\/site\.js/);
   assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/es/"));
