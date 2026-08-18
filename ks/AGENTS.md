@@ -1,8 +1,9 @@
 # AGENTS.md — KS
 
-Original selling landing for Kristina Aquila's web design practice. Bilingual
-(RU default, EN at `/en/`). Read [`README.md`](./README.md) first for the
-verified facts and the open items.
+Original selling landing for Kristina Aquila's web design practice. Bilingual:
+**English is the default and serves `/`**, Argentinian Spanish is at `/es/`, and
+the retired `/en/` prefix redirects to the root. Read
+[`README.md`](./README.md) first for the verified facts and the open items.
 
 ## Identity
 
@@ -19,12 +20,35 @@ rules, heavy tracked capitals. Everything below follows from that.
   chapter numerals, the pull quotes and the italic line in the contact band —
   nowhere else. Do not add a third family.
 - Headings are uppercase with open tracking (`0.06em`–`0.09em`), not tight
-  display type. Section labels are small caps sitting under a short black rule.
+  display type.
+- **A section is opened by its heading and nothing else.** The small-caps label
+  over a rule and the lead paragraph beneath both restated the heading, so all
+  three of them said one thing three times; the label and the lead are gone and
+  the `.eyebrow` rule with them. Do not reintroduce either — if a section needs
+  explaining, the heading is wrong. The one lead paragraph left on the site is
+  on the 404 page, which has no hierarchy to explain itself with.
+- **One call to action per screen.** "Start a project" belongs to the hero. The
+  header's top-right button is Contact, and the services head carries no button
+  at all; a test counts the hero's label and fails at two.
+- The language switch is two small words separated by a slash, the current one
+  underlined — printed, not app-like. Each is a 44px target and a plain link.
+- **Portfolio screenshots are shown at their own 8:5 proportion**, never cropped
+  and never stretched: a card that reframes the work is showing something the
+  client never designed. The shot sets no height and no `object-fit`. When the
+  slide is too short for the cards at that ratio, `.work-track` narrows them —
+  the container is left alone so the heading keeps the section's left edge.
+- The process numerals grow slightly on hover. Any motion added here stays at
+  that scale: a transform on one element, killed by `prefers-reduced-motion`.
 - The wordmark is **typography, not a mark**: `ks-design`, bold lowercase
   Manrope. There is no logo image; the old gradient monogram is gone and should
   not come back.
-- The footer carries three things in this order: copyright, location, and social
-  icons with no labels (LinkedIn, Telegram, Instagram).
+- The footer is **one horizontal row directly under the contact band**, and the
+  pair is anchored to the bottom of the last slide: copyright hard left, a pin
+  icon and the location centred on the page, social icons with no labels hard
+  right (LinkedIn, Telegram, Instagram). Its outer grid columns are `1fr` so the
+  middle one centres on the page rather than on the copyright. It carries no
+  rule on top — the black band above it already divides the page, and the band
+  must not be pushed away from it by a spacer row.
 - Tone: calm, concrete, premium. No urgency timers, no invented counters, no
   exclamation marks.
 
@@ -38,11 +62,13 @@ Below that it is an ordinary flowing document.
   `overflow: hidden`. A slide is exactly one screen whenever its content fits
   and grows instead of clipping when it does not — silently eating the last
   line of copy on a short laptop window is worse than a slide that scrolls.
-- The work slide sizes its screenshots from whatever height is left after the
-  heading and the card meta. That needs a real constraint to divide, so
-  `.work > .container` carries `max-height: calc(100svh - var(--header-h))`.
-  Without the cap the `1fr` row resolves to its max-content and the slide grows
-  past the screen. If you change that slide, re-measure rather than assume.
+- The work slide preserves each screenshot's 8:5 ratio by letting height follow
+  width. In deck mode, `.work-track` therefore caps its width from the viewport
+  height left after the header, container padding, heading and card meta:
+  `(100svh - var(--header-h) - 25rem) × 1.6 × 2`, plus the card gap. Cap the
+  track rather than `.work > .container`, so the cards narrow on short screens
+  while the heading keeps the same left edge as every other slide. If those
+  vertical allowances change, re-measure the `25rem` term rather than assume.
 - Entrance reveals are claimed by the script (`html.reveal-on`), never written
   into the markup. A visitor without JavaScript, or with reduced motion, gets
   every slide fully visible.
@@ -50,11 +76,18 @@ Below that it is an ordinary flowing document.
 ## Content
 
 - Source of truth is [`src/content.js`](./website/src/content.js). Every string
-  on the page comes from there, in both languages. A key that exists in one
-  language must exist in the other.
+  on the page comes from there, in every language. A key that exists in one
+  language must exist in all of them, and `languages` declares both the URL for
+  each locale and the order the switch renders in.
+- The years of experience are derived from `CAREER_START_YEAR`, never typed. A
+  literal number passes today and lies next January.
 - Do not invent facts, prices, testimonials, client names or dates. Kind Words
   is deliberately unfilled and must remain absent from published pages while
   its content is marked `todo`; see README.
+- A translation the owner has not signed off on is not final copy either. List
+  such a locale in `localesAwaitingReview` and the build names it on every run,
+  the way it names placeholder sections. The owner approved the current `es`
+  copy on 2026-08-17, so it is not on that list.
 - The years of experience are **derived** from `CAREER_START_YEAR`, never typed.
   Copy uses the `%YEARS%` placeholder. A test fails if the literal is hardcoded.
 - Approved external destinations are listed in `links`. A test rejects any other
@@ -94,8 +127,15 @@ Below that it is an ordinary flowing document.
   menu it cannot open. In that no-script case the header drops out of `fixed`
   and wraps, because four tracked links plus the wordmark and the language
   switch do not fit one 360px row.
-- **Every tap target is at least 44px**, including the language switch, the
-  footer social icons and the carousel arrows. A test measures the rules.
+- **Contact is reachable at every width and duplicated at none.** Above 900px
+  the solid header button carries it and `.nav-contact` is hidden; below 900px
+  the button is hidden and the collapsed menu carries it. The two rules are
+  exact mirrors and live side by side in `components.css` for that reason —
+  changing one without the other either loses Contact on phones or prints it
+  twice on desktop. A test asserts both rules exist.
+- **Every tap target is at least 44px**, including both language words, the
+  footer social icons and the carousel arrows. A test measures the rules. On
+  phones the header row's gaps shrink rather than the targets.
 - No external origins at all: no CDN, no analytics, no remote fonts or images.
   The Worker's CSP is `script-src 'self'` and there are no inline `<script>`
   elements — the test enforces both.
@@ -184,15 +224,17 @@ node scripts/check-repository.mjs
 npm --prefix ks/website run check
 ```
 
-Tests cover the client's wording, the price list, the bilingual contract
-(`hreflang`, no untranslated Russian in the English page), approved outbound
-links, local-only assets, the no-JavaScript guarantee, the achromatic palette,
-grey contrast against AA, the accessibility structure, and the script budget.
-Do not weaken a test to make a change pass.
+Tests cover the client's wording, the price list, the multilingual contract
+(English at `/` as `x-default`, `hreflang` for both, no untranslated Russian in
+either page, one `404.html` per locale, the `/en/` redirect), the
+one-meaning-per-section and one-CTA-per-screen rules, the footer row, the
+screenshots' fixed proportion, approved outbound links, local-only assets, the no-JavaScript guarantee,
+the achromatic palette, grey contrast against AA, the accessibility structure,
+and the script budget. Do not weaken a test to make a change pass.
 
-Visually: 360 px and 1280 px+, keyboard focus, the portrait swap on hover and on
-tap, the carousel at every breakpoint, `prefers-reduced-motion`, and a console
-with no errors.
+Visually: 360 px and 1280 px+, both locales, keyboard focus, the portrait
+swap on hover and on tap, the carousel at every breakpoint,
+`prefers-reduced-motion`, and a console with no errors.
 
 ### Two traps when verifying this project
 

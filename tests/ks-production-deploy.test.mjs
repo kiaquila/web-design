@@ -62,10 +62,23 @@ test("production credentials are isolated to the production environment", () => 
 test("production deploy verifies the revision, pages, cache purge, and asset hash", () => {
   assert.match(workflow, /KS_DESIGN_EXPECTED_REVISION: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /ks\/website\/production\/deploy\.sh/);
-  assert.match(workflow, /https:\/\/ks-design\.art\/en\//);
+  assert.match(workflow, /https:\/\/ks-design\.art\/es\//);
+  assert.doesNotMatch(workflow, /https:\/\/ks-design\.art\/en\//);
+  const spanishSmokeCheck = workflow
+    .split("\n")
+    .find((line) => line.includes("https://ks-design.art/es/"));
+  assert.ok(spanishSmokeCheck);
+  assert.doesNotMatch(spanishSmokeCheck, /--location/);
+  const pageSmokeChecks = workflow.slice(
+    workflow.indexOf('root_status="$('),
+    workflow.indexOf('production_asset="$RUNNER_TEMP/production-site.js"')
+  );
+  assert.equal(pageSmokeChecks.match(/--write-out '%\{http_code\}'/g)?.length, 2);
+  assert.match(pageSmokeChecks, /test "\$root_status" = "200"/);
+  assert.match(pageSmokeChecks, /test "\$spanish_status" = "200"/);
   assert.match(workflow, /purge_cache/);
   assert.match(workflow, /sha256sum ks\/website\/src\/js\/site\.js/);
-  assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/en/"));
+  assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/es/"));
 });
 
 test("required checks include every push gate and the PR-only Codex gate", () => {

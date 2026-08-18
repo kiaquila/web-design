@@ -100,54 +100,25 @@
   box-shadow: var(--shadow-lift);
 }
 
+/* The screenshots are 1200×750 and are shown at exactly that proportion: a
+   portfolio card that crops the work or stretches it is showing something the
+   client never designed. Height therefore follows width and is never set. */
 .work-shot img {
   width: 100%;
-  height: clamp(180px, 32svh, 430px);
-  object-fit: cover;
-  object-position: 50% 0;
+  height: auto;
   transition: transform var(--dur-slow) var(--ease);
 }
 
-/* On the deck the shot stops guessing its height and simply takes whatever the
-   slide has left after the heading and the card meta. That is what keeps this
-   slide exactly one screen at any window height instead of at the few the
-   clamp above happens to suit. */
+/* The slide still has to fit one screen, and with the proportion fixed the only
+   honest way to fit is to make the cards narrower — never shorter than their
+   own ratio. The cap is the height left once the header, the container padding,
+   the heading and the card meta have taken theirs; ×1.6 for the 8:5 ratio, ×2
+   for the two cards, plus the gap between them. The track is capped rather than
+   the container, so the heading keeps the section's own left edge and stays
+   aligned with every other slide. */
 @media (min-width: 900px) and (min-height: 660px) {
-  .work {
-    align-content: stretch;
-  }
-
-  /* The cap is what makes the `1fr` row mean anything: without a definite
-     height there is no free space to distribute, the row resolves to its
-     max-content, and the slide grows past the screen instead of the shot
-     shrinking to fit. */
-  .work > .container {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    align-content: center;
-    max-height: calc(100svh - var(--header-h));
-    padding-block: var(--space-lg);
-    min-height: 0;
-  }
-
-  .work-track,
-  .work-card,
-  .work-link {
-    min-height: 0;
-  }
-
-  .work-shot {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-
-  .work-shot img {
-    height: 100%;
-    min-height: 120px;
-  }
-
-  .work-meta {
-    padding-top: var(--space-sm);
+  .work-track {
+    max-width: calc((100svh - var(--header-h) - 25rem) * 1.6 * 2 + var(--space-md));
   }
 
   /* Two lines on the deck: the summary is a teaser next to the shot, and the
@@ -232,9 +203,21 @@
   gap: var(--space-lg);
 }
 
+/* Answers a pointer the way the work and service cards do: the whole item
+   lifts 4px. The step has no panel to shade, so its own hairline takes the
+   place of the card's shadow — an inset rule doubles it to 2px without the
+   layout shift a thicker border would cause. */
 .step {
   padding-top: var(--space-md);
   border-top: 1px solid var(--ink);
+  transition: transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.step:hover,
+.step:focus-within {
+  transform: translateY(-4px);
+  box-shadow: inset 0 1px 0 var(--ink);
 }
 
 .step-number {
@@ -247,8 +230,24 @@
   color: var(--ink);
   /* The elongation: stretched vertically like condensed folio numerals. */
   transform: scaleY(1.18);
+  /* Anchored top-left so growing on hover pushes the numeral into the step's
+     own margin rather than shifting the title under it. */
   transform-origin: top left;
+  transition: transform var(--dur) var(--ease);
   user-select: none;
+}
+
+/* The numeral grows a little on top of the lift, so the eye lands on the step's
+   own mark. Reduced motion switches every transition off wholesale in
+   base.css. */
+.step:hover .step-number,
+.step:focus-within .step-number {
+  transform: scaleY(1.18) scale(1.07);
+}
+
+.step:hover .step-text,
+.step:focus-within .step-text {
+  color: var(--ink);
 }
 
 .step-title {
@@ -304,15 +303,18 @@
 
 .service-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-md);
 }
 
-/* The package card: square, rounded, frosted. */
+/* The package card: rounded and frosted, its height set by its width. Three
+   packages make each column half again as wide as four did, and a square at
+   that width opened a hand's width of empty glass between the description and
+   the price — so the ratio is landscape now. */
 .service-card {
   display: flex;
   flex-direction: column;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 4 / 3;
   padding: var(--space-md);
   border-radius: var(--radius-lg);
   background: var(--glass);
@@ -345,7 +347,7 @@
   line-height: 1.5;
 }
 
-/* Pinned to the bottom edge: the four prices then line up across the row
+/* Pinned to the bottom edge: the three prices then line up across the row
    whatever length each description happens to be. */
 .service-price {
   margin-top: auto;
@@ -361,10 +363,6 @@
   margin-top: var(--space-md);
   color: var(--ink-mute);
   font-size: var(--step-small);
-}
-
-.section-cta {
-  flex-shrink: 0;
 }
 
 @media (max-width: 1023px) {
@@ -471,20 +469,19 @@
 
 /* --- contact ----------------------------------------------------------------- */
 
-/* Last slide: the band centred in the space above, the footer pinned to the
-   slide's bottom. `align-content: stretch` overrides the deck's centring so
-   the 1fr row actually absorbs the leftover height. */
+/* Last slide: the band and the footer are one block, closing the page at its
+   bottom edge. Centring them left a field of white under the footer that read
+   as an unfinished page; anchoring the pair to the end puts the footer where a
+   footer belongs and gives the band the air above it instead. */
 .contact {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  align-content: stretch;
+  grid-template-rows: auto auto;
+  align-content: end;
   padding-bottom: 0;
 }
 
 .contact-middle {
   display: grid;
-  align-content: center;
-  min-height: 0;
 }
 
 /* The band runs edge to edge — one printed stripe across the page. */
@@ -584,6 +581,26 @@
   margin-top: var(--space-lg);
 }
 
-.not-found + .site-footer .footer-inner {
+/* The error page carries only the copyright, on a page whose every line is
+   centred — and it has no black band above to divide it from the copy, so here
+   the hairline rule stays. */
+main + .site-footer .footer-inner {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
   border-top: 1px solid var(--line);
+}
+
+/* Keep the process emphasis without moving either the card or its numeral for
+   visitors who have asked the system to reduce motion. This override belongs
+   in the final stylesheet layer so it wins over the interaction rules above. */
+@media (prefers-reduced-motion: reduce) {
+  .step:hover,
+  .step:focus-within {
+    transform: none;
+  }
+
+  .step:hover .step-number,
+  .step:focus-within .step-number {
+    transform: scaleY(1.18);
+  }
 }

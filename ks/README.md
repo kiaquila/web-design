@@ -4,15 +4,21 @@ Bilingual selling landing page for Kristina Aquila's web design practice. It is
 an original design rather than a redesign: the business, the offer and the
 copy are the owner's own.
 
+English is the default and is served at
+[ks-design.art](https://ks-design.art); Argentinian Spanish is at `/es/`. The
+old `/en/` prefix redirects permanently to the root.
+
 The page is a **deck**: six sections, each one screen tall on desktop, scrolling
-with snap points. On phones it is an ordinary flowing document.
+with snap points. On phones it is an ordinary flowing document. Each section is
+opened by its heading and nothing else — the label above it and the lead
+paragraph under it repeated what the heading already said.
 
 1. Hero — headline and the portrait with its hover state
-2. Selected projects
+2. Selected projects — screenshots at their own 8:5 proportion
 3. Process — `01`–`04`
-4. Services — four package cards
+4. Services — three package cards
 5. Kind Words
-6. Get in touch — full-width band, then the footer
+6. Get in touch — full-width band, then the footer directly under it
 
 Implementation lives in `website/`: static HTML/CSS/JS with no framework.
 The customer stage remains on Cloudflare Workers; production is
@@ -32,6 +38,11 @@ fades into the fixed calm neck without a double contour, clothing leak or drift.
 Immediately outside that single jaw line, the hover frame must read as clean
 calm-frame background rather than a face-coloured halo or triangular matte.
 
+A second open-mouth exposure from the same shoot was measured against this pair
+and rejected; it is kept with the reasoning in
+[`source-assets/hover-candidates/`](./source-assets/hover-candidates). The
+published composite stays.
+
 ## Source of truth
 
 | Item | Value | Source |
@@ -43,6 +54,7 @@ calm-frame background rather than a face-coloured halo or triangular matte.
 | LinkedIn | [kiaquila](https://www.linkedin.com/in/kiaquila) | client |
 | Instagram | [ks_aquila](https://www.instagram.com/ks_aquila) | client |
 | In web development since | 2017 | client |
+| Argentinian Spanish translation | Current `/es/` copy | client-approved on 2026-08-17 |
 
 Every string lives in [`website/src/content.js`](./website/src/content.js).
 Nothing on the page is written anywhere else.
@@ -55,8 +67,11 @@ Quoted by the client, in US dollars:
 | --- | --- |
 | Landing page | 500 |
 | Website, 5+ pages | 1 500 |
-| Menu build | 100 for the first page, 20 per additional page |
-| Dish photo retouching | 50 per 10 dishes |
+| Illustrations | from 25 per image |
+
+Menu build and dish photo retouching were on this list and have been taken off
+it. The Chaijaná case study still says a menu and its dish photography were
+part of that project, which is a record of work done rather than an offer.
 
 ### Portfolio entries
 
@@ -85,8 +100,9 @@ screenshots of those stages, regenerated with the command in
 
 ## Production hosting
 
-The production origin is `https://ks-design.art`; `www.ks-design.art` redirects
-to it. Spaceship DNS points the apex to the server's public IPv4 and IPv6
+The production origin is `https://ks-design.art`, which serves the English
+page; `www.ks-design.art` redirects to it, and so does the retired `/en/`
+prefix. Spaceship DNS points the apex to the server's public IPv4 and IPv6
 addresses and aliases `www` to the apex. The server layout and repeatable
 deployment procedure live in [`website/production/`](./website/production/).
 

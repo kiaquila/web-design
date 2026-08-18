@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Verifies the built site: the client's own wording, the bilingual contract,
+/* Verifies the built site: the client's own wording, the multilingual contract,
    self-contained assets, and the accessibility guarantees the design depends
    on. Everything here reads dist/, so it tests what actually ships. */
 
@@ -13,12 +13,19 @@ import {
   CAREER_START_YEAR,
   content,
   experienceYears,
+  languages,
   links,
+  localesAwaitingReview,
   ogImages
 } from "../src/content.js";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = join(root, "dist");
+
+/** English first, because English is what `/` serves. */
+const LOCALES = Object.keys(languages);
+/** Every rendered document, including the error page that reuses the header. */
+const DOCUMENTS = [...LOCALES, "notFound"];
 
 const pages = {};
 let css = "";
@@ -48,9 +55,15 @@ const stripTags = (html) =>
 /** CSS with comments removed, for rules that ask "which selectors do X". */
 const withoutComments = (source) => source.replace(/\/\*[\s\S]*?\*\//g, "");
 
+/** Where each language's document lands in dist/. */
+const documentPath = (lang, file) =>
+  languages[lang].path === "/" ? file : join(languages[lang].path.slice(1), file);
+
 before(async () => {
-  pages.ru = await readFile(join(dist, "index.html"), "utf8");
-  pages.en = await readFile(join(dist, "en/index.html"), "utf8");
+  for (const lang of LOCALES) {
+    pages[lang] = await readFile(join(dist, documentPath(lang, "index.html")), "utf8");
+  }
+  /* The root 404 answers the default language, which is now English. */
   pages.notFound = await readFile(join(dist, "404.html"), "utf8");
   css = await readFile(join(dist, "assets/styles.css"), "utf8");
   ogGenerator = await readFile(join(root, "scripts/make-og.mjs"), "utf8");
@@ -80,21 +93,29 @@ before(async () => {
     join(root, "production/install-edge.sh"),
     "utf8"
   );
-  for (const key of ["ru", "en", "notFound"]) {
+  for (const key of DOCUMENTS) {
     pages[`${key}Text`] = stripTags(pages[key]);
   }
 });
 
 /* --- the client's wording ------------------------------------------------- */
 
-test("the hero carries the approved headline in both languages", () => {
-  assert.match(pages.ruText, /Сделаю вам дизайн, который вовлекает/);
-  assert.match(pages.ruText, /И вас точно запомнят и захотят вернуться\./);
+test("the hero carries the approved headline in every language", () => {
   assert.match(pages.enText, /I'll design something that pulls people in/);
+  assert.match(pages.esText, /Te hago un diseño que atrapa/);
+  /* The subtitle is a single line with no full stop — it is a caption under the
+     headline, not a sentence in a paragraph. */
+  assert.match(pages.enText, /The kind of work people remember — and come back to(?!\.)/);
+  for (const lang of LOCALES) {
+    assert.ok(
+      !content[lang].hero.subtitle.endsWith("."),
+      `${lang}: the hero subtitle must not end in a full stop`
+    );
+  }
 });
 
 test("every process step appears in order", () => {
-  for (const lang of ["ru", "en"]) {
+  for (const lang of LOCALES) {
     const text = pages[`${lang}Text`];
     let cursor = -1;
     for (const step of content[lang].process.steps) {
@@ -108,8 +129,8 @@ test("every process step appears in order", () => {
 
 test("the price list is rendered exactly as quoted", () => {
   const expected = {
-    ru: ["500 USD", "1 500 USD", "100 USD", "50 USD"],
-    en: ["USD 500", "USD 1,500", "USD 100", "USD 50"]
+    en: ["USD 500", "USD 1,500", "from USD 25"],
+    es: ["USD 500", "USD 1.500", "desde USD 25"]
   };
   for (const [lang, prices] of Object.entries(expected)) {
     for (const price of prices) {
@@ -118,31 +139,51 @@ test("the price list is rendered exactly as quoted", () => {
         `${lang}: price ${price} is missing from the page`
       );
     }
+    /* Three packages, no more: a fourth card was the menu build, which the
+       owner has taken off the price list. */
+    assert.equal(content[lang].services.items.length, 3);
   }
-  /* The menu tiers are a rate plus a per-extra-page rate; both numbers have to
-     survive, not just the headline one. */
-  assert.match(pages.ruText, /20 USD за каждую следующую/);
-  assert.match(pages.enText, /USD 20 for each additional/);
+});
+
+test("the retired packages are gone from the price list", () => {
+  /* Menu layout and dish retouching are no longer sold from this page. The
+     Chaijaná case study still describes them as work that was done, which is a
+     different claim, so only the service names are checked. */
+  for (const lang of LOCALES) {
+    for (const item of content[lang].services.items) {
+      assert.doesNotMatch(item.name, /меню|menu|menú|блюд|dish|plato/i);
+    }
+  }
 });
 
 test("the years of experience are derived, never hardcoded", () => {
   const years = new Date().getUTCFullYear() - CAREER_START_YEAR;
   assert.equal(experienceYears(), years);
   assert.ok(
-    pages.ruText.includes(`${years} лет в вебе`),
+    pages.enText.includes(`${years} years of web development experience`),
     `expected the page to state ${years} years`
   );
   /* A literal "9" in the source would pass today and lie next January. */
-  const yearsStat = content.ru.hero.portraitStats.find((stat) =>
-    stat.label.includes("лет в вебе")
-  );
-  assert.equal(yearsStat.value, "%YEARS%");
+  for (const lang of LOCALES) {
+    const yearsStat = content[lang].hero.portraitStats[0];
+    assert.equal(yearsStat.value, "%YEARS%");
+  }
+});
+
+test("the hover panel carries only the sourced experience claim", () => {
+  for (const lang of LOCALES) {
+    const stats = content[lang].hero.portraitStats;
+    assert.equal(stats.length, 1, `${lang}: the panel must carry one sourced claim`);
+    assert.equal(stats[0].value, "%YEARS%");
+    const panel = pages[lang].match(/<div class="portrait-stats">[\s\S]*?<\/div>\s*<\/div>/)[0];
+    assert.doesNotMatch(panel, /<span class="stat-label"><\/span>/);
+  }
 });
 
 test("placeholder testimonials stay out of the published pages", () => {
   /* Kind Words remains in the content model for later client-approved copy,
      but a todo block must never render in a customer-facing build. */
-  for (const lang of ["ru", "en"]) {
+  for (const lang of LOCALES) {
     const block = content[lang].kindWords;
     if (!block.todo) {
       assert.ok(
@@ -156,40 +197,122 @@ test("placeholder testimonials stay out of the published pages", () => {
   }
 });
 
-/* --- the bilingual contract ------------------------------------------------ */
+/* --- one meaning per section ------------------------------------------------ */
 
-test("each page declares its own language and links the other one", () => {
-  assert.match(pages.ru, /<html lang="ru">/);
-  assert.match(pages.en, /<html lang="en">/);
-
-  for (const key of ["ru", "en"]) {
-    assert.match(pages[key], /<link rel="alternate" hreflang="ru" href="[^"]+\/">/);
-    assert.match(pages[key], /<link rel="alternate" hreflang="en" href="[^"]+\/en\/">/);
-    assert.match(pages[key], /hreflang="x-default"/);
+test("each section is opened by its heading alone", () => {
+  /* The label above the heading and the lead paragraph under it repeated what
+     the heading already said, so a section head now holds one element: the
+     heading, plus the carousel arrows on the work slide. */
+  for (const lang of LOCALES) {
+    assert.doesNotMatch(pages[lang], /class="eyebrow"/);
+    assert.doesNotMatch(pages[lang], /class="section-intro"/);
+    for (const [, head] of pages[lang].matchAll(
+      /<div class="section-head">([\s\S]*?)<\/div>\s*<(?:ul|ol)/g
+    )) {
+      const paragraphs = head.match(/<p\b/g) ?? [];
+      assert.deepEqual(paragraphs, [], `${lang}: a section head still carries copy`);
+    }
   }
-  assert.match(pages.ru, /<link rel="canonical" href="[^"]+\/">/);
-  assert.match(pages.en, /<link rel="canonical" href="[^"]+\/en\/">/);
-  for (const key of ["ru", "en", "notFound"]) {
+  /* The one place a lead paragraph survives is the error page, which has no
+     heading hierarchy to explain itself with. */
+  assert.match(pages.notFound, /class="section-intro"/);
+});
+
+test("the only call to action per screen is the hero's", () => {
+  /* "Start a project" appeared in the header, the hero and the services head at
+     once. The header now offers Contact and the services head offers nothing,
+     so the button appears exactly once on the page. */
+  for (const lang of LOCALES) {
+    const cta = content[lang].hero.primary;
+    const occurrences = pages[`${lang}Text`].split(cta).length - 1;
+    assert.equal(occurrences, 1, `${lang}: "${cta}" appears ${occurrences} times`);
+    assert.doesNotMatch(pages[lang], /class="btn btn-solid section-cta"/);
+  }
+});
+
+test("Contact is reachable at every width and duplicated at none", () => {
+  /* Above 900px the solid header button carries Contact and the nav row hides
+     its own copy; below it the button is hidden and the collapsed menu carries
+     it. The two rules are mirrors, so exactly one is visible at any width. */
+  const clean = withoutComments(css);
+  assert.match(
+    clean,
+    /@media \(max-width: 899px\) \{\s*\.header-cta \{\s*display: none;/
+  );
+  assert.match(
+    clean,
+    /@media \(min-width: 900px\) \{\s*\.nav-contact \{\s*display: none;/
+  );
+  for (const lang of LOCALES) {
+    assert.ok(pages[lang].includes('<li class="nav-contact">'));
+    assert.ok(
+      pages[lang].includes(
+        `<a class="btn btn-solid btn-compact header-cta" href="#contact">${content[lang].nav.contact}</a>`
+      ),
+      `${lang}: the header button must lead to the contact section`
+    );
+  }
+});
+
+/* --- the multilingual contract --------------------------------------------- */
+
+test("English is the default and Spanish is the prefixed second locale", () => {
+  assert.deepEqual(Object.keys(languages), ["en", "es"]);
+  assert.deepEqual(localesAwaitingReview, []);
+  assert.equal(languages.en.path, "/");
+  assert.equal(languages.es.path, "/es/");
+  assert.match(pages.en, /<html lang="en">/);
+  assert.match(pages.es, /<html lang="es">/);
+});
+
+test("each page declares its own language and links the others", () => {
+  for (const key of LOCALES) {
+    assert.match(pages[key], /<link rel="alternate" hreflang="en" href="[^"]+\/">/);
+    assert.match(pages[key], /<link rel="alternate" hreflang="es" href="[^"]+\/es\/">/);
+    /* x-default must be the page an unmatched visitor gets, which is now the
+       English document at the origin root. */
+    assert.match(pages[key], /<link rel="alternate" hreflang="x-default" href="[^"]+\/">/);
+  }
+  assert.match(pages.en, /<link rel="canonical" href="[^"]+\/">/);
+  assert.match(pages.es, /<link rel="canonical" href="[^"]+\/es\/">/);
+  for (const key of DOCUMENTS) {
     assert.match(pages[key], /https:\/\/ks-design\.art\//);
     assert.doesNotMatch(pages[key], /ks\.ks-design\.workers\.dev/);
   }
 });
 
-test("the language switch is a plain link, so it works without scripts", () => {
-  assert.match(pages.ru, /<a href="\/en\/" hreflang="en" lang="en">EN<\/a>/);
-  assert.match(pages.en, /<a href="\/" hreflang="ru" lang="ru">RU<\/a>/);
-  assert.match(pages.ru, /<span class="lang-current" aria-current="true">RU<\/span>/);
+test("the language switch is plain links, so it works without scripts", () => {
+  const cell = (lang, code) => {
+    const label = content[lang].langSwitch[code];
+    return code === lang
+      ? `<span class="lang-current" aria-current="true">${label}</span>`
+      : `<a href="${languages[code].path}" hreflang="${code}" lang="${code}">${label}</a>`;
+  };
+  for (const lang of LOCALES) {
+    for (const code of LOCALES) {
+      assert.ok(
+        pages[lang].includes(cell(lang, code)),
+        `${lang}: the switch is missing its ${code} cell`
+      );
+    }
+    /* Exactly one cell may claim to be the current language. */
+    assert.equal((pages[lang].match(/aria-current="true"/g) ?? []).length, 1);
+  }
 });
 
-test("no language leaks into the other page's document", () => {
-  /* A Cyrillic word in the English document means a key was never translated.
-     Brand names and the @handle are Latin, so this is a safe blanket check. */
-  const cyrillic = pages.enText.match(/[А-Яа-яЁё]+/g) ?? [];
-  assert.deepEqual(
-    cyrillic.filter((word) => word !== "ИИ" && word !== "по" && word !== "делу"),
-    [],
-    `untranslated Russian in the English page: ${cyrillic.join(", ")}`
-  );
+test("no language leaks into another page's document", () => {
+  /* Cyrillic anywhere means a key was never translated. Brand names are Latin,
+     so this is a safe blanket check — the one exception is the Alex Neon
+     landing's own Russian title, quoted as the name of the thing that was
+     redesigned. */
+  for (const lang of LOCALES) {
+    const cyrillic = pages[`${lang}Text`].match(/[А-Яа-яЁё]+/g) ?? [];
+    assert.deepEqual(
+      cyrillic.filter((word) => !["ИИ", "по", "делу"].includes(word)),
+      [],
+      `untranslated Russian in the ${lang} page: ${cyrillic.join(", ")}`
+    );
+  }
 });
 
 /* --- self-contained ---------------------------------------------------------- */
@@ -205,7 +328,7 @@ test("the only external links are the approved destinations", () => {
     ].map((url) => new URL(url).origin)
   );
 
-  for (const key of ["ru", "en", "notFound"]) {
+  for (const key of DOCUMENTS) {
     for (const [, url] of pages[key].matchAll(/(?:href|src)="(https?:\/\/[^"]+)"/g)) {
       const { origin } = new URL(url);
       /* Canonical and og:url point at this site's own origin. */
@@ -219,7 +342,7 @@ test("fonts, images and scripts are all served from this origin", async () => {
   for (const [, url] of css.matchAll(/url\("([^"]+)"\)/g)) {
     assert.ok(url.startsWith("/assets/"), `stylesheet reaches outside dist: ${url}`);
   }
-  for (const key of ["ru", "en"]) {
+  for (const key of LOCALES) {
     for (const [, src] of pages[key].matchAll(/<(?:img|script)[^>]+src="([^"]+)"/g)) {
       assert.ok(src.startsWith("/assets/"), `${key}: non-local asset ${src}`);
     }
@@ -233,7 +356,7 @@ test("fonts, images and scripts are all served from this origin", async () => {
 });
 
 test("no inline script survives, so the worker can keep script-src 'self'", () => {
-  for (const key of ["ru", "en", "notFound"]) {
+  for (const key of DOCUMENTS) {
     const inline = pages[key].match(/<script(?![^>]*\bsrc=)[^>]*>/g) ?? [];
     assert.deepEqual(inline, [], `${key}: inline <script> would break the CSP`);
   }
@@ -242,7 +365,7 @@ test("no inline script survives, so the worker can keep script-src 'self'", () =
 /* --- structure and accessibility ---------------------------------------------- */
 
 test("each page has exactly one h1", () => {
-  for (const key of ["ru", "en", "notFound"]) {
+  for (const key of DOCUMENTS) {
     const h1s = pages[key].match(/<h1\b/g) ?? [];
     assert.equal(h1s.length, 1, `${key}: expected one h1, found ${h1s.length}`);
   }
@@ -253,7 +376,7 @@ test("every in-page anchor resolves to a section that exists", () => {
      `#work` there points at an id the error page does not have, so the whole
      navigation would silently do nothing. Its anchors must be qualified with
      the home path instead. */
-  for (const key of ["ru", "en", "notFound"]) {
+  for (const key of DOCUMENTS) {
     const html = pages[key];
     const anchors = [...html.matchAll(/<a[^>]+href="#([a-z-]+)"/g)].map((m) => m[1]);
     for (const id of new Set(anchors)) {
@@ -265,7 +388,7 @@ test("every in-page anchor resolves to a section that exists", () => {
   }
 
   /* The landing pages must still carry the real in-page navigation. */
-  for (const key of ["ru", "en"]) {
+  for (const key of LOCALES) {
     assert.ok(
       [...pages[key].matchAll(/<a[^>]+href="#([a-z-]+)"/g)].length >= 4,
       `${key}: expected the section anchors to be in-page links`
@@ -275,7 +398,7 @@ test("every in-page anchor resolves to a section that exists", () => {
 });
 
 test("the portrait exposes one person, not two images", () => {
-  for (const key of ["ru", "en"]) {
+  for (const key of LOCALES) {
     const start = pages[key].indexOf('<div class="portrait"');
     const statsAt = pages[key].indexOf('<div class="portrait-stats"');
     assert.ok(start !== -1, `${key}: portrait is missing`);
@@ -297,15 +420,15 @@ test("the portrait exposes one person, not two images", () => {
     const statsBlock = pages[key].slice(statsAt, pages[key].indexOf("</section>", statsAt));
     for (const stat of content[key].hero.portraitStats) {
       assert.ok(
-        statsBlock.includes(stat.label),
-        `${key}: stat "${stat.label}" is missing from the panel`
+        statsBlock.includes(stat.label ?? stat.value),
+        `${key}: stat "${stat.label ?? stat.value}" is missing from the panel`
       );
     }
   }
 });
 
 test("the carousel buttons have accessible names and start hidden", () => {
-  for (const key of ["ru", "en"]) {
+  for (const key of LOCALES) {
     const controls = pages[key].match(
       /<div class="carousel-controls"[\s\S]*?<\/div>/
     )[0];
@@ -317,12 +440,105 @@ test("the carousel buttons have accessible names and start hidden", () => {
 });
 
 test("the page still works with scripts disabled", () => {
-  for (const key of ["ru", "en"]) {
+  for (const key of LOCALES) {
     /* Nothing may be hidden in the markup waiting to be revealed: the nav is
        collapsed by the script, not by the document. */
     assert.ok(!/<nav class="site-nav"[^>]*\bdata-collapsed/.test(pages[key]));
     assert.ok(!/<nav class="site-nav"[^>]*\bhidden/.test(pages[key]));
   }
+});
+
+test("the footer is one horizontal row under the contact band", () => {
+  /* Copyright left, location centred, icons right. The outer columns are `1fr`
+     so the middle one is centred on the page rather than on the copyright, and
+     the rule that used to sit on top is gone — the black band above it already
+     divides the page. */
+  const clean = withoutComments(css);
+  const rule = clean.match(/\.footer-inner \{[^}]*\}/);
+  assert.ok(rule, "the footer rule is missing");
+  assert.match(rule[0], /grid-template-columns: 1fr auto 1fr/);
+  assert.ok(
+    !/border-top/.test(rule[0]),
+    "the footer must not carry a rule between itself and the band"
+  );
+  /* The error page has no band above it, so there the hairline stays. */
+  assert.match(
+    clean,
+    /main \+ \.site-footer \.footer-inner \{[^}]*border-top/
+  );
+  /* And the contact slide must not reserve a spacer row that pushes the footer
+     away from the band it belongs under, nor leave a field of white below the
+     footer: the pair closes the page at its bottom edge. */
+  const contact = clean.match(/(?:^|\})\s*\.contact \{[^}]*\}/)[0];
+  assert.doesNotMatch(contact, /1fr/);
+  assert.match(contact, /align-content:\s*end/);
+});
+
+test("the work previews are shown at the screenshots' own proportion", async () => {
+  /* Every card image in assets/work is 1200×750. The card must neither crop it
+     nor stretch it, so the frame sets no height and no object-fit — height
+     follows width, and the ratio is the file's own. */
+  const shots = await readdir(join(dist, "assets/work"));
+  assert.ok(shots.length > 0);
+
+  const clean = withoutComments(css);
+  const rule = clean.match(/\.work-shot img \{[^}]*\}/);
+  assert.ok(rule, "the work shot rule is missing");
+  assert.match(rule[0], /height:\s*auto/);
+  assert.ok(!/object-fit/.test(rule[0]), "a fitted image is a cropped image");
+  assert.ok(
+    !/aspect-ratio|min-height|max-height/.test(rule[0]),
+    "the shot must take its proportion from the file, not from CSS"
+  );
+
+  /* On the deck the slide still fits one screen — by narrowing the cards, never
+     by shortening them out of ratio. */
+  assert.match(clean, /\.work-track \{\s*max-width: calc\(\(100svh/);
+});
+
+test("switching language keeps the reader in the same section", () => {
+  /* The hrefs in the markup stay the plain locale paths — the switch is a link
+     first — and the script appends the current slide's id when the reader
+     reaches for it. Binding to pointerdown and focusin as well as click is what
+     makes a middle-click and a keyboard activation carry the section too, and
+     what keeps it working in a tab whose animation frames are suspended. */
+  for (const lang of LOCALES) {
+    for (const other of LOCALES.filter((code) => code !== lang)) {
+      assert.ok(
+        pages[lang].includes(`<a href="${languages[other].path}"`),
+        `${lang}: the switch must ship the plain ${other} path`
+      );
+    }
+    assert.doesNotMatch(pages[lang], /<a href="\/[^"]*#[a-z-]+" hreflang=/);
+  }
+  assert.match(siteScript, /const langSwitch = document\.querySelector\("\.lang-switch"\)/);
+  assert.match(
+    siteScript,
+    /for \(const type of \["pointerdown", "focusin", "click"\]\)/
+  );
+  /* And the arrival: the browser's own fragment scroll is animated by the
+     root's smooth behaviour, so the landing is repeated without it. */
+  assert.match(siteScript, /root\.style\.scrollBehavior = "auto";/);
+  assert.match(siteScript, /addEventListener\("load", land\);/);
+  /* The fragment is matched against the page's own slides, never handed to a
+     selector, so a hand-typed hash cannot become one. */
+  assert.ok(
+    !/querySelector\(location\.hash/.test(siteScript),
+    "the fragment must not be used as a selector"
+  );
+});
+
+test("the process numerals answer a pointer", () => {
+  /* A light hover on the chapter numeral, layered on top of the elongation it
+     already carries so the figure grows instead of un-stretching. Reduced
+     motion kills the transition wholesale in base.css. */
+  const clean = withoutComments(css);
+  assert.match(clean, /\.step-number \{[^}]*transition:\s*transform/);
+  const hover = clean.match(
+    /\.step:hover \.step-number,\s*\.step:focus-within \.step-number \{[^}]*\}/
+  );
+  assert.ok(hover, "the step hover rule is missing");
+  assert.match(hover[0], /transform:\s*scaleY\(1\.18\) scale\(1\.0[0-9]\)/);
 });
 
 test("every grey that carries text clears AA on white", () => {
@@ -342,15 +558,15 @@ test("every grey that carries text clears AA on white", () => {
     return found[1];
   };
 
-  /* These three are set on eyebrows, labels, notes, prices and roles. */
+  /* These three are set on labels, notes, prices and roles. */
   for (const name of ["--ink", "--ink-soft", "--ink-mute"]) {
     const ratio = contrast(token(name));
     assert.ok(ratio >= 4.5, `${name} is ${ratio.toFixed(2)}:1 on white, below AA`);
   }
 
   /* --ink-faint is far below AA by design, so it may only ever be ornament:
-     the quote glyph and the aria-hidden slash between the language links.
-     If it lands on real text this fails and the token has to be darkened. */
+     the quote glyph and the hairline between the language cells. If it lands on
+     real text this fails and the token has to be darkened. */
   const faintUsers = [
     ...withoutComments(css).matchAll(/([^{}]+)\{[^}]*var\(--ink-faint\)[^}]*\}/g)
   ].map((m) => m[1].trim());
@@ -450,6 +666,15 @@ test("every touch target clears 44 px", () => {
 test("focus is visible and motion can be turned off", () => {
   assert.match(css, /:focus-visible\s*\{/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+  const clean = withoutComments(css);
+  assert.match(
+    clean,
+    /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.step:hover,\s*\.step:focus-within\s*\{\s*transform:\s*none/
+  );
+  assert.match(
+    clean,
+    /\.step:hover \.step-number,\s*\.step:focus-within \.step-number\s*\{\s*transform:\s*scaleY\(1\.18\)/
+  );
 });
 
 test("the stylesheet layers are concatenated in the declared order", () => {
@@ -481,10 +706,10 @@ test("the palette stays fully achromatic", () => {
 /* --- delivery ------------------------------------------------------------------ */
 
 test("each language gets its own 404 page", async () => {
-  /* Workers Static Assets walks up to the nearest 404.html, so an English
-     visitor hitting a missing /en/ URL must not be answered in Russian. */
-  const englishNotFound = await readFile(join(dist, "en/404.html"), "utf8");
-  for (const [page, lang] of [[pages.notFound, "ru"], [englishNotFound, "en"]]) {
+  /* Workers Static Assets walks up to the nearest 404.html, so a visitor
+     hitting a missing /es/ URL must not be answered in English. */
+  for (const lang of LOCALES) {
+    const page = await readFile(join(dist, documentPath(lang, "404.html")), "utf8");
     assert.match(page, /<meta name="robots" content="noindex">/);
     assert.match(page, new RegExp(`<html lang="${lang}">`));
     assert.ok(
@@ -495,36 +720,39 @@ test("each language gets its own 404 page", async () => {
 });
 
 test("each language gets its own social card", async () => {
-  /* Sharing /en/ with a card carrying the Russian headline is a
+  /* Sharing one page with a card carrying another language's headline is a
      mixed-language preview. */
-  assert.notEqual(ogImages.ru, ogImages.en);
-  assert.match(pages.ru, new RegExp(`og:image" content="[^"]+/assets/${ogImages.ru}"`));
-  assert.match(pages.en, new RegExp(`og:image" content="[^"]+/assets/${ogImages.en}"`));
-  for (const file of Object.values(ogImages)) {
-    const info = await stat(join(dist, "assets", file));
-    assert.ok(info.isFile(), `${file} is referenced but not built`);
+  assert.equal(new Set(Object.values(ogImages)).size, LOCALES.length);
+  for (const lang of LOCALES) {
+    assert.match(
+      pages[lang],
+      new RegExp(`og:image" content="[^"]+/assets/${ogImages[lang]}"`)
+    );
+    const info = await stat(join(dist, "assets", ogImages[lang]));
+    assert.ok(info.isFile(), `${ogImages[lang]} is referenced but not built`);
   }
 });
 
 test("the social-card renderer embeds both Manrope subsets", () => {
   /* The Cyrillic file contains only isolated Latin glyphs. Without the Latin
-     face, the English card and the `ks-design` wordmark silently use a system
-     fallback even though the Russian headline appears correct. */
+     face, the English and Spanish cards and the `ks-design` wordmark silently
+     use a system fallback even though the Russian headline appears correct. */
   assert.match(ogGenerator, /assets\/fonts\/manrope-cyrillic\.woff2/);
   assert.match(ogGenerator, /assets\/fonts\/manrope-latin\.woff2/);
   assert.match(ogGenerator, /unicode-range:\s*U\+0301,\s*U\+0400-045F/);
   assert.match(ogGenerator, /unicode-range:\s*U\+0000-00FF/);
 });
 
-test("robots.txt and the sitemap list both languages", async () => {
+test("robots.txt and the sitemap list every language", async () => {
   const robots = await readFile(join(dist, "robots.txt"), "utf8");
   const sitemap = await readFile(join(dist, "sitemap.xml"), "utf8");
-  assert.match(robots, /Sitemap: https:\/\/[^\s]+\/sitemap\.xml/);
-  assert.match(sitemap, /<loc>https:\/\/[^<]+\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/[^<]+\/en\/<\/loc>/);
   assert.match(robots, /Sitemap: https:\/\/ks-design\.art\/sitemap\.xml/);
-  assert.match(sitemap, /<loc>https:\/\/ks-design\.art\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/ks-design\.art\/en\/<\/loc>/);
+  for (const lang of LOCALES) {
+    assert.ok(
+      sitemap.includes(`<loc>https://ks-design.art${languages[lang].path}</loc>`),
+      `the sitemap is missing ${languages[lang].path}`
+    );
+  }
 });
 
 test("production runs as an isolated, hardened container", () => {
@@ -543,7 +771,7 @@ test("production runs as an isolated, hardened container", () => {
     "both production base images must be pinned by digest"
   );
   assert.match(productionNginx, /listen 8080;/);
-  assert.match(productionNginx, /error_page 404 \/en\/404\.html;/);
+  assert.match(productionNginx, /error_page 404 \/404\.html;/);
   assert.match(productionNginx, /Content-Security-Policy/);
 
   assert.match(productionEdge, /server_name ks-design\.art;/);
@@ -567,6 +795,21 @@ test("production runs as an isolated, hardened container", () => {
   assert.match(productionEdgeInstaller, /trap restore_live_edge EXIT/);
 });
 
+test("the retired /en/ prefix still resolves for anyone holding the old link", () => {
+  /* English moved from /en/ to the origin root. The prefix was public, so it
+     redirects permanently rather than answering 404. */
+  assert.match(productionNginx, /location\s*=\s*\/en\/?\s*\{\s*return 301 \//);
+});
+
+test("each locale prefix serves its own error page", () => {
+  for (const lang of LOCALES.filter((code) => code !== "en")) {
+    assert.ok(
+      productionNginx.includes(`error_page 404 /${lang}/404.html;`),
+      `nginx does not answer /${lang}/ misses in ${lang}`
+    );
+  }
+});
+
 test("the shipped JavaScript stays within its budget", async () => {
   let raw = 0;
   let gzip = 0;
@@ -583,7 +826,7 @@ test("the shipped JavaScript stays within its budget", async () => {
 });
 
 test("every image referenced by the pages exists in dist", async () => {
-  for (const key of ["ru", "en"]) {
+  for (const key of LOCALES) {
     const referenced = new Set();
     for (const [, value] of pages[key].matchAll(/(?:src|srcset)="([^"]+)"/g)) {
       for (const candidate of value.split(",")) {

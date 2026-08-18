@@ -68,8 +68,8 @@ createServer(async (request, response) => {
   const file = await resolveFile(request.url ?? "/");
   if (!file) {
     /* Walks up from the requested path to the nearest 404.html, the way
-       Workers Static Assets does — otherwise a missing /en/ URL would answer
-       in Russian here and in English in production. */
+       Workers Static Assets does — otherwise a missing /es/ URL would answer
+       in English here and in Spanish in production. */
     const notFound = await nearestNotFound(request.url ?? "/");
     response.writeHead(404, { "content-type": TYPES[".html"] });
     if (notFound) {

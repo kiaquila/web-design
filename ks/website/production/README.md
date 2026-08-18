@@ -106,9 +106,15 @@ reload, or the final health check fails. Every Nginx change is checked with
 
 ## Verification
 
+`/` serves English and `/es/` serves Argentinian Spanish. `/en/` is the retired
+English prefix, which answers `301` to the root so links published before the
+move keep working.
+
 Automation verifies that Compose reports the container `healthy`, the image
 label `org.opencontainers.image.revision` equals the triggering `github.sha`,
-and both `/` and `/en/` return successfully after the Cloudflare cache purge.
+and both the English `/` and Spanish `/es/` pages return successfully without a
+redirect after the Cloudflare cache purge. The retired `/en/` redirect remains
+a separate manual verification below.
 It then compares the SHA-256 of live `/assets/site.js` with
 `ks/website/src/js/site.js` from that exact commit.
 
@@ -116,6 +122,7 @@ It then compares the SHA-256 of live `/assets/site.js` with
 dig +short A ks-design.art
 dig +short AAAA ks-design.art
 curl -I https://ks-design.art/
+curl -I https://ks-design.art/es/
 curl -I https://ks-design.art/en/
 curl -I https://www.ks-design.art/
 ssh cz 'sudo docker compose -f /opt/ks-design-portfolio/production/docker-compose.yml ps'
