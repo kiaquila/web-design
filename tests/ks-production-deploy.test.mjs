@@ -69,6 +69,13 @@ test("production deploy verifies the revision, pages, cache purge, and asset has
     .find((line) => line.includes("https://ks-design.art/es/"));
   assert.ok(spanishSmokeCheck);
   assert.doesNotMatch(spanishSmokeCheck, /--location/);
+  const pageSmokeChecks = workflow.slice(
+    workflow.indexOf('root_status="$('),
+    workflow.indexOf('production_asset="$RUNNER_TEMP/production-site.js"')
+  );
+  assert.equal(pageSmokeChecks.match(/--write-out '%\{http_code\}'/g)?.length, 2);
+  assert.match(pageSmokeChecks, /test "\$root_status" = "200"/);
+  assert.match(pageSmokeChecks, /test "\$spanish_status" = "200"/);
   assert.match(workflow, /purge_cache/);
   assert.match(workflow, /sha256sum ks\/website\/src\/js\/site\.js/);
   assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/es/"));
