@@ -62,11 +62,13 @@ Below that it is an ordinary flowing document.
   `overflow: hidden`. A slide is exactly one screen whenever its content fits
   and grows instead of clipping when it does not — silently eating the last
   line of copy on a short laptop window is worse than a slide that scrolls.
-- The work slide sizes its screenshots from whatever height is left after the
-  heading and the card meta. That needs a real constraint to divide, so
-  `.work > .container` carries `max-height: calc(100svh - var(--header-h))`.
-  Without the cap the `1fr` row resolves to its max-content and the slide grows
-  past the screen. If you change that slide, re-measure rather than assume.
+- The work slide preserves each screenshot's 8:5 ratio by letting height follow
+  width. In deck mode, `.work-track` therefore caps its width from the viewport
+  height left after the header, container padding, heading and card meta:
+  `(100svh - var(--header-h) - 25rem) × 1.6 × 2`, plus the card gap. Cap the
+  track rather than `.work > .container`, so the cards narrow on short screens
+  while the heading keeps the same left edge as every other slide. If those
+  vertical allowances change, re-measure the `25rem` term rather than assume.
 - Entrance reveals are claimed by the script (`html.reveal-on`), never written
   into the markup. A visitor without JavaScript, or with reduced motion, gets
   every slide fully visible.
