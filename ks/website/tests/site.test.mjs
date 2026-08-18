@@ -38,6 +38,7 @@ let productionEdge = "";
 let productionDeploy = "";
 let productionServerDeploy = "";
 let productionEdgeInstaller = "";
+let productionAccessInstaller = "";
 
 /* Compares against what a reader sees: tags dropped and entities decoded, so
    an apostrophe in the copy is matched as "'" and not as "&#039;". */
@@ -91,6 +92,10 @@ before(async () => {
   );
   productionEdgeInstaller = await readFile(
     join(root, "production/install-edge.sh"),
+    "utf8"
+  );
+  productionAccessInstaller = await readFile(
+    join(root, "production/install-deploy-access.sh"),
     "utf8"
   );
   for (const key of DOCUMENTS) {
@@ -771,6 +776,7 @@ test("production runs as an isolated, hardened container", () => {
     "both production base images must be pinned by digest"
   );
   assert.match(productionNginx, /listen 8080;/);
+  assert.match(productionNginx, /absolute_redirect off;/);
   assert.match(productionNginx, /error_page 404 \/404\.html;/);
   assert.match(productionNginx, /Content-Security-Policy/);
 
@@ -793,6 +799,14 @@ test("production runs as an isolated, hardened container", () => {
   assert.match(productionEdgeInstaller, /backup_ready=false/);
   assert.match(productionEdgeInstaller, /restore_live_edge/);
   assert.match(productionEdgeInstaller, /trap restore_live_edge EXIT/);
+  assert.match(
+    productionAccessInstaller,
+    /chown root:"\$deploy_user" "\/home\/\$deploy_user\/\.ssh\/authorized_keys"/
+  );
+  assert.match(
+    productionAccessInstaller,
+    /chmod 0640 "\/home\/\$deploy_user\/\.ssh\/authorized_keys"/
+  );
 });
 
 test("the retired /en/ prefix still resolves for anyone holding the old link", () => {
