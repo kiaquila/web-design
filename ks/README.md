@@ -54,6 +54,7 @@ published composite stays.
 | LinkedIn | [kiaquila](https://www.linkedin.com/in/kiaquila) | client |
 | Instagram | [ks_aquila](https://www.instagram.com/ks_aquila) | client |
 | In web development since | 2017 | client |
+| Argentinian Spanish translation | Current `/es/` copy | client-approved on 2026-08-17 |
 
 Every string lives in [`website/src/content.js`](./website/src/content.js).
 Nothing on the page is written anywhere else.
@@ -82,12 +83,6 @@ screenshots of those stages, regenerated with the command in
 
 ## Open items
 
-- **The Spanish copy is a translation awaiting the owner's approval.** Every
-  string on `/es/` is a rioplatense rendering of the owner's own English
-  wording, not new claims — but the repository does not treat an
-  unapproved translation as final copy, so `es` is listed in
-  `localesAwaitingReview` and the build names it on every run. Read the page,
-  correct the wording, then drop `es` from that list.
 - **Kind Words is unfilled and hidden from published pages.** The section is
   built and styled, and the first
   card already carries Alex Oxitocin's name, role and avatar — but all three

@@ -39,8 +39,9 @@ export const languages = {
 
 /** Locales whose copy is a translation the owner has not signed off on yet.
  *  The build names them on every run, the way unfinished sections are named,
- *  so a draft translation cannot quietly become the published wording. */
-export const localesAwaitingReview = ["es"];
+ *  so a draft translation cannot quietly become the published wording. The
+ *  owner approved the current Spanish copy on 2026-08-17. */
+export const localesAwaitingReview = [];
 
 /** One social card per language — sharing a page with a card that carries
  *  another language's headline is a mixed-language preview. Rendered by

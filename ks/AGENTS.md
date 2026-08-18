@@ -84,7 +84,8 @@ Below that it is an ordinary flowing document.
   its content is marked `todo`; see README.
 - A translation the owner has not signed off on is not final copy either. List
   such a locale in `localesAwaitingReview` and the build names it on every run,
-  the way it names placeholder sections. `es` is on that list today.
+  the way it names placeholder sections. The owner approved the current `es`
+  copy on 2026-08-17, so it is not on that list.
 - The years of experience are **derived** from `CAREER_START_YEAR`, never typed.
   Copy uses the `%YEARS%` placeholder. A test fails if the literal is hardcoded.
 - Approved external destinations are listed in `links`. A test rejects any other

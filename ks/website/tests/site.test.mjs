@@ -15,6 +15,7 @@ import {
   experienceYears,
   languages,
   links,
+  localesAwaitingReview,
   ogImages
 } from "../src/content.js";
 
@@ -257,6 +258,7 @@ test("Contact is reachable at every width and duplicated at none", () => {
 
 test("English is the default and Spanish is the prefixed second locale", () => {
   assert.deepEqual(Object.keys(languages), ["en", "es"]);
+  assert.deepEqual(localesAwaitingReview, []);
   assert.equal(languages.en.path, "/");
   assert.equal(languages.es.path, "/es/");
   assert.match(pages.en, /<html lang="en">/);
