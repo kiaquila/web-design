@@ -54,7 +54,6 @@ published composite stays.
 | LinkedIn | [kiaquila](https://www.linkedin.com/in/kiaquila) | client |
 | Instagram | [ks_aquila](https://www.instagram.com/ks_aquila) | client |
 | In web development since | 2017 | client |
-| AI positioning | `AI Expert` | client-approved wording for PR #40 |
 
 Every string lives in [`website/src/content.js`](./website/src/content.js).
 Nothing on the page is written anywhere else.

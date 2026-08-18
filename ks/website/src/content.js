@@ -76,8 +76,7 @@ export const content = {
       /* Lives on the frosted panel that rises over the portrait on hover. A
          stat with no label is a single claim, not a number and a caption. */
       portraitStats: [
-        { value: "%YEARS%", label: "years of web development experience" },
-        { value: "AI Expert", label: null }
+        { value: "%YEARS%", label: "years of web development experience" }
       ]
     },
     work: {
@@ -220,8 +219,7 @@ export const content = {
       secondary: "Ver los trabajos",
       portraitAlt: "Kristina Aquila, retrato",
       portraitStats: [
-        { value: "%YEARS%", label: "años de experiencia en desarrollo web" },
-        { value: "AI Expert", label: null }
+        { value: "%YEARS%", label: "años de experiencia en desarrollo web" }
       ]
     },
     work: {

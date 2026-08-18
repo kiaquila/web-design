@@ -37,7 +37,6 @@ let productionEdge = "";
 let productionDeploy = "";
 let productionServerDeploy = "";
 let productionEdgeInstaller = "";
-let projectReadme = "";
 
 /* Compares against what a reader sees: tags dropped and entities decoded, so
    an apostrophe in the copy is matched as "'" and not as "&#039;". */
@@ -93,7 +92,6 @@ before(async () => {
     join(root, "production/install-edge.sh"),
     "utf8"
   );
-  projectReadme = await readFile(join(root, "..", "README.md"), "utf8");
   for (const key of DOCUMENTS) {
     pages[`${key}Text`] = stripTags(pages[key]);
   }
@@ -171,21 +169,14 @@ test("the years of experience are derived, never hardcoded", () => {
   }
 });
 
-test("the hover panel carries the two claims and nothing else", () => {
+test("the hover panel carries only the sourced experience claim", () => {
   for (const lang of LOCALES) {
     const stats = content[lang].hero.portraitStats;
-    assert.equal(stats.length, 2, `${lang}: the panel must carry two claims`);
-    assert.equal(stats[1].value, "AI Expert");
-    /* A standing claim has no caption, and an empty caption must not be
-       rendered as an empty element either. */
-    assert.equal(stats[1].label, null);
+    assert.equal(stats.length, 1, `${lang}: the panel must carry one sourced claim`);
+    assert.equal(stats[0].value, "%YEARS%");
     const panel = pages[lang].match(/<div class="portrait-stats">[\s\S]*?<\/div>\s*<\/div>/)[0];
     assert.doesNotMatch(panel, /<span class="stat-label"><\/span>/);
   }
-  assert.match(
-    projectReadme,
-    /\| AI positioning \| `AI Expert` \| client-approved wording for PR #40 \|/
-  );
 });
 
 test("placeholder testimonials stay out of the published pages", () => {
