@@ -35,8 +35,11 @@ fi
 
 install -d -o root -g root -m 0755 "/home/$deploy_user/.ssh"
 printf 'restrict,command="%s" %s\n' "$ssh_command_target" "$deploy_key" > "/home/$deploy_user/.ssh/authorized_keys"
-chown root:root "/home/$deploy_user/.ssh/authorized_keys"
-chmod 0600 "/home/$deploy_user/.ssh/authorized_keys"
+chown root:"$deploy_user" "/home/$deploy_user/.ssh/authorized_keys"
+# sshd reads AuthorizedKeysFile with the target user's credentials. Keep the
+# file root-owned so ksdeploy cannot replace it, but grant its group read-only
+# access so public-key authentication can actually inspect the key.
+chmod 0640 "/home/$deploy_user/.ssh/authorized_keys"
 
 # ksdeploy can traverse this parent to its own 0700 staging directory, but it
 # cannot list it or read root-owned deployment state and source objects.

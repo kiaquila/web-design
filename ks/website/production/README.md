@@ -57,9 +57,11 @@ SSH key over that Tailnet; no public SSH exposure or long-lived Tailscale auth
 key is used. SSH admits the key through the root-owned
 `/usr/local/sbin/ks-production-ssh-command` forced-command handler with
 `restrict`: it has no shell, forwarding, or ability to alter its own
-`authorized_keys`. The handler permits only the fixed staging commands and the
-root-owned `/usr/local/sbin/ks-production-deploy` wrapper. The registration job
-receives no Cloudflare token.
+`authorized_keys`. That file stays root-owned and is group-readable by
+`ksdeploy` only so `sshd` can inspect the public key. The handler permits only
+the fixed staging commands and the root-owned
+`/usr/local/sbin/ks-production-deploy` wrapper. The registration job receives
+no Cloudflare token.
 
 After checks pass, every candidate first registers its GitHub run ID with cz.
 Only a candidate still recorded as newest can enter the

@@ -201,6 +201,11 @@ jobs:
               --output /dev/null --write-out '%{http_code}' https://ks-design.art/es/
           )"
           test "$spanish_status" = "200"
+          legacy_english_redirect="$(
+            curl --fail --silent --show-error --retry 5 --retry-all-errors \
+              --output /dev/null --write-out '%{redirect_url}' https://ks-design.art/en/
+          )"
+          test "$legacy_english_redirect" = "https://ks-design.art/"
           production_asset="$RUNNER_TEMP/production-site.js"
           curl --fail --silent --show-error --retry 5 --retry-all-errors \
             --header 'Cache-Control: no-cache' \
