@@ -64,6 +64,11 @@ test("production deploy verifies the revision, pages, cache purge, and asset has
   assert.match(workflow, /ks\/website\/production\/deploy\.sh/);
   assert.match(workflow, /https:\/\/ks-design\.art\/es\//);
   assert.doesNotMatch(workflow, /https:\/\/ks-design\.art\/en\//);
+  const spanishSmokeCheck = workflow
+    .split("\n")
+    .find((line) => line.includes("https://ks-design.art/es/"));
+  assert.ok(spanishSmokeCheck);
+  assert.doesNotMatch(spanishSmokeCheck, /--location/);
   assert.match(workflow, /purge_cache/);
   assert.match(workflow, /sha256sum ks\/website\/src\/js\/site\.js/);
   assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/es/"));

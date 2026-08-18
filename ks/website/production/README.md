@@ -112,9 +112,9 @@ move keep working.
 
 Automation verifies that Compose reports the container `healthy`, the image
 label `org.opencontainers.image.revision` equals the triggering `github.sha`,
-and both the English `/` and Spanish `/es/` pages return successfully after the
-Cloudflare cache purge. The retired `/en/` redirect remains a separate manual
-verification below.
+and both the English `/` and Spanish `/es/` pages return successfully without a
+redirect after the Cloudflare cache purge. The retired `/en/` redirect remains
+a separate manual verification below.
 It then compares the SHA-256 of live `/assets/site.js` with
 `ks/website/src/js/site.js` from that exact commit.
 

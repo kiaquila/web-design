@@ -37,6 +37,7 @@ let productionEdge = "";
 let productionDeploy = "";
 let productionServerDeploy = "";
 let productionEdgeInstaller = "";
+let projectReadme = "";
 
 /* Compares against what a reader sees: tags dropped and entities decoded, so
    an apostrophe in the copy is matched as "'" and not as "&#039;". */
@@ -92,6 +93,7 @@ before(async () => {
     join(root, "production/install-edge.sh"),
     "utf8"
   );
+  projectReadme = await readFile(join(root, "..", "README.md"), "utf8");
   for (const key of DOCUMENTS) {
     pages[`${key}Text`] = stripTags(pages[key]);
   }
@@ -180,6 +182,10 @@ test("the hover panel carries the two claims and nothing else", () => {
     const panel = pages[lang].match(/<div class="portrait-stats">[\s\S]*?<\/div>\s*<\/div>/)[0];
     assert.doesNotMatch(panel, /<span class="stat-label"><\/span>/);
   }
+  assert.match(
+    projectReadme,
+    /\| AI positioning \| `AI Expert` \| client-approved wording for PR #40 \|/
+  );
 });
 
 test("placeholder testimonials stay out of the published pages", () => {
