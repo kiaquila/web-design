@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Mikhail Orlov">
+  <title>Mikhail Orlov</title>
+  <rect width="32" height="32" fill="#f0f0ee"/>
+  <!-- The letter M of Jost at weight 500 — the same outline the page sets in
+       the wordmark and the hero, taken from the shipped font rather than
+       redrawn, so the mark and the name cannot drift apart. It is fitted to
+       55% of the tile: a letter that fills its square reads as a logo box, and
+       the breathing room is what makes it read as a mark. -->
+  <path fill="#2e2e2f" d="M11.28 14.7 16 22.7 20.72 14.7 21.79 24.14H24.5L22.37 7.86L16 18.38L9.63 7.86L7.5 24.14H10.21Z"/>
+</svg>

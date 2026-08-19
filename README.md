@@ -33,6 +33,9 @@ truth instead of maintaining a second copy.
   menu, redesigned under the **Chaijaná Noir** concept.
 - [`ks/`](./ks/) — Kristina Aquila's bilingual web design portfolio and selling
   landing page, live at [ks-design.art](https://ks-design.art).
+- [`misha/`](./misha/) — Mikhail Orlov's one-page English CV portfolio, an
+  original design staged at
+  [misha.ks-design.workers.dev](https://misha.ks-design.workers.dev).
 
 Menus can be a deliverable inside a business project, as they are for Chaijaná.
 Reusable menu tooling or a menu-focused product should live in its own future

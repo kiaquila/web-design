@@ -106,6 +106,33 @@ carry `ks/` fails its build for the obvious reason — which is what happened to
 the branch that fixed the nanoid advisory. Setting the include path to `ks/*`
 is what keeps unrelated work from consuming, and failing, this project's build.
 
+### Misha
+
+| Setting | Value |
+| --- | --- |
+| Worker name | `misha` |
+| Repository | `kiaquila/web-design` |
+| Production branch | `main` |
+| Root directory | `misha/website` |
+| Build command | `npm run build` |
+| Production deploy command | `npm run stage:deploy` |
+| Non-production deploy command | `npm run stage:preview` |
+| Included build watch path | `misha/*` |
+
+The CV page is static, so Cloudflare serves it with Workers Static Assets from
+`dist/`. `misha/website/worker/index.ts` exists only to attach the security
+headers the asset pipeline does not set on its own; unlike the other projects
+it sends `style-src 'self'` without `'unsafe-inline'`, because that page sets
+no inline styles at all.
+
+The stable URL is `https://misha.ks-design.workers.dev`. Pull-request previews
+use the same versioned URL shape documented for Chaijana above.
+
+The page carries a real person's name and career history, and its contact
+address is deliberately the placeholder `example@e-mail.com` until the owner
+decides what to publish. Keep it that way for as long as this stage is
+reachable.
+
 ## One-time Cloudflare connection
 
 Repeat these steps once per project, using that project's row from the tables
@@ -116,7 +143,7 @@ GitHub Actions.
 1. In **Workers & Pages**, choose **Create application**, then **Import a
    repository**, and connect `kiaquila/web-design`.
 2. Name the Worker exactly as the project slug (`alex-neon`, `alphacentr`,
-   `chaijana` or `ks`).
+   `chaijana`, `ks` or `misha`).
    Cloudflare requires the dashboard name to match `name` in that project's
    `wrangler.json`.
 3. Enter the root, build, production deploy, and non-production deploy values

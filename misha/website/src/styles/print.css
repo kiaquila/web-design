@@ -1,0 +1,390 @@
+/* Print, and therefore "Download CV" — the last layer on purpose.
+
+   The layers are concatenated, so a media query written in `layout.css` loses
+   to a plain rule written later in `sections.css`. That is exactly what
+   happened here once: `.hero { min-height: 0 }` inside `@media print` was
+   overruled by the hero's own `min-height: calc(100svh …)`, and the printed CV
+   opened with most of a blank page. Print rules live after every layer they
+   have to beat, which means last.
+
+   What this layer produces is not the page on paper. It is an ordinary CV
+   document — one column, headings with a rule under them, dates in a narrow
+   left column — set in the same two weights of Jost the site uses, and sized
+   to land inside two A4 pages. Everything that exists to make the *screen*
+   feel designed is dropped: the numerals, the rail, the button, the icons,
+   the generous section padding. */
+
+@page {
+  margin: 13mm 14mm;
+}
+
+@media print {
+  :root {
+    --ground: #ffffff;
+    --ink: #000000;
+    --ink-soft: #222222;
+    --ink-mute: #444444;
+    --hair: #bbbbbb;
+    --line: #bbbbbb;
+    --gutter: 0;
+    --space-3xs: 0.05rem;
+    --space-2xs: 0.1rem;
+    --space-xs: 0.15rem;
+    --space-sm: 0.25rem;
+    --space-md: 0.35rem;
+    --space-lg: 0.5rem;
+    --space-xl: 0.6rem;
+  }
+
+  body {
+    font-size: 10pt;
+    line-height: 1.35;
+  }
+
+  /* Print the whole CV, not the part that happened to be scrolled past.
+
+     The script claims the entrance reveal by putting `reveal-on` on the root,
+     which holds every section at `opacity: 0` until it crosses the viewport.
+     Printing does not scroll, so pressing Download CV from the top of the page
+     produced a first page and then blank paper — every section below the fold
+     had never been revealed. Print has no entrance to animate; it resets the
+     whole mechanism. */
+  .reveal-on .section > .shell > *,
+  .reveal-on .hero > .shell > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .masthead,
+  .skip,
+  .hero-actions,
+  .numeral,
+  .site-footer {
+    display: none;
+  }
+
+  main {
+    padding-top: 0;
+  }
+
+  .shell {
+    max-width: none;
+    padding-inline: 0;
+  }
+
+  /* --- document flow, not a deck --- */
+
+  .section {
+    display: block;
+    padding-block: 0.5rem 0;
+    border-top: 0;
+    break-inside: auto;
+  }
+
+  .section > .shell {
+    display: block;
+  }
+
+  .section-body {
+    display: block;
+  }
+
+  .section-head {
+    display: block;
+    margin-bottom: 0.3rem;
+    padding-bottom: 0.1rem;
+    border-bottom: 0.5pt solid var(--ink);
+    break-after: avoid;
+  }
+
+  .section-head h2 {
+    margin: 0;
+    font-size: 8.5pt;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+  }
+
+  /* --- the letterhead --- */
+
+  .hero {
+    display: block;
+    min-height: 0;
+    padding: 0 0 0.35rem;
+    border-bottom: 0.5pt solid var(--ink);
+  }
+
+  .role {
+    font-size: 8pt;
+  }
+
+  .hero-name {
+    margin: 0.1rem 0 0.2rem;
+    font-size: 19pt;
+    line-height: 1.05;
+  }
+
+  .hero-lead {
+    max-width: none;
+    font-size: 10pt;
+    line-height: 1.25;
+  }
+
+  .hero-body {
+    max-width: none;
+    margin-top: 0.15rem;
+    font-size: 9.5pt;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.4rem;
+    margin-top: 0.3rem;
+    padding-top: 0.25rem;
+    border-top: 0.5pt solid var(--hair);
+  }
+
+  .fact {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+  }
+
+  .fact + .fact::before {
+    content: "·";
+    margin-right: 0.65rem;
+    color: var(--hair);
+  }
+
+  .fact-value {
+    font-size: 9pt;
+  }
+
+  .fact-label {
+    margin: 0;
+    font-size: 7pt;
+  }
+
+  /* --- profile --- */
+
+  .profile-grid {
+    display: block;
+  }
+
+  .summary {
+    max-width: none;
+    font-size: 10pt;
+  }
+
+  .help {
+    margin-top: 0.3rem;
+  }
+
+  .help h3 {
+    padding-bottom: 0;
+    border-bottom: 0;
+    font-size: 7.5pt;
+  }
+
+  .help-list,
+  .role-points {
+    max-width: none;
+    margin-top: 0.1rem;
+  }
+
+  .help-list li,
+  .role-points li {
+    padding-left: 0.7rem;
+    padding-block: 0;
+  }
+
+  .help-list li::before,
+  .role-points li::before {
+    left: 0.05rem;
+    top: 0.55em;
+    width: 0.16rem;
+    height: 0.16rem;
+    background: var(--ink);
+  }
+
+  /* --- experience: dates left, role right, as on the source CV --- */
+
+  .role-card {
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 0.5rem;
+    padding-block: 0.35rem;
+    border-top: 0.5pt solid var(--hair);
+    break-inside: avoid;
+  }
+
+  .role-period {
+    padding-top: 0.1rem;
+    font-size: 7.5pt;
+  }
+
+  .role-title {
+    font-size: 10pt;
+    line-height: 1.2;
+  }
+
+  .role-company {
+    display: inline;
+    font-size: 10pt;
+  }
+
+  .role-company::before {
+    content: " — ";
+  }
+
+  .role-place {
+    margin: 0;
+    font-size: 7.5pt;
+  }
+
+  .role-context {
+    max-width: none;
+    margin-top: 0.1rem;
+    font-size: 9pt;
+  }
+
+  /* --- skills --- */
+
+  .stack-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .stack-group h3,
+  .credential h3 {
+    padding-bottom: 0.05rem;
+    border-bottom: 0.5pt solid var(--hair);
+    font-size: 7.5pt;
+  }
+
+  .stack-group ul,
+  .languages {
+    margin-top: 0.15rem;
+  }
+
+  .stack-group li {
+    padding-block: 0;
+    font-size: 9pt;
+  }
+
+  .credentials {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.35rem;
+  }
+
+  .credential-period {
+    margin-top: 0.15rem;
+    font-size: 7.5pt;
+  }
+
+  .credential-name {
+    font-size: 9.5pt;
+  }
+
+  .credential-detail {
+    font-size: 9pt;
+  }
+
+  .languages li {
+    padding-block: 0;
+    border-bottom: 0;
+    font-size: 9pt;
+  }
+
+  /* --- open source --- */
+
+  .work-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+  }
+
+  .work-card {
+    padding-top: 0.2rem;
+    border-top: 0.5pt solid var(--hair);
+    break-inside: avoid;
+  }
+
+  .work-card h3 {
+    font-size: 9.5pt;
+  }
+
+  .work-tech {
+    font-size: 7.5pt;
+  }
+
+  .work-description {
+    margin-top: 0.1rem;
+    font-size: 9pt;
+  }
+
+  /* --- contact: a button cannot be pressed and an icon cannot be typed --- */
+
+  .contact-row {
+    display: block;
+  }
+
+  .contact-lead {
+    max-width: none;
+    font-size: 10pt;
+  }
+
+  .contact-actions,
+  .contact-social {
+    display: block;
+    margin: 0;
+  }
+
+  .btn {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font-size: 9pt;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .social-link {
+    display: block;
+    width: auto;
+    height: auto;
+    color: var(--ink);
+    font-size: 9pt;
+  }
+
+  .social-link svg {
+    display: none;
+  }
+
+  .social-link .visually-hidden {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .btn[data-print-value]::after,
+  .social-link::after {
+    font-size: 8pt;
+    color: var(--ink-mute);
+    word-break: break-all;
+  }
+
+  .btn[data-print-value]::after {
+    content: " — " attr(data-print-value);
+  }
+
+  .social-link::after {
+    content: " — " attr(href);
+  }
+}

@@ -19,6 +19,10 @@ Reserved Font Name "Playfair Display". Licence text is kept beside the files as
 © The Manrope Project Authors. Licence text is kept beside the files as
 `OFL-Manrope.txt`.
 
+**Jost** (`misha/website/assets/fonts/jost-latin.woff2`) — SIL Open Font
+License 1.1, © The Jost Project Authors. Only the Latin variable subset is
+self-hosted; the licence text is kept beside the file as `OFL-Jost.txt`.
+
 **Unbounded** (`alex-neon/website/assets/fonts/unbounded-*.woff2`) — SIL Open
 Font License 1.1, © The Unbounded Project Authors. Cyrillic and Latin variable
 subsets are self-hosted; the licence text is kept beside the files as
