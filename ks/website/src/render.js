@@ -64,12 +64,16 @@ const icons = {
 /* --- reusable pieces ------------------------------------------------------ */
 
 /** One responsive image with a WebP source and a JPEG fallback. */
-function picture({ dir, base, alt, widths, height, sizes, className, lazy = true, decorative = false }) {
+function picture({ dir, base, alt, widths, height, sizes, className, lazy = true, decorative = false, version }) {
   const [small, large] = widths;
   const altAttr = decorative ? 'alt="" aria-hidden="true"' : `alt="${escapeHtml(alt)}"`;
+  /* `version` cache-busts an asset whose pixels changed in place under the
+     same file name; bump it on retouches so no browser or CDN keeps serving
+     the previous frame. */
+  const q = version ? `?v=${version}` : "";
   return `<picture${className ? ` class="${className}"` : ""}>
-        <source type="image/webp" sizes="${sizes}" srcset="/assets/${dir}/${base}-${small}.webp ${small}w, /assets/${dir}/${base}-${large}.webp ${large}w">
-        <img src="/assets/${dir}/${base}-${small}.jpg" sizes="${sizes}" srcset="/assets/${dir}/${base}-${small}.jpg ${small}w, /assets/${dir}/${base}-${large}.jpg ${large}w" ${altAttr} width="${large}" height="${height}"${lazy ? ' loading="lazy" decoding="async"' : ' fetchpriority="high" decoding="async"'}>
+        <source type="image/webp" sizes="${sizes}" srcset="/assets/${dir}/${base}-${small}.webp${q} ${small}w, /assets/${dir}/${base}-${large}.webp${q} ${large}w">
+        <img src="/assets/${dir}/${base}-${small}.jpg${q}" sizes="${sizes}" srcset="/assets/${dir}/${base}-${small}.jpg${q} ${small}w, /assets/${dir}/${base}-${large}.jpg${q} ${large}w" ${altAttr} width="${large}" height="${height}"${lazy ? ' loading="lazy" decoding="async"' : ' fetchpriority="high" decoding="async"'}>
       </picture>`;
 }
 
@@ -140,7 +144,8 @@ function hero(copy, years) {
         sizes: portraitSizes,
         className: `portrait-frame portrait-${state}`,
         lazy: false,
-        decorative: index === 1
+        decorative: index === 1,
+        version: 2
       })
     )
     .join("\n      ");

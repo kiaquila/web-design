@@ -170,8 +170,21 @@ Below that it is an ordinary flowing document.
   translucent halo or triangular matte before the shoulder.
   Moving the fixed regions between frames breaks the illusion of a single
   continuous shot.
+- Take the hover jaw line from the registered reference itself rather than from
+  whatever survives around a defect. Reconstructing it by joining the intact
+  ends across a damaged stretch cuts the jaw short, because the surviving ends
+  sit inboard of the true edge.
+- Where a face feature crosses the seam into the fixed calm neck — the crease
+  below the chin — the two sources place it a few pixels apart. Carry the hover
+  segment across to meet the calm one and keep the feature's depth changing
+  smoothly along its whole length. A sideways step, or a break in depth at the
+  meeting point, reads as a defect even when each segment alone looks right.
 - Remove the source photo's narrow dark sliver at the extreme bottom-right from
   both exported frames so that defect neither remains visible nor flickers.
+- The portrait URLs carry a `?v=N` cache-buster (the `version` option of
+  `picture()` in `src/render.js`). Bump it whenever the exported frames'
+  pixels change under the same file names, or browsers and CDNs keep showing
+  the previous export.
 - The frame is `aspect-ratio: 776 / 971`, the exact aspect of the source pair,
   and the images are `object-fit: cover` with no `object-position` shift. Zero
   crop means zero drift between the two states.
