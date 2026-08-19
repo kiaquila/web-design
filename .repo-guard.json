@@ -8,7 +8,8 @@
     "alex-neon",
     "alphacentr",
     "chaijana",
-    "ks"
+    "ks",
+    "misha"
   ],
   "stageProjects": {
     "alex-neon": {
@@ -22,6 +23,10 @@
     "chaijana": {
       "rootDirectory": "chaijana/website",
       "watchPath": "chaijana/*"
+    },
+    "misha": {
+      "rootDirectory": "misha/website",
+      "watchPath": "misha/*"
     }
   },
   "previewProjects": {
