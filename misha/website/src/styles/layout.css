@@ -69,8 +69,21 @@
     gap: var(--space-2xs);
   }
 
+  /* Clipped, not removed. `display: none` took the word out of the
+     accessibility tree as well as out of the layout, and left five links whose
+     entire accessible name was "01", "02", "03" — a screen reader user on a
+     phone got a numbered list of nothing. The numeral is what the eye needs at
+     this width; the word is what the ear needs at every width. */
   .nav-label {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
 
   .site-nav ul {

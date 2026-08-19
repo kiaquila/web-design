@@ -118,6 +118,14 @@ test("the header budget for a 320px phone is still written down", () => {
   assert.match(css, /@media \(max-width: 400px\)[\s\S]*?\.wordmark \{/);
 });
 
+test("the collapsed navigation keeps its section names for screen readers", () => {
+  /* The label is hidden from the eye on phones but must stay in the
+     accessibility tree: five links named "01" to "05" are a numbered list of
+     nothing. */
+  assert.match(css, /@media \(max-width: 720px\)[\s\S]*?\.nav-label \{[^}]*clip-path: inset\(50%\)/s);
+  assert.doesNotMatch(css, /@media \(max-width: 720px\)[\s\S]*?\.nav-label \{[^}]*display: none/s);
+});
+
 test("navigation targets stay 44px tall", () => {
   assert.match(css, /\.site-nav a \{[^}]*min-height: 44px/s);
   assert.match(css, /\.btn \{[^}]*min-height: 44px/s);
