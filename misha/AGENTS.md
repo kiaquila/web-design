@@ -37,9 +37,14 @@ from it.
   or availability claim may appear that is not in the owner's CV, his GitHub
   profile README, or one of his public repositories. If a number would make the
   page stronger, ask him for it — do not estimate it.
-- The years of experience are derived from `IT_START_YEAR` and
-  `BACKEND_START_YEAR` via the `%IT_YEARS%` and `%BACKEND_YEARS%`
-  placeholders. A test fails if a literal is typed instead.
+- The years of experience are derived from `IT_START` and `BACKEND_START` via
+  the `%IT_YEARS%` and `%BACKEND_YEARS%` placeholders. A test fails if a
+  literal is typed instead. **Both constants carry a month, and
+  `completedYearsSince` counts only years he has finished.** Subtracting the
+  years alone is the quieter version of the same lie: he started in May 2008
+  and July 2016, so every build between January and those months would have
+  claimed a year early. The CV names months and not days, so that is the
+  granularity — do not invent a start date to get finer.
 - The two VK roles share one product paragraph in the CV. The page prints it
   **once**, on the more recent role; a test counts it. Restoring the second
   copy makes the page read like a paste error.

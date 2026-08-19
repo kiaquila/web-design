@@ -10,7 +10,13 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { gzipSync } from "node:zlib";
 
-import { links, years } from "../src/content.js";
+import {
+  BACKEND_START,
+  IT_START,
+  completedYearsSince,
+  links,
+  years
+} from "../src/content.js";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = join(root, "dist");
@@ -45,6 +51,21 @@ test("every employer and the degree survive a copy edit", () => {
   ]) {
     assert.ok(html.includes(fact), `missing from the page: ${fact}`);
   }
+});
+
+test("a year is only counted once it has actually been completed", () => {
+  /* He started at Er-Telecom in May 2008. Subtracting the years alone would
+     claim eighteen of them every January, four months early. */
+  /* Local-time constructors on purpose: the function reads local month, and a
+     UTC instant lands in the previous month for anyone west of Greenwich —
+     which is where the owner lives. */
+  assert.equal(completedYearsSince(IT_START, new Date(2026, 0, 15)), 17);
+  assert.equal(completedYearsSince(IT_START, new Date(2026, 3, 30)), 17);
+  assert.equal(completedYearsSince(IT_START, new Date(2026, 4, 1)), 18);
+  /* LitRes, July 2016. */
+  assert.equal(completedYearsSince(BACKEND_START, new Date(2026, 5, 30)), 9);
+  assert.equal(completedYearsSince(BACKEND_START, new Date(2026, 6, 1)), 10);
+  assert.equal(completedYearsSince(BACKEND_START, new Date(2027, 0, 1)), 10);
 });
 
 test("the years of experience are derived, never typed", () => {

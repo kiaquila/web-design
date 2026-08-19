@@ -39,9 +39,11 @@ three places the owner controls:
 | Education, spoken languages | 2003–2008 PSTU; English C1, Spanish A1, Russian native | CV |
 | `cabadrive`, `takeyourmeds` | Descriptions from the repositories | GitHub |
 
-The years of experience are **derived** from `IT_START_YEAR` (2008, Er-Telecom)
-and `BACKEND_START_YEAR` (2016, LitRes), never typed. Copy carries `%IT_YEARS%`
-and `%BACKEND_YEARS%`; a test fails if a literal appears instead.
+The years of experience are **derived**, never typed: from `IT_START`
+(May 2008, Er-Telecom) and `BACKEND_START` (July 2016, LitRes), counting only
+years he has actually completed rather than subtracting calendar years. Copy
+carries `%IT_YEARS%` and `%BACKEND_YEARS%`; a test fails if a literal appears
+instead.
 
 The LinkedIn profile could not be read programmatically — LinkedIn answers
 automated requests with HTTP 999 — so nothing on the page comes from it. If the

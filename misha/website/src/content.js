@@ -4,15 +4,25 @@
    ../README.md for the provenance table. */
 
 /* Both are derived, never typed. A literal "18 years" passes today and lies
-   next January. */
-export const IT_START_YEAR = 2008;
-export const BACKEND_START_YEAR = 2016;
+   next January.
 
-const currentYear = new Date().getFullYear();
+   Subtracting the years alone lies too, only more quietly: he started at
+   Er-Telecom in May 2008 and at LitRes in July 2016, so every build between
+   January and those months would claim a year he has not finished yet. The CV
+   gives months, not days, so that is the granularity used — inventing a start
+   date would be worse than rounding to the month he actually named. */
+export const IT_START = { year: 2008, month: 5 };
+export const BACKEND_START = { year: 2016, month: 7 };
+
+/** Whole years completed since `start`, as of `now`. Month is 1-based. */
+export function completedYearsSince(start, now = new Date()) {
+  const elapsed = now.getFullYear() - start.year;
+  return now.getMonth() + 1 >= start.month ? elapsed : elapsed - 1;
+}
 
 export const years = {
-  it: currentYear - IT_START_YEAR,
-  backend: currentYear - BACKEND_START_YEAR
+  it: completedYearsSince(IT_START),
+  backend: completedYearsSince(BACKEND_START)
 };
 
 /** Approved outbound destinations. A test rejects any other origin. */
