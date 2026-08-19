@@ -844,7 +844,7 @@ test("every image referenced by the pages exists in dist", async () => {
     const referenced = new Set();
     for (const [, value] of pages[key].matchAll(/(?:src|srcset)="([^"]+)"/g)) {
       for (const candidate of value.split(",")) {
-        const url = candidate.trim().split(/\s+/)[0];
+        const url = candidate.trim().split(/\s+/)[0].split("?")[0];
         if (url.startsWith("/assets/")) referenced.add(url);
       }
     }
