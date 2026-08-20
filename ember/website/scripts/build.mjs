@@ -16,12 +16,21 @@ const dist = join(root, "dist");
 /** Everything the Worker serves. A file outside this list is not published. */
 const SERVED = ["index.html", "favicon-32.png", "apple-touch-icon.png"];
 
-/* The page must stay dependency-free: no fonts, scripts, styles or images
-   fetched from another origin, and no analytics. Only *loaded* references
-   count — `<link>` and anything with a `src` — because the footer's credit is
-   an ordinary outbound link and is meant to leave the site. */
-const LOADED = /<(?:link|script|img|source|iframe|video|audio|embed)\b[^>]*?(?:src|href)\s*=\s*["']([^"']+)["'][^>]*>/gi;
-const OFF_ORIGIN = /^(?:[a-z]+:)?\/\//i;
+/* The page must stay dependency-free: nothing fetched from another origin.
+   Enumerating the mechanisms that can pull bytes — element `src`, `srcset`,
+   `poster`, `<link href>`, CSS `url()` and `@import` — is a losing game, so
+   the check inverts it: the one thing allowed to point outward is an anchor,
+   and after those are removed no off-origin reference may remain anywhere in
+   the document. Data URIs are stripped first because their payload is inert
+   and base64 happily contains `//`. */
+const DATA_URI = /data:[^"'\s)]+/gi;
+const ANCHOR_TAG = /<a\b[^>]*>/gi;
+const OFF_ORIGIN_ANYWHERE = /(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s"'()<>]+/gi;
+
+/* Local references have to resolve to something the build actually publishes,
+   or the page ships a request that 404s. */
+const LOCAL_REFERENCE =
+  /(?:\b(?:src|poster)\s*=\s*["']([^"']+)["']|<link\b[^>]*\bhref\s*=\s*["']([^"']+)["']|\burl\(\s*["']?([^"')]+)["']?\s*\))/gi;
 
 async function main() {
   await rm(dist, { recursive: true, force: true });
@@ -33,12 +42,23 @@ async function main() {
   }
 
   const page = await readFile(join(dist, "index.html"), "utf8");
-  const offsite = [...page.matchAll(LOADED)]
-    .map((match) => match[1])
-    .filter((reference) => OFF_ORIGIN.test(reference));
+
+  const scannable = page.replace(DATA_URI, "data:inline").replace(ANCHOR_TAG, "<a>");
+  const offsite = [...scannable.matchAll(OFF_ORIGIN_ANYWHERE)].map((match) => match[0]);
+  if (/@import/i.test(scannable)) offsite.push("@import");
   if (offsite.length > 0) {
     throw new Error(
       `The study must load nothing from another origin, found: ${offsite.join(", ")}`
+    );
+  }
+
+  const unresolved = [...page.matchAll(LOCAL_REFERENCE)]
+    .map((match) => match[1] ?? match[2] ?? match[3])
+    .filter((reference) => reference && !/^(?:data:|#)/i.test(reference))
+    .filter((reference) => !SERVED.includes(reference.replace(/^\.?\//, "")));
+  if (unresolved.length > 0) {
+    throw new Error(
+      `The page references files the build does not publish: ${unresolved.join(", ")}`
     );
   }
 
