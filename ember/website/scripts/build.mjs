@@ -24,7 +24,23 @@ const SERVED = ["index.html", "favicon-32.png", "apple-touch-icon.png"];
    reference may remain anywhere in the document — an anchor's other
    attributes (an inline background, a `ping`) stay visible to the scan.
    Data URIs are stripped first because their payload is inert and base64
-   happily contains `//`. */
+   happily contains `//`. Character references are decoded before any of it,
+   because `https:&#x2f;&#x2f;…` is a working URL to the browser and invisible
+   to a literal scan. */
+const CHARACTER_REFERENCE = /&(?:#x?[0-9a-f]+|[a-z][a-z0-9]*);/gi;
+
+function decodeCharacterReferences(markup) {
+  const NAMED = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", sol: "/", colon: ":" };
+  return markup.replace(CHARACTER_REFERENCE, (reference) => {
+    const body = reference.slice(1, -1);
+    if (body[0] !== "#") return NAMED[body.toLowerCase()] ?? reference;
+    const code = body[1] === "x" || body[1] === "X"
+      ? Number.parseInt(body.slice(2), 16)
+      : Number.parseInt(body.slice(1), 10);
+    return Number.isFinite(code) ? String.fromCodePoint(code) : reference;
+  });
+}
+
 const DATA_URI = /data:[^"'\s)]+/gi;
 const ANCHOR_HREF = /(<a\b[^>]*?\bhref\s*=\s*)(["'])[^"']*\2/gi;
 const OFF_ORIGIN_ANYWHERE = /(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s"'()<>]+/gi;
@@ -45,7 +61,8 @@ async function main() {
 
   const page = await readFile(join(dist, "index.html"), "utf8");
 
-  const scannable = page.replace(DATA_URI, "data:inline").replace(ANCHOR_HREF, '$1$2local$2');
+  const decoded = decodeCharacterReferences(page);
+  const scannable = decoded.replace(DATA_URI, "data:inline").replace(ANCHOR_HREF, '$1$2local$2');
   const offsite = [...scannable.matchAll(OFF_ORIGIN_ANYWHERE)].map((match) => match[0]);
   if (/@import/i.test(scannable)) offsite.push("@import");
   if (offsite.length > 0) {
@@ -54,7 +71,7 @@ async function main() {
     );
   }
 
-  const unresolved = [...page.matchAll(LOCAL_REFERENCE)]
+  const unresolved = [...decoded.matchAll(LOCAL_REFERENCE)]
     .map((match) => match[1] ?? match[2] ?? match[3])
     .filter((reference) => reference && !/^(?:data:|#)/i.test(reference))
     .filter((reference) => !SERVED.includes(reference.replace(/^\.?\//, "")));
