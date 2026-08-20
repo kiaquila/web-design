@@ -50,6 +50,29 @@ const ROT_Y = 0.9; /* page: rnd(0, 2π); chosen so the profile reads */
 const TILT = 0.25; /* the page's reduced-motion tilt */
 const LUMP = 0; /* lump amplitude scale; 0 = clean sphere (client's pick) */
 
+/* The hash of the page's figure-geometry section that the hand-ported code
+   below was written against. This is what keeps the drift gate honest: when
+   the page's geometry changes, rerunning this script must not quietly bless
+   a stale render, so it refuses to run until the port is brought back in
+   line and this constant is bumped to the value the error prints. Bumping
+   the constant without updating the port is a deliberate false statement,
+   not an accident this file can make for you. */
+const PORTED_FIGURE_FINGERPRINT =
+  "2cb88beffc9b118b2b66b7c785342f8f05d72a972d1288dbd3dad0628136e2b9";
+
+const pageFingerprint = figureFingerprint(
+  readFileSync(resolve(import.meta.dirname, "..", "src", "index.html"), "utf8")
+);
+if (pageFingerprint !== PORTED_FIGURE_FINGERPRINT) {
+  throw new Error(
+    "src/index.html's figure geometry no longer matches the port in this script.\n" +
+      `  page:   ${pageFingerprint}\n` +
+      `  ported: ${PORTED_FIGURE_FINGERPRINT}\n` +
+      "Update the ported geometry/draw code in make-og.mjs to match the page, " +
+      "verify the render, then set PORTED_FIGURE_FINGERPRINT to the page value."
+  );
+}
+
 /* ---- seeded PRNG (mulberry32) — the only source of randomness ---------- */
 let prngState = SEED >>> 0;
 function rand() {
@@ -624,10 +647,6 @@ const idat = deterministicZlib(raw);
 if (!inflateSync(idat).equals(raw)) {
   throw new Error("the deterministic deflate stream does not round-trip");
 }
-
-/* The figure fingerprint bakes the drift tripwire into the file itself; the
-   tests recompute it from the shipped page (see og-fingerprint.mjs). */
-const pageFingerprint = figureFingerprint(readFileSync(join(SRC, "index.html"), "utf8"));
 
 const png = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),

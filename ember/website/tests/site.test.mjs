@@ -130,7 +130,9 @@ test("the social card was rendered from the page's current figure geometry", asy
   assert.equal(
     baked,
     figureFingerprint(page),
-    "og.png was rendered from different figure code — run `npm run og`"
+    "og.png was rendered from different figure code — update the port in " +
+      "scripts/make-og.mjs to match the page, then regenerate (see " +
+      "PORTED_FIGURE_FINGERPRINT there)"
   );
 });
 

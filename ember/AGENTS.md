@@ -15,8 +15,12 @@ in force.
   `og.png` (enumerated in `build.mjs`). Every other absolute URL — any other
   host, path, query, or attribute — still fails the build; do not widen that
   allowance. The card is pinned to the page's figure code by a fingerprint
-  (`scripts/og-fingerprint.mjs`); when the tests report a mismatch, run
-  `npm run og` and commit the regenerated card.
+  (`scripts/og-fingerprint.mjs`): the tests compare the hash baked into
+  `og.png` against the shipped page, and `make-og.mjs` refuses to render
+  while its hand-ported geometry disagrees with the page
+  (`PORTED_FIGURE_FINGERPRINT`). On a mismatch, update the port in
+  `make-og.mjs` to match the page, bump that constant, rerun `npm run og`,
+  and commit the regenerated card — never bump the constant alone.
 - The stage is a Cloudflare Worker named `ember`, configured as documented in
   [`docs/stage-hosting.md`](../docs/stage-hosting.md). Its Content-Security-
   Policy allows inline script and style because the page is one file by
