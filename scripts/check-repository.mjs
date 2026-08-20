@@ -1,267 +1,46 @@
 #!/usr/bin/env node
 
 import { existsSync, lstatSync, readFileSync } from "node:fs";
-import { basename, join, resolve, sep } from "node:path";
+import { basename, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-function fail(message) {
-  failures.push(message);
-}
-
-function parseRoot() {
-  const index = process.argv.indexOf("--root");
-  if (index === -1) return resolve(import.meta.dirname, "..");
-  if (!process.argv[index + 1]) throw new Error("--root requires a path");
-  return resolve(process.argv[index + 1]);
-}
-
-function repositoryFiles(root) {
-  const result = spawnSync(
-    "git",
-    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-    {
-      cwd: root,
-      encoding: "utf8"
-    }
-  );
-
-  if (result.status !== 0) {
-    throw new Error(result.stderr.trim() || "git ls-files failed");
-  }
-
-  return result.stdout
-    .split("\0")
-    .filter(Boolean)
-    .filter((file) => !file.startsWith(".guard-trusted/"));
-}
-
-function looksBinary(buffer) {
-  const sample = buffer.subarray(0, Math.min(buffer.length, 8192));
-  return sample.includes(0);
-}
-
-const root = parseRoot();
-const failures = [];
-const requiredRootFiles = [
+const REQUIRED_ROOT_FILES = [
   ".gitignore",
-  ".repo-guard.json",
-  ".github/workflows/codex-review.yml",
-  ".github/workflows/codex-review-request.yml",
-  ".github/workflows/codex-review-rerun.yml",
-  ".github/workflows/cloudflare-stage-deployments.yml",
-  ".github/workflows/ks-production-deploy.yml",
+  ".github/CODEOWNERS",
+  ".web-design/project.json",
+  ".web-design/lock.json",
+  ".web-design/managed-files.json",
+  ".web-design/release-manifest.json",
+  ".github/pull_request_template.md",
+  ".github/workflows/baseline-source-verification.yml",
+  ".github/workflows/ci.yml",
   ".github/workflows/repository-guard.yml",
+  ".github/workflows/osv-scan.yml",
+  ".github/workflows/web-design-update.yml",
   "AGENTS.md",
   "CLAUDE.md",
   "README.md",
-  "docs/repository-guardrails.md",
-  "docs/stage-hosting.md",
-  "scripts/codex-review-gate.mjs",
-  "scripts/codex-review-helpers.mjs",
-  "scripts/codex-review-request.mjs",
-  "scripts/codex-review-rerun.mjs",
-  "scripts/register-cloudflare-stage-deployments.mjs",
-  "scripts/wait-for-production-checks.mjs",
+  "docs/standards/content-and-design.md",
+  "docs/standards/deployment.md",
+  "docs/standards/git-and-reviews.md",
+  "docs/standards/project-structure.md",
+  "docs/standards/security.md",
+  "docs/standards/testing.md",
+  "docs/operations/bootstrap.md",
+  "docs/operations/github-setup.md",
+  "docs/operations/updates.md",
+  "package.json",
+  "scripts/check-managed-files.mjs",
+  "scripts/check-baseline-change.mjs",
   "scripts/check-repository.mjs",
-  "tests/cloudflare-stage-deployments.test.mjs",
-  "tests/codex-review-gate.test.mjs",
-  "tests/ks-production-deploy.test.mjs",
-  "tests/repository-guard.test.mjs",
-  "third-party-notices.md"
+  "scripts/build-release-manifest.mjs",
+  "scripts/run-project-checks.mjs",
+  "scripts/sync-project.mjs",
+  "scripts/test-web-design.mjs"
 ];
 
-for (const path of requiredRootFiles) {
-  if (!existsSync(join(root, path))) fail(`Missing required repository file: ${path}`);
-}
-
-let config;
-try {
-  config = JSON.parse(readFileSync(join(root, ".repo-guard.json"), "utf8"));
-} catch (error) {
-  fail(`Invalid .repo-guard.json: ${error.message}`);
-  config = { projects: [] };
-}
-
-if (!Array.isArray(config.projects) || config.projects.length === 0) {
-  fail(".repo-guard.json must list at least one project");
-} else {
-  const seen = new Set();
-  const rootReadme = existsSync(join(root, "README.md"))
-    ? readFileSync(join(root, "README.md"), "utf8")
-    : "";
-
-  for (const project of config.projects) {
-    if (typeof project !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(project)) {
-      fail(`Invalid project directory name in .repo-guard.json: ${JSON.stringify(project)}`);
-      continue;
-    }
-    if (seen.has(project)) fail(`Duplicate project in .repo-guard.json: ${project}`);
-    seen.add(project);
-
-    const projectRoot = join(root, project);
-    if (!existsSync(projectRoot) || !lstatSync(projectRoot).isDirectory()) {
-      fail(`Configured project directory does not exist: ${project}`);
-      continue;
-    }
-    for (const required of ["README.md", "AGENTS.md"]) {
-      if (!existsSync(join(projectRoot, required))) {
-        fail(`Project ${project} is missing ${required}`);
-      }
-    }
-    if (!rootReadme.includes(`](./${project}/)`)) {
-      fail(`Root README.md must link to ./${project}/`);
-    }
-  }
-}
-
-const workerProjectGroups = [
-  ["stageProjects", config.stageProjects ?? {}, true],
-  ["previewProjects", config.previewProjects ?? {}, false]
-];
-const configuredWorkerProjects = new Set();
-
-for (const [groupName, workerProjects, workersDev] of workerProjectGroups) {
-  if (
-    typeof workerProjects !== "object" ||
-    workerProjects === null ||
-    Array.isArray(workerProjects)
-  ) {
-    fail(`.repo-guard.json ${groupName} must be an object`);
-    continue;
-  }
-
-  for (const [project, stage] of Object.entries(workerProjects)) {
-    if (configuredWorkerProjects.has(project)) {
-      fail(`Worker project must not be both permanent and preview-only: ${project}`);
-      continue;
-    }
-    configuredWorkerProjects.add(project);
-    if (!config.projects?.includes(project)) {
-      fail(`${groupName} project is not listed in projects: ${project}`);
-      continue;
-    }
-    if (typeof stage !== "object" || stage === null || Array.isArray(stage)) {
-      fail(`Stage configuration must be an object: ${project}`);
-      continue;
-    }
-
-    const expectedRootPrefix = `${project}/`;
-    const expectedWatchPath = `${project}/*`;
-    const expectedWorkerName = project;
-
-    if (
-      typeof stage.rootDirectory !== "string" ||
-      !stage.rootDirectory.startsWith(expectedRootPrefix) ||
-      stage.rootDirectory.includes("..")
-    ) {
-      fail(
-        `Stage rootDirectory for ${project} must stay inside ${project}/, ` +
-          `received ${JSON.stringify(stage.rootDirectory)}`
-      );
-      continue;
-    }
-    if (stage.watchPath !== expectedWatchPath) {
-      fail(
-        `Stage watchPath for ${project} must be ${expectedWatchPath}, ` +
-          `received ${JSON.stringify(stage.watchPath)}`
-      );
-    }
-
-    const stageRoot = join(root, stage.rootDirectory);
-    const wranglerPath = join(stageRoot, "wrangler.json");
-    const packagePath = join(stageRoot, "package.json");
-    if (!existsSync(wranglerPath)) {
-      fail(`Stage project ${project} is missing website/wrangler.json`);
-      continue;
-    }
-    if (!existsSync(packagePath)) {
-      fail(`Stage project ${project} is missing website/package.json`);
-      continue;
-    }
-
-    let wrangler;
-    let packageJson;
-    try {
-      wrangler = JSON.parse(readFileSync(wranglerPath, "utf8"));
-    } catch (error) {
-      fail(`Invalid stage Wrangler config for ${project}: ${error.message}`);
-      continue;
-    }
-    try {
-      packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
-    } catch (error) {
-      fail(`Invalid stage package.json for ${project}: ${error.message}`);
-      continue;
-    }
-
-    if (wrangler.name !== expectedWorkerName) {
-      fail(
-        `Stage Worker for ${project} must be named ${expectedWorkerName}, ` +
-          `received ${JSON.stringify(wrangler.name)}`
-      );
-    }
-    if (typeof wrangler.main !== "string" || !wrangler.main.trim()) {
-      fail(`Stage Worker for ${project} must define a main entry point`);
-    } else {
-      const entryPoint = resolve(stageRoot, wrangler.main);
-      if (!entryPoint.startsWith(`${resolve(stageRoot)}${sep}`) || !existsSync(entryPoint)) {
-        fail(`Stage Worker entry point does not exist inside ${project}: ${wrangler.main}`);
-      }
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(wrangler.compatibility_date ?? "")) {
-      fail(`Stage Worker for ${project} must pin a compatibility_date`);
-    }
-    if (wrangler.workers_dev !== workersDev) {
-      const expectation = workersDev ? "enable" : "disable";
-      fail(`${groupName} Worker for ${project} must ${expectation} workers_dev`);
-    }
-    if (wrangler.preview_urls !== true) {
-      fail(`Stage Worker for ${project} must enable preview_urls`);
-    }
-
-    const scripts = packageJson.scripts ?? {};
-    if (typeof scripts.build !== "string" || !scripts.build.trim()) {
-      fail(`Stage project ${project} must define an npm build script`);
-    }
-    if (!/(?:^|\s)wrangler deploy(?:\s|$)/.test(scripts["stage:deploy"] ?? "")) {
-      fail(`Stage project ${project} must deploy with wrangler deploy`);
-    }
-    if (!/(?:^|\s)wrangler versions upload(?:\s|$)/.test(scripts["stage:preview"] ?? "")) {
-      fail(`Stage project ${project} must preview with wrangler versions upload`);
-    }
-  }
-}
-
-const files = repositoryFiles(root);
-const infrastructureDirectories = Array.isArray(config.infrastructureDirectories)
-  ? config.infrastructureDirectories
-  : [];
-const configuredTopLevelDirectories = new Set([
-  ...(Array.isArray(config.projects) ? config.projects : []),
-  ...infrastructureDirectories
-]);
-const actualTopLevelDirectories = new Set(
-  files
-    .map((file) => file.split("/"))
-    .filter((parts) => parts.length > 1 && !parts[0].startsWith("."))
-    .map((parts) => parts[0])
-);
-
-for (const directory of infrastructureDirectories) {
-  if (typeof directory !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(directory)) {
-    fail(`Invalid infrastructure directory in .repo-guard.json: ${JSON.stringify(directory)}`);
-  }
-}
-for (const directory of actualTopLevelDirectories) {
-  if (!configuredTopLevelDirectories.has(directory)) {
-    fail(
-      `Unclassified top-level directory: ${directory}. ` +
-        "List it as a project or an infrastructure directory in .repo-guard.json."
-    );
-  }
-}
-
-const forbiddenSegments = new Set([
+const FORBIDDEN_SEGMENTS = new Set([
   ".next",
   ".vinext",
   ".wrangler",
@@ -269,13 +48,13 @@ const forbiddenSegments = new Set([
   "dist",
   "node_modules"
 ]);
-const forbiddenNames = [
+const FORBIDDEN_NAMES = [
   /^\.DS_Store$/,
   /^\.env(?:\..+)?$/,
   /^(?:id_rsa|id_dsa|id_ecdsa|id_ed25519)$/,
   /\.(?:key|p12|pfx|pem|session)$/i
 ];
-const secretPatterns = [
+const SECRET_PATTERNS = [
   ["private key", /-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----/],
   ["GitHub token", /gh[pousr]_[A-Za-z0-9]{20,}/],
   ["OpenAI-style API key", /sk-[A-Za-z0-9_-]{32,}/],
@@ -283,171 +62,200 @@ const secretPatterns = [
   ["AWS access key", /AKIA[0-9A-Z]{16}/],
   ["Telegram bot token", /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/]
 ];
-const personalPathPatterns = [
+const PERSONAL_PATH_PATTERNS = [
   /\/Users\/[A-Za-z0-9._-]+\//,
   /\/home\/[A-Za-z0-9._-]+\//,
   /[A-Za-z]:\\Users\\[A-Za-z0-9._-]+\\/
 ];
 
-for (const file of files) {
-  const normalized = file.split(sep).join("/");
-  const parts = normalized.split("/");
-  const fileName = basename(normalized);
-
-  if (parts.some((part) => forbiddenSegments.has(part))) {
-    fail(`Generated or dependency directory is tracked: ${normalized}`);
-  }
-  if (
-    forbiddenNames.some((pattern) => pattern.test(fileName)) &&
-    !/^\.env\.example$/.test(fileName)
-  ) {
-    fail(`Sensitive or local-only file is tracked: ${normalized}`);
-  }
-
-  const absolute = join(root, file);
-  let stat;
-  try {
-    stat = lstatSync(absolute);
-  } catch {
-    fail(`Tracked path is missing from the worktree: ${normalized}`);
-    continue;
-  }
-  if (stat.isSymbolicLink()) {
-    fail(`Symbolic links are not allowed: ${normalized}`);
-    continue;
-  }
-  if (!stat.isFile() || stat.size > 2_000_000) continue;
-
-  const buffer = readFileSync(absolute);
-  if (looksBinary(buffer)) continue;
-  const text = buffer.toString("utf8");
-
-  for (const [label, pattern] of secretPatterns) {
-    if (pattern.test(text)) fail(`Possible ${label} in ${normalized}`);
-  }
-  if (personalPathPatterns.some((pattern) => pattern.test(text))) {
-    fail(`Personal absolute path in ${normalized}`);
-  }
+function parseRoot(argv = process.argv.slice(2)) {
+  const index = argv.indexOf("--root");
+  if (index === -1) return resolve(import.meta.dirname, "..");
+  if (!argv[index + 1]) throw new Error("--root requires a path");
+  return resolve(argv[index + 1]);
 }
 
-const workflows = files.filter((file) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(file));
-for (const workflow of workflows) {
-  const text = readFileSync(join(root, workflow), "utf8");
+function repositoryFiles(root) {
+  const result = spawnSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    { cwd: root, encoding: "utf8" }
+  );
+  if (result.status !== 0) throw new Error(result.stderr.trim() || "git ls-files failed");
+  return result.stdout
+    .split("\0")
+    .filter(Boolean)
+    .filter((file) => !file.startsWith(".guard-trusted/"));
+}
+
+function looksBinary(buffer) {
+  return buffer.subarray(0, Math.min(buffer.length, 8192)).includes(0);
+}
+
+export function validateProjectConfig(config, profiles = []) {
+  const failures = [];
+  const availableProfiles = Array.isArray(profiles) ? profiles : Object.keys(profiles);
+  if (config?.schemaVersion !== 1) failures.push("project.json schemaVersion must be 1");
+  const slug = config?.project?.slug;
+  if (typeof slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    failures.push("project.slug must be lower-case kebab-case");
+  }
+  const profile = config?.project?.profile;
+  if (typeof profile !== "string" || !availableProfiles.includes(profile)) {
+    failures.push(`project.profile must name an installed profile: ${JSON.stringify(profile)}`);
+  }
+  const productPaths = config?.project?.productPaths;
+  if (!Array.isArray(productPaths)) {
+    failures.push("project.productPaths must be an array");
+  } else {
+    for (const path of productPaths) {
+      const normalized = typeof path === "string" ? normalize(path) : "";
+      if (!normalized || isAbsolute(normalized) || normalized === ".." || normalized.startsWith(`..${sep}`)) {
+        failures.push(`Unsafe product path: ${JSON.stringify(path)}`);
+      }
+    }
+  }
+  if (!Array.isArray(config?.commands?.check)) {
+    failures.push("commands.check must be an array");
+  } else if (config?.governance?.mode === "consumer" && config.commands.check.length === 0) {
+    failures.push("consumer projects must configure at least one product check");
+  }
+  const rootDirectory = config?.deployment?.rootDirectory;
+  const normalizedRoot = typeof rootDirectory === "string" ? normalize(rootDirectory) : "";
+  if (
+    !normalizedRoot ||
+    isAbsolute(normalizedRoot) ||
+    normalizedRoot === ".." ||
+    normalizedRoot.startsWith(`..${sep}`)
+  ) {
+    failures.push("deployment.rootDirectory must stay inside the repository");
+  }
+  if (config?.deployment?.productionBranch !== "main") {
+    failures.push("deployment.productionBranch must be main");
+  }
+  const profileData = Array.isArray(profiles) ? null : profiles[profile];
+  if (profileData && config?.deployment?.provider !== profileData.deploymentProvider) {
+    failures.push(`deployment.provider must match profile ${profile}`);
+  }
+  if (config?.governance?.source !== "kiaquila/web-design") {
+    failures.push("governance.source must be kiaquila/web-design");
+  }
+  if (!new Set(["source", "consumer"]).has(config?.governance?.mode)) {
+    failures.push("governance.mode must be source or consumer");
+  }
+  return failures;
+}
+
+export function validateWorkflowText(path, text) {
+  const failures = [];
   if (/\bpull_request_target\b/.test(text)) {
-    fail(`High-risk pull_request_target trigger in ${workflow}`);
+    failures.push(`High-risk pull_request_target trigger in ${path}`);
   }
   if (!/^permissions:\s*(?:\n|$)/m.test(text)) {
-    fail(`Workflow must declare top-level permissions: ${workflow}`);
+    failures.push(`Workflow must declare top-level permissions: ${path}`);
   }
   if (/^permissions:\s*["']?write-all["']?\s*$/m.test(text)) {
-    fail(`Workflow may not use write-all permissions: ${workflow}`);
+    failures.push(`Workflow may not use write-all permissions: ${path}`);
   }
-
   for (const match of text.matchAll(/^\s*-?\s*uses:\s*["']?([^\s"']+)["']?\s*(?:#.*)?$/gm)) {
     const action = match[1];
     if (action.startsWith("./") || action.startsWith("docker://")) continue;
-    const separator = action.lastIndexOf("@");
-    const ref = separator === -1 ? "" : action.slice(separator + 1);
+    const ref = action.slice(action.lastIndexOf("@") + 1);
     if (!/^[a-f0-9]{40}$/.test(ref)) {
-      fail(`GitHub Action is not pinned to a full commit SHA in ${workflow}: ${action}`);
+      failures.push(`GitHub Action is not pinned to a full commit SHA in ${path}: ${action}`);
     }
   }
+  return failures;
 }
 
-const codexReviewWorkflow = ".github/workflows/codex-review.yml";
-if (files.includes(codexReviewWorkflow)) {
-  const text = readFileSync(join(root, codexReviewWorkflow), "utf8");
-  const executableYaml = text
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("#"))
-    .join("\n");
-  const requiredFragments = [
-    "name: Codex Review",
-    "pull_request:",
-    "name: Checkout trusted Codex review gate",
-    "ref: ${{ github.event.repository.default_branch }}",
-    "path: .codex-review-trusted",
-    'node "$script_root/scripts/codex-review-gate.mjs"'
-  ];
-  for (const fragment of requiredFragments) {
-    if (!executableYaml.includes(fragment)) {
-      fail(`Codex Review workflow is missing trusted gate invariant: ${fragment}`);
+export function scanRepository(root) {
+  const failures = [];
+  for (const path of REQUIRED_ROOT_FILES) {
+    if (!existsSync(join(root, path))) failures.push(`Missing required repository file: ${path}`);
+  }
+
+  const files = repositoryFiles(root);
+  const profileFiles = files.filter((file) => /^\.web-design\/profiles\/[a-z0-9-]+\.json$/.test(file));
+  const profiles = {};
+  for (const file of profileFiles) {
+    const id = basename(file, ".json");
+    try {
+      profiles[id] = JSON.parse(readFileSync(join(root, file), "utf8"));
+    } catch (error) {
+      failures.push(`Invalid profile ${file}: ${error.message}`);
     }
   }
-}
-
-const codexReviewRequestWorkflow = ".github/workflows/codex-review-request.yml";
-if (files.includes(codexReviewRequestWorkflow)) {
-  const executableYaml = readFileSync(join(root, codexReviewRequestWorkflow), "utf8")
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("#"))
-    .join("\n");
-  const topLevelPermissions = executableYaml.match(
-    /^permissions:\s*\n((?: {2}[^\n]*(?:\n|$))*)/m
-  )?.[1] || "";
-  if (!/^ {2}pull-requests:\s*write\s*$/m.test(topLevelPermissions)) {
-    fail("Codex Review Request workflow must grant pull-requests: write for trusted request markers.");
+  const availableProfiles = Object.keys(profiles);
+  try {
+    const config = JSON.parse(readFileSync(join(root, ".web-design/project.json"), "utf8"));
+    failures.push(...validateProjectConfig(config, profiles));
+    const profile = profiles[config?.project?.profile];
+    const deploymentRoot = config?.deployment?.rootDirectory || ".";
+    for (const required of profile?.requiredProjectFiles ?? []) {
+      if (!existsSync(join(root, deploymentRoot, required))) {
+        failures.push(`Profile ${profile.id} requires ${join(deploymentRoot, required)}`);
+      }
+    }
+    const lock = JSON.parse(readFileSync(join(root, ".web-design/lock.json"), "utf8"));
+    if (lock.profile !== config?.project?.profile) {
+      failures.push("lock.profile must match project.profile");
+    }
+  } catch (error) {
+    failures.push(`Invalid .web-design/project.json: ${error.message}`);
   }
-  const requestJobMatch = /^ {2}codex-review-request:\s*$/m.exec(executableYaml);
-  const requestJobTail = requestJobMatch
-    ? executableYaml.slice(requestJobMatch.index + requestJobMatch[0].length)
-    : "";
-  const nextJobOffset = requestJobTail.search(/^ {2}[A-Za-z0-9_-]+:\s*$/m);
-  const requestJob = nextJobOffset === -1
-    ? requestJobTail
-    : requestJobTail.slice(0, nextJobOffset);
-  if (!requestJobMatch || /^ {4}(?:permissions|["']permissions["'])[ \t]*:/m.test(requestJob)) {
-    fail("Codex Review Request job must not override its trusted workflow permissions.");
-  }
-}
 
-const ksProductionWorkflow = ".github/workflows/ks-production-deploy.yml";
-if (files.includes(ksProductionWorkflow)) {
-  const executableYaml = readFileSync(join(root, ksProductionWorkflow), "utf8")
-    .split("\n")
-    .filter((line) => !line.trimStart().startsWith("#"))
-    .join("\n");
-  const requiredFragments = [
-    "name: KS Production Deploy",
-    "  push:",
-    "      - main",
-    '      - "ks/**"',
-    "group: ks-production-deploy",
-    "cancel-in-progress: false",
-    "needs: required-checks",
-    "if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
-    "name: production",
-    "runs-on: ubuntu-latest",
-    "id-token: write",
-    "tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8",
-    "KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}",
-    "KS_DESIGN_DEPLOY_RUN_ID: ${{ github.run_id }}",
-    "KS_DESIGN_DEPLOY_TARGET: ks-production",
-    "KS_DESIGN_SSH_PRIVATE_KEY: ${{ secrets.KS_DESIGN_SSH_PRIVATE_KEY }}",
-    "ks/website/production/deploy.sh",
-    "purge_cache",
-    "sha256sum ks/website/src/js/site.js"
-  ];
-  for (const fragment of requiredFragments) {
-    if (!executableYaml.includes(fragment)) {
-      fail(`KS production workflow is missing deployment invariant: ${fragment}`);
+  for (const file of files) {
+    const normalized = file.split(sep).join("/");
+    const parts = normalized.split("/");
+    const fileName = basename(normalized);
+    if (parts.some((part) => FORBIDDEN_SEGMENTS.has(part))) {
+      failures.push(`Generated or dependency directory is tracked: ${normalized}`);
+    }
+    if (FORBIDDEN_NAMES.some((pattern) => pattern.test(fileName)) && fileName !== ".env.example") {
+      failures.push(`Sensitive or local-only file is tracked: ${normalized}`);
+    }
+    const absolute = join(root, file);
+    let stat;
+    try {
+      stat = lstatSync(absolute);
+    } catch {
+      failures.push(`Repository path is missing from the worktree: ${normalized}`);
+      continue;
+    }
+    if (stat.isSymbolicLink()) {
+      failures.push(`Symbolic links are not allowed: ${normalized}`);
+      continue;
+    }
+    if (!stat.isFile() || stat.size > 2_000_000) continue;
+    const buffer = readFileSync(absolute);
+    if (looksBinary(buffer)) continue;
+    const text = buffer.toString("utf8");
+    for (const [label, pattern] of SECRET_PATTERNS) {
+      if (pattern.test(text)) failures.push(`Possible ${label} in ${normalized}`);
+    }
+    if (PERSONAL_PATH_PATTERNS.some((pattern) => pattern.test(text))) {
+      failures.push(`Personal absolute path in ${normalized}`);
+    }
+    if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(normalized)) {
+      failures.push(...validateWorkflowText(normalized, text));
     }
   }
-  if (/^\s*pull_request\s*:/m.test(executableYaml)) {
-    fail("KS production workflow must never run for pull_request events");
-  }
-  if (/^\s*workflow_dispatch\s*:/m.test(executableYaml)) {
-    fail("KS production workflow must not expose a manual production trigger");
-  }
+  return { failures, files, availableProfiles };
 }
 
-if (failures.length) {
-  console.error("Repository guard failed:");
-  for (const message of failures) console.error(`- ${message}`);
-  process.exit(1);
+export function main(argv = process.argv.slice(2)) {
+  const root = parseRoot(argv);
+  const result = scanRepository(root);
+  if (result.failures.length) {
+    console.error("Repository guard failed:");
+    for (const message of result.failures) console.error(`- ${message}`);
+    return 1;
+  }
+  console.log(
+    `Repository guard passed for ${result.files.length} files and ` +
+      `${result.availableProfiles.length} profile(s).`
+  );
+  return 0;
 }
 
-console.log(
-  `Repository guard passed for ${files.length} repository files, ` +
-    `${config.projects.length} project(s), and ${workflows.length} workflow(s).`
-);
+if (process.argv[1] === fileURLToPath(import.meta.url)) process.exitCode = main();
