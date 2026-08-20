@@ -19,12 +19,14 @@ const SERVED = ["index.html", "favicon-32.png", "apple-touch-icon.png"];
 /* The page must stay dependency-free: nothing fetched from another origin.
    Enumerating the mechanisms that can pull bytes — element `src`, `srcset`,
    `poster`, `<link href>`, CSS `url()` and `@import` — is a losing game, so
-   the check inverts it: the one thing allowed to point outward is an anchor,
-   and after those are removed no off-origin reference may remain anywhere in
-   the document. Data URIs are stripped first because their payload is inert
-   and base64 happily contains `//`. */
+   the check inverts it: the one thing allowed to point outward is an
+   anchor's href, and once exactly that attribute is blanked no off-origin
+   reference may remain anywhere in the document — an anchor's other
+   attributes (an inline background, a `ping`) stay visible to the scan.
+   Data URIs are stripped first because their payload is inert and base64
+   happily contains `//`. */
 const DATA_URI = /data:[^"'\s)]+/gi;
-const ANCHOR_TAG = /<a\b[^>]*>/gi;
+const ANCHOR_HREF = /(<a\b[^>]*?\bhref\s*=\s*)(["'])[^"']*\2/gi;
 const OFF_ORIGIN_ANYWHERE = /(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s"'()<>]+/gi;
 
 /* Local references have to resolve to something the build actually publishes,
@@ -43,7 +45,7 @@ async function main() {
 
   const page = await readFile(join(dist, "index.html"), "utf8");
 
-  const scannable = page.replace(DATA_URI, "data:inline").replace(ANCHOR_TAG, "<a>");
+  const scannable = page.replace(DATA_URI, "data:inline").replace(ANCHOR_HREF, '$1$2local$2');
   const offsite = [...scannable.matchAll(OFF_ORIGIN_ANYWHERE)].map((match) => match[0]);
   if (/@import/i.test(scannable)) offsite.push("@import");
   if (offsite.length > 0) {
