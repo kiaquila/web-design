@@ -18,12 +18,12 @@ before(async () => {
   worker = await readFile(join(root, "worker/index.ts"), "utf8");
 });
 
-test("the study ships as one page and its two favicons", async () => {
+test("the study ships as one page, its two favicons and the social card", async () => {
   /* The whole point of the piece is that it depends on nothing: one file to
      read, one file to host. A build that started emitting a bundle would have
      quietly changed what this project is. */
   const files = (await readdir(dist)).sort();
-  assert.deepEqual(files, ["apple-touch-icon.png", "favicon-32.png", "index.html"]);
+  assert.deepEqual(files, ["apple-touch-icon.png", "favicon-32.png", "index.html", "og.png"]);
   for (const name of files) {
     const info = await stat(join(dist, name));
     assert.ok(info.size > 0, `${name} is empty`);
@@ -39,6 +39,27 @@ test("nothing is loaded from another origin", () => {
   assert.deepEqual(offsite, [], `the page reaches off-origin: ${offsite.join(", ")}`);
   assert.doesNotMatch(page, /<link[^>]+rel=["']?stylesheet/i);
   assert.doesNotMatch(page, /<script[^>]+src=/i);
+});
+
+test("the social card is declared and matches what ships", async () => {
+  /* Scrapers need absolute URLs, so these are the one place the page names
+     its own origin. The image the tags promise has to be the file the build
+     publishes, at the size the tags claim — a scraper caches whatever it
+     finds, and a mismatch would live on in other people's feeds. */
+  assert.match(page, /<meta property="og:url" content="https:\/\/ember\.ks-design\.art\/">/);
+  assert.match(page, /<meta property="og:image" content="https:\/\/ember\.ks-design\.art\/og\.png">/);
+  assert.match(page, /<meta name="twitter:card" content="summary_large_image">/);
+  const width = Number(page.match(/property="og:image:width" content="(\d+)"/)[1]);
+  const height = Number(page.match(/property="og:image:height" content="(\d+)"/)[1]);
+  const card = await readFile(join(dist, "og.png"));
+  assert.equal(card.readUInt32BE(16), width, "og:image:width disagrees with og.png");
+  assert.equal(card.readUInt32BE(20), height, "og:image:height disagrees with og.png");
+  /* No off-origin leak through the allowance: every absolute URL in a meta
+     tag stays on this origin. */
+  for (const [tag] of page.matchAll(/<meta\b[^>]*>/gi)) {
+    const url = tag.match(/content="(https?:[^"]*)"/i);
+    if (url) assert.match(url[1], /^https:\/\/ember\.ks-design\.art\//, tag);
+  }
 });
 
 test("both favicon fallbacks are declared", () => {

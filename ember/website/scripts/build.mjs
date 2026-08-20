@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /* Static build. The study is one self-contained HTML file plus the two baked
-   favicon PNGs Safari needs, so the build copies rather than compiles — and
-   then checks the two properties the project promises, because a page that
-   quietly grew a CDN link or lost its favicon would still "build" fine.
+   favicon PNGs Safari needs and the baked social card, so the build copies
+   rather than compiles — and then checks the two properties the project
+   promises, because a page that quietly grew a CDN link or lost its favicon
+   would still "build" fine.
 
    Run from the project: node ember/website/scripts/build.mjs */
 
@@ -14,7 +15,18 @@ const src = join(root, "src");
 const dist = join(root, "dist");
 
 /** Everything the Worker serves. A file outside this list is not published. */
-const SERVED = ["index.html", "favicon-32.png", "apple-touch-icon.png"];
+const SERVED = ["index.html", "favicon-32.png", "apple-touch-icon.png", "og.png"];
+
+/* Social scrapers ignore relative URLs, so the og:url/og:image meta tags have
+   to spell out the page's own address in full. That address is this origin —
+   nothing is loaded from anywhere else — so the scan blanks exactly it, and
+   only inside a meta content attribute, before looking for off-origin
+   references. Any other host, or the origin used anywhere else, still fails. */
+const ORIGIN = "https://ember.ks-design.art";
+const META_OWN_ORIGIN = new RegExp(
+  `(<meta\\b[^>]*?\\bcontent\\s*=\\s*)(["'])${ORIGIN.replace(/[./]/g, "\\$&")}(?:/[^"']*)?\\2`,
+  "gi"
+);
 
 /* The page must stay dependency-free: nothing fetched from another origin.
    Enumerating the mechanisms that can pull bytes — element `src`, `srcset`,
@@ -68,7 +80,10 @@ async function main() {
   const page = await readFile(join(dist, "index.html"), "utf8");
 
   const decoded = decodeCharacterReferences(page);
-  const scannable = decoded.replace(DATA_URI, "data:inline").replace(ANCHOR_HREF, '$1$2local$2');
+  const scannable = decoded
+    .replace(DATA_URI, "data:inline")
+    .replace(ANCHOR_HREF, '$1$2local$2')
+    .replace(META_OWN_ORIGIN, '$1$2local$2');
   const offsite = [...scannable.matchAll(OFF_ORIGIN_ANYWHERE)].map((match) => match[0]);
   if (/@import/i.test(scannable)) offsite.push("@import");
   if (offsite.length > 0) {
