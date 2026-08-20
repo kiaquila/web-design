@@ -111,7 +111,7 @@ function header(lang, copy, anchorBase = "") {
 
   return `<header class="site-header" data-header>
     <div class="container header-inner">
-      <a class="brand" href="${home}"><span class="brand-word">ks<span class="brand-dot" aria-hidden="true"></span>design</span></a>
+      <a class="brand" href="${home}"><span class="brand-word">ks<span class="brand-dot" aria-hidden="true"></span><span class="visually-hidden"> </span>design</span></a>
       <nav class="site-nav" id="site-nav" aria-label="${escapeHtml(copy.nav.label)}">
         <ul role="list">${navItems}</ul>
       </nav>

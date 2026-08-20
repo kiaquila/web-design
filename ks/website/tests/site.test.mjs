@@ -434,6 +434,17 @@ test("the portrait exposes one person, not two images", () => {
   }
 });
 
+test("the wordmark is still two words to a screen reader", () => {
+  /* The gold dot is decorative and hidden, so without a real separator the
+     home link would be announced as one run-on word instead of the brand. */
+  for (const key of DOCUMENTS) {
+    const brand = pages[key].match(/<a class="brand"[\s\S]*?<\/a>/)[0];
+    assert.match(brand, /aria-hidden="true"/);
+    const spoken = stripTags(brand).replace(/\s+/g, " ").trim();
+    assert.equal(spoken, "ks design", `${key}: the wordmark is announced as "${spoken}"`);
+  }
+});
+
 test("the carousel arrows have accessible names and start hidden", () => {
   for (const key of LOCALES) {
     for (const [attr, label] of [

@@ -56,6 +56,18 @@
     color: var(--muted);
   }
   .tag strong { color: var(--ink); font-weight: 600; }
+  /* The gold dot is decorative, so the wordmark needs a real separator in the
+     accessible name — without it the mark is announced as one word. */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   /* The dot sits nearer the KS than the DESIGN in a strict 1:2 proportion —
      0.15em after the S, 0.30em before the D. The tag's 0.22em letter-spacing
      already pads the left side, so the left margin only trims it back. */
@@ -137,7 +149,7 @@
 <canvas id="scene" aria-label="A dark wireframe figure smoldering with golden embers. Hovering makes it burn locally and recover; play burns it down completely before it reassembles."></canvas>
 
 <header class="chrome top">
-  <span class="tag"><strong>ks<i class="dot" aria-hidden="true"></i>design</strong> · lab</span>
+  <span class="tag"><strong>ks<i class="dot" aria-hidden="true"></i><span class="visually-hidden"> </span>design</strong> · lab</span>
   <span class="tag">study 01 — ember</span>
 </header>
 
