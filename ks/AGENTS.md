@@ -228,11 +228,21 @@ cannot drift from the design:
 node ks/website/scripts/make-og.mjs
 ```
 
-Portfolio card screenshots, from the two live stages:
+Portfolio card screenshots, from the live stages. Every card is 1200×750 and
+800×500 in both JPEG and WebP, so a new shot must be taken at the section's
+8:5 proportion rather than cropped into it:
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=2 --window-size=1440,900 --virtual-time-budget=9000 --screenshot=shot.png https://chaijana.ks-design.workers.dev
 ```
+
+Two cards need more than that flag. Ember's shot must catch the animation
+mid-burn, so it is taken through the DevTools protocol: open the study, click
+Play, wait about 1.3 seconds, then capture — a plain `--screenshot` grabs the
+resting figure. Mikhail Orlov's page holds its entrance reveals until the
+content scrolls into view, so a wide window screenshots as an empty sheet;
+shoot it at 1000×625 (or drive it over the protocol with a pause after load)
+and scale to the card sizes.
 
 Neither is part of `npm run build`; both outputs are committed.
 
