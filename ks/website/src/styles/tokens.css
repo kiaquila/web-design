@@ -1,9 +1,10 @@
 /* Design tokens.
    The palette is fully achromatic — white paper, black ink, a short grey
-   ramp — after the printed-menu reference the page follows. There is no
-   accent colour at all: hierarchy is carried by weight, tracking, hairline
-   rules and scale, the way it is on paper. A test enforces that every colour
-   in the compiled stylesheet stays neutral. */
+   ramp — after the printed-menu reference the page follows. Hierarchy is
+   carried by weight, tracking, hairline rules and scale, the way it is on
+   paper. The single sanctioned exception (client decision, 2026-08-19) is
+   the brand-gold dot in the ks·design wordmark; a test enforces that every
+   other colour in the compiled stylesheet stays neutral. */
 
 :root {
   /* --- ink and ground --- */
@@ -19,6 +20,12 @@
   --ink-faint: #b6b8bd;
   --line: #e4e4e7;
   --line-strong: #d2d2d6;
+
+  /* The one chromatic token: the gold dot of the ks·design wordmark, shared
+     with the favicon and the ember lab study. Deep enough amber to read on
+     white, warm enough to read on the near-black panel. Use it for the brand
+     dot only — never for text or UI states. */
+  --brand-gold: #e8a038;
 
   /* The Get in touch band: near-black, so it reads as one printed stripe. */
   --panel: #141416;

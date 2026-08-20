@@ -197,8 +197,9 @@
 .work-track {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 2 * var(--space-md)) / 3);
-  gap: var(--space-md);
+  /* Two large cards per page with a generous 3rem breath between them. */
+  grid-auto-columns: calc((100% - 3rem) / 2);
+  gap: 3rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   /* Room for the card lift and its shadow, which would otherwise be clipped
@@ -215,29 +216,47 @@
   scroll-snap-align: start;
 }
 
-.carousel-controls {
-  display: flex;
-  gap: 0.5rem;
-  flex-shrink: 0;
+/* The arrows flank the track in side lanes reserved by the carousel's own
+   padding, so they never cover the shots at any width. Phones drop the
+   arrows (the track swipes) and reclaim the lanes. */
+.carousel {
+  position: relative;
+  padding-inline: 4.5rem;
 }
 
-/* `display: flex` would otherwise beat the `hidden` attribute's UA rule, and
-   the arrows would sit there dead whenever the track has nothing to scroll. */
-.carousel-controls[hidden] {
-  display: none;
-}
-
+/* The script re-anchors `top` to the vertical centre of the shots; 50% is
+   only the fallback before the first sync runs. */
 .carousel-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
   width: 2.75rem;
   height: 2.75rem;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   color: var(--ink);
+  background: var(--ground);
+  box-shadow: var(--shadow-lift);
   transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease),
     opacity var(--dur-fast) var(--ease);
+}
+
+.carousel-prev {
+  left: 0;
+}
+
+.carousel-next {
+  right: 0;
+}
+
+/* `display: inline-flex` would otherwise beat the `hidden` attribute's UA
+   rule, and the arrows would sit there dead with nothing to scroll. */
+.carousel-btn[hidden] {
+  display: none;
 }
 
 .carousel-btn:hover:not(:disabled) {
@@ -250,24 +269,15 @@
   cursor: default;
 }
 
-/* Three per page is the target once the portfolio has three. With one or two
-   projects that same track leaves a third of the row empty and reads as a
-   layout bug, so a short list widens to fill. Scoped to the three-column
-   breakpoint: `:has()` outranks a plain class, so left unscoped it would also
-   force two columns onto a phone. */
-@media (min-width: 1100px) {
-  .work-track:has(> :last-child:nth-child(-n + 2)) {
-    grid-auto-columns: calc((100% - var(--space-md)) / 2);
-  }
-}
-
-@media (max-width: 1099px) {
-  .work-track {
-    grid-auto-columns: calc((100% - var(--space-md)) / 2);
-  }
-}
-
 @media (max-width: 719px) {
+  .carousel {
+    padding-inline: 0;
+  }
+
+  .carousel-btn {
+    display: none;
+  }
+
   .work-track {
     grid-auto-columns: 86%;
     gap: var(--space-sm);

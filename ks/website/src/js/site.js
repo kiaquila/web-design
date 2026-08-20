@@ -163,33 +163,72 @@
   /* --- work carousel ------------------------------------------------------ */
 
   const track = document.querySelector("[data-carousel-track]");
-  const controls = document.querySelector("[data-carousel-controls]");
+  const carousel = document.querySelector("[data-carousel]");
 
-  if (track && controls) {
-    const prev = controls.querySelector("[data-carousel-prev]");
-    const next = controls.querySelector("[data-carousel-next]");
+  if (track && carousel) {
+    const prev = carousel.querySelector("[data-carousel-prev]");
+    const next = carousel.querySelector("[data-carousel-next]");
 
-    /* One press moves one full page of cards, whatever the breakpoint decided
-       a page holds. */
-    const page = () => Math.max(track.clientWidth, 1);
+    /* One press moves exactly one card: the first card's box plus the gap. */
+    const step = () => {
+      const card = track.firstElementChild;
+      if (!card) return Math.max(track.clientWidth, 1);
+      const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+      return card.getBoundingClientRect().width + gap;
+    };
+
+    /* Chrome refuses to start a smooth programmatic scroll inside a nested
+       scroller while the document itself snaps (the deck), so the glide is
+       animated by hand. The target lands exactly on a card boundary, which
+       is also where the snap points are. */
+    const glide = (direction) => {
+      const size = step();
+      const max = track.scrollWidth - track.clientWidth;
+      const to = Math.max(
+        0,
+        Math.min(Math.round(track.scrollLeft / size + direction) * size, max)
+      );
+      if (scrollBehavior() === "auto") {
+        track.scrollLeft = to;
+        return;
+      }
+      const from = track.scrollLeft;
+      const start = performance.now();
+      const tick = (now) => {
+        const p = Math.min(1, (now - start) / 320);
+        track.scrollLeft = from + (to - from) * (1 - (1 - p) ** 3);
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
+    /* The arrows sit on the vertical centre of the screenshots, not of the
+       whole card — the shot is what they page through. */
+    const alignArrows = () => {
+      const shot = track.querySelector(".work-shot");
+      if (!shot) return;
+      const box = carousel.getBoundingClientRect();
+      const shotBox = shot.getBoundingClientRect();
+      const top = `${shotBox.top - box.top + shotBox.height / 2}px`;
+      prev.style.top = top;
+      next.style.top = top;
+    };
 
     const sync = () => {
       const max = track.scrollWidth - track.clientWidth;
       /* With only a couple of projects the track does not overflow at all, and
          two permanently dead arrows read as breakage. */
       const overflows = max > 4;
-      controls.toggleAttribute("hidden", !overflows);
+      prev.hidden = !overflows;
+      next.hidden = !overflows;
       if (!overflows) return;
       prev.disabled = track.scrollLeft <= 4;
       next.disabled = track.scrollLeft >= max - 4;
+      alignArrows();
     };
 
-    prev.addEventListener("click", () => {
-      track.scrollBy({ left: -page(), behavior: scrollBehavior() });
-    });
-    next.addEventListener("click", () => {
-      track.scrollBy({ left: page(), behavior: scrollBehavior() });
-    });
+    prev.addEventListener("click", () => glide(-1));
+    next.addEventListener("click", () => glide(1));
 
     let scrollTick = false;
     track.addEventListener(

@@ -87,15 +87,31 @@
 
 /* The wordmark is typography, not a mark: bold lowercase, like an item name
    set on the menu card. */
+/* The wordmark follows the ember lab study's setting: tracked caps with the
+   brand-gold dot sitting on the baseline between the two words. */
 .brand {
   display: inline-flex;
   align-items: center;
   min-height: 2.75rem;
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.1875rem;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--ink);
+}
+
+/* The dot sits nearer the KS than the DESIGN in a strict 1:2 proportion —
+   0.15em after the S, 0.30em before the D (client pick, 2026-08-19). The
+   letter-spacing after the S already adds 0.14em, so the left margin only
+   tops it up. */
+.brand-dot {
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  border-radius: 50%;
+  background: var(--brand-gold);
+  margin: 0 0.3em 0 0.01em;
 }
 
 .site-nav ul {
