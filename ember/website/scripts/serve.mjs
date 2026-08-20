@@ -17,10 +17,14 @@ const TYPES = {
 };
 
 async function resolveFile(pathname) {
-  const relative = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, "");
-  let file = join(dist, relative);
-  if (!file.startsWith(dist)) return null;
   try {
+    /* Decoding belongs inside the guard: a malformed escape like `/%` throws
+       a URIError, which outside it would take the whole preview down. A bad
+       path and a missing file mean the same thing here — nothing to serve. */
+    const relative = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, "");
+    const candidate = join(dist, relative);
+    if (!candidate.startsWith(dist)) return null;
+    let file = candidate;
     const info = await stat(file);
     if (info.isDirectory()) file = join(file, "index.html");
     await stat(file);

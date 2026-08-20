@@ -95,3 +95,38 @@ test("the Worker attaches security headers to the assets", () => {
   assert.match(worker, /"connect-src 'none'"/);
   assert.doesNotMatch(worker, /script-src[^"]*https:/);
 });
+
+test("the preview server survives paths it cannot serve", async () => {
+  /* The dev server died twice here: once streaming a 404 page this build
+     never publishes, once on a malformed escape. Both were reported from a
+     running process rather than a reading, so this test runs one too. */
+  const { spawn } = await import("node:child_process");
+  const port = 4700 + Math.floor(Math.random() * 200);
+  const server = spawn(process.execPath, [join(root, "scripts/serve.mjs")], {
+    env: { ...process.env, PORT: String(port) },
+    stdio: "ignore"
+  });
+
+  try {
+    const base = `http://127.0.0.1:${port}`;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      try {
+        await fetch(`${base}/`);
+        break;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    assert.equal((await fetch(`${base}/missing`)).status, 404);
+    assert.equal((await fetch(`${base}/%`)).status, 404);
+    assert.equal((await fetch(`${base}/../package.json`)).status, 404);
+
+    /* The point of the test: it is still answering after all of that. */
+    const page = await fetch(`${base}/`);
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /Ember Study/);
+  } finally {
+    server.kill();
+  }
+});
