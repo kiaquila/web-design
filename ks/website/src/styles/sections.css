@@ -122,6 +122,15 @@
     max-width: calc((100svh - var(--header-h) - 25rem) * 1.6 * 2 + 3rem);
   }
 
+  /* The carousel shrinks with the capped track, plus its two 4.5rem arrow
+     lanes, so on a wide but short viewport — where the cap bites hardest — the
+     arrows keep flanking the screenshots instead of stranding themselves
+     against the section's edges. */
+  .carousel {
+    max-width: calc((100svh - var(--header-h) - 25rem) * 1.6 * 2 + 3rem + 9rem);
+    margin-inline: auto;
+  }
+
   /* Two lines on the deck: the summary is a teaser next to the shot, and the
      full sentence still shows in the flowing layout on phones. */
   .work-summary {
