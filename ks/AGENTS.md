@@ -10,11 +10,14 @@ the retired `/en/` prefix redirects to the root. Read
 The reference is a printed café menu card: white paper, black ink, hairline
 rules, heavy tracked capitals. Everything below follows from that.
 
-- **The palette is fully achromatic.** White ground, near-black ink, a short
-  grey ramp — no accent colour anywhere, not even on links or buttons.
-  Hierarchy is carried by weight, tracking, rules and scale, the way it is on
-  paper. A test walks every hex colour in the compiled stylesheet and fails any
-  whose RGB channels spread more than 12, so a stray blue cannot slip in.
+- **The palette is achromatic but for the wordmark's dot.** White ground,
+  near-black ink, a short grey ramp — no accent colour on links, buttons or any
+  other UI. Hierarchy is carried by weight, tracking, rules and scale, the way
+  it is on paper. The single sanctioned exception (client decision,
+  2026-08-19) is `--brand-gold` on the wordmark dot described below. A test
+  walks every hex colour in the compiled stylesheet, allows exactly that one
+  value, and fails any other whose RGB channels spread more than 12, so a stray
+  blue cannot slip in.
 - Type is two families, both already licensed in this repository: **Manrope**
   for the wordmark, headings, navigation and body; **Playfair Display** for the
   chapter numerals, the pull quotes and the italic line in the contact band —

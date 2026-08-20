@@ -370,6 +370,7 @@
   var AC = null, master = null, voicesBus = null, convolver = null, soften = null;
   var muted = false;
   var audioUnlocked = false;
+  var resumeEpoch = 0;
   var lastHoverStrike = -10;
 
   function ensureAudio() {
@@ -428,20 +429,28 @@
 
   // A tuning-fork strike: near-pure fundamental at 136.1 Hz with a slow
   // beating detune, a faint octave, and a long exponential tail.
-  function strike(vol, opts, retried) {
+  function strike(vol, opts) {
     if (!AC) return;
+    opts = opts || {};
     // The context is created on the first pointer move and stays suspended
-    // until a gesture resumes it — and resuming is asynchronous. A strike
-    // issued in the same tick as the Play click would be dropped, leaving the
-    // first burn silent, so it is re-issued once the context is really running.
+    // until a gesture resumes it — and resuming is asynchronous, so a strike
+    // issued in the same tick as the Play click would be dropped and the first
+    // burn would be silent. Only the gesture's own strike waits for the resume:
+    // a hover strike queued while suspended would otherwise fire later beside
+    // the Play strike that actually unlocked the audio. The epoch drops a
+    // pending strike that Stop or a newer strike has since superseded.
     if (AC.state !== "running") {
-      if (retried) return;
+      if (!opts.awaitResume) return;
+      var epoch = ++resumeEpoch;
       AC.resume().then(function () {
-        strike(vol, opts, true);
+        if (epoch === resumeEpoch && AC.state === "running") emit(vol, opts);
       }).catch(function () {});
       return;
     }
-    opts = opts || {};
+    emit(vol, opts);
+  }
+
+  function emit(vol, opts) {
     var f0 = opts.freq || 136.1;
     var atk = opts.attack || 0.5;
     var t = AC.currentTime;
@@ -469,6 +478,9 @@
 
   function duckVoices() {
     if (!AC || !voicesBus) return;
+    // Cancels a strike still waiting on resume, so stopping cannot be followed
+    // by a tone that was queued a moment earlier.
+    resumeEpoch++;
     var t = AC.currentTime;
     var old = voicesBus;
     old.gain.cancelScheduledValues(t);
@@ -505,7 +517,7 @@
     playBtn.title = "Stop";
     unlockAudio();
     setPhase("burning");
-    strike(1.0, { attack: 0.6 });
+    strike(1.0, { attack: 0.6, awaitResume: true });
     hint.classList.add("dim");
   }
 
