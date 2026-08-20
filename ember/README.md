@@ -45,8 +45,8 @@ synthesized with the Web Audio API, no audio files).
   button silences everything.
 - The favicon is an inline SVG data URI with a `prefers-color-scheme: dark`
   media query inside the SVG (supported by Chrome and Firefox). Safari
-  ignores SVG favicons, so [`website/favicon-32.png`](./website/favicon-32.png)
-  and [`website/apple-touch-icon.png`](./website/apple-touch-icon.png) carry
+  ignores SVG favicons, so [`website/favicon-32.png`](./website/src/favicon-32.png)
+  and [`website/apple-touch-icon.png`](./website/src/apple-touch-icon.png) carry
   the same ball baked onto the page's warm-gray ground.
 - `prefers-reduced-motion` disables rotation, sparks, and smoke while keeping
   the play cycle functional.
