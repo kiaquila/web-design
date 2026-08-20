@@ -106,6 +106,39 @@ carry `ks/` fails its build for the obvious reason — which is what happened to
 the branch that fixed the nanoid advisory. Setting the include path to `ks/*`
 is what keeps unrelated work from consuming, and failing, this project's build.
 
+### Ember
+
+| Setting | Value |
+| --- | --- |
+| Worker name | `ember` |
+| Repository | `kiaquila/web-design` |
+| Production branch | `main` |
+| Root directory | `ember/website` |
+| Build command | `npm run build` |
+| Production deploy command | `npm run stage:deploy` |
+| Non-production deploy command | `npm run stage:preview` |
+| Included build watch path | `ember/*` |
+
+The study is one self-contained HTML file, so its build copies rather than
+compiles: `scripts/build.mjs` assembles `dist/` from `src/` and fails if the
+page ever gains an off-origin reference or loses a favicon.
+`ember/website/worker/index.ts` attaches the security headers, and its policy
+is the one exception in this repository that allows inline sources — the
+page's stylesheet and its canvas program are inline by design. Everything else
+stays shut, including `connect-src 'none'`, which the build check is what
+makes safe.
+
+The stable URL is `https://ember.ks-design.workers.dev`, and the portfolio
+links the study at its custom domain `https://ember.ks-design.art`. Pull-request
+previews use the same versioned URL shape documented for Chaijana above.
+
+**This Worker existed before its settings did.** It was created in the
+dashboard ahead of the rollout, and until the table above is entered it builds
+on every pull request in the repository — with no root directory it has
+nothing to build, so it fails on branches that never touch `ember/`. Entering
+the root, the build and deploy commands and the `ember/*` watch path is what
+turns that red check green.
+
 ### Misha
 
 | Setting | Value |
@@ -143,7 +176,7 @@ GitHub Actions.
 1. In **Workers & Pages**, choose **Create application**, then **Import a
    repository**, and connect `kiaquila/web-design`.
 2. Name the Worker exactly as the project slug (`alex-neon`, `alphacentr`,
-   `chaijana`, `ks` or `misha`).
+   `chaijana`, `ember`, `ks` or `misha`).
    Cloudflare requires the dashboard name to match `name` in that project's
    `wrangler.json`.
 3. Enter the root, build, production deploy, and non-production deploy values

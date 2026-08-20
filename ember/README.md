@@ -28,10 +28,15 @@ synthesized with the Web Audio API, no audio files).
 
 ## Implementation
 
-- [`website/index.html`](./website/index.html) — the whole page: inline CSS
-  and vanilla JS, canvas 2D rendering, Web Audio synthesis. No build step, no
-  dependencies, no network requests, system fonts only. The only sibling
-  files are the two baked favicon PNGs.
+- [`website/src/index.html`](./website/src/index.html) — the whole page:
+  inline CSS and vanilla JS, canvas 2D rendering, Web Audio synthesis. No
+  dependencies, no network requests, system fonts only. The only sibling files
+  are the two baked favicon PNGs.
+- [`website/scripts/build.mjs`](./website/scripts/build.mjs) — copies those
+  three files into `dist/` and refuses to build a page that gained an
+  off-origin reference or lost a favicon.
+- [`website/worker/index.ts`](./website/worker/index.ts) — the Cloudflare
+  Worker that serves `dist/` and attaches the security headers.
 - Audio starts only after a user gesture (browser autoplay policy). The page
   follows the same pattern as the reactive-dots reference: a best-effort
   `AudioContext` resume on the first pointer move (works on returning visits
@@ -46,11 +51,23 @@ synthesized with the Web Audio API, no audio files).
 - `prefers-reduced-motion` disables rotation, sparks, and smoke while keeping
   the play cycle functional.
 
+## Stage
+
+The study is published as its own Cloudflare Worker, `ember`, at
+[ember.ks-design.workers.dev](https://ember.ks-design.workers.dev) and at the
+custom domain [ember.ks-design.art](https://ember.ks-design.art) the portfolio
+links. Its dashboard settings live in
+[`docs/stage-hosting.md`](../docs/stage-hosting.md); the deploy itself is run
+by Cloudflare, not by this repository.
+
 ## Checks
 
-- Open `website/index.html` in a browser (or serve the directory:
-  `python3 -m http.server 4660 -d ember/website`).
-- Verify: hover ignition and recovery, the full Play cycle (burn → gone →
-  reassemble → loop), Stop, mute, the footer link, the favicon in light and
-  dark browser themes, a narrow-viewport layout, and
-  `node scripts/check-repository.mjs` from the repository root.
+- `npm --prefix ember/website run check` — the build plus its tests.
+- `npm --prefix ember/website run dev` — build and serve `dist/` on port 4660.
+- Verify by hand: hover ignition and recovery, the full Play cycle (burn →
+  gone → reassemble → loop), Stop, mute, the footer link, the favicon in light
+  and dark browser themes, and a narrow-viewport layout. Sound needs a real
+  gesture — a scripted `click()` grants no user activation, and a browser
+  profile that has already earned media engagement resumes the context
+  immediately, which hides exactly the bug a fresh profile reveals.
+- `node scripts/check-repository.mjs` from the repository root.

@@ -25,6 +25,10 @@
       "rootDirectory": "chaijana/website",
       "watchPath": "chaijana/*"
     },
+    "ember": {
+      "rootDirectory": "ember/website",
+      "watchPath": "ember/*"
+    },
     "misha": {
       "rootDirectory": "misha/website",
       "watchPath": "misha/*"

@@ -86,8 +86,7 @@ the commands in [`AGENTS.md`](./AGENTS.md).
 
 Ember's card is not a resting screenshot: it is a frame taken about 1.3
 seconds into the burn, while the figure is still whole and its lower edge is
-alight. The link answers once the study's own Cloudflare stage is wired —
-`ember/` currently ships no deploy configuration.
+alight.
 
 ## Open items
 
