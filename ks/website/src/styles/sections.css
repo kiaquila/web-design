@@ -79,6 +79,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100%;
   transition: transform var(--dur) var(--ease);
 }
 
@@ -118,7 +119,16 @@
    aligned with every other slide. */
 @media (min-width: 900px) and (min-height: 660px) {
   .work-track {
-    max-width: calc((100svh - var(--header-h) - 25rem) * 1.6 * 2 + var(--space-md));
+    max-width: calc((100svh - var(--header-h) - 25rem) * 1.6 * 2 + 3rem);
+  }
+
+  /* The carousel shrinks with the capped track, plus its two 4.5rem arrow
+     lanes, so on a wide but short viewport — where the cap bites hardest — the
+     arrows keep flanking the screenshots instead of stranding themselves
+     against the section's edges. */
+  .carousel {
+    max-width: calc((100svh - var(--header-h) - 25rem) * 1.6 * 2 + 3rem + 9rem);
+    margin-inline: auto;
   }
 
   /* Two lines on the deck: the summary is a teaser next to the shot, and the
@@ -137,12 +147,20 @@
 }
 
 .work-meta {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   padding-top: var(--space-md);
 }
 
+/* Reserves two eyebrow lines and bottom-aligns the text inside them, so a
+   card whose kind wraps ("Restaurant · site and menu · 2026") keeps its name,
+   summary and link on the same horizontals as its one-line neighbours. */
 .work-kind {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-end;
+  min-height: 2lh;
   color: var(--ink-mute);
   font-size: var(--step-eyebrow);
   font-weight: 700;
@@ -162,6 +180,7 @@
 
 .work-summary {
   display: block;
+  flex: 1;
   margin-top: 0.5rem;
   max-width: 52ch;
   color: var(--ink-soft);
@@ -172,6 +191,7 @@
 .work-visit {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 0.3rem;
   margin-top: var(--space-sm);
   font-size: 0.78rem;

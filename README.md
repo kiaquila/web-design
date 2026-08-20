@@ -31,6 +31,9 @@ truth instead of maintaining a second copy.
   audio-session catalogue, redesigned under the **Alpha Lumen** concept.
 - [`chaijana/`](./chaijana/) — Chaijaná restaurant website and multilingual
   menu, redesigned under the **Chaijaná Noir** concept.
+- [`ember/`](./ember/) — **Ember**, a ks-design lab study: an interactive
+  burning-and-reassembling particle figure with a synthesized tuning-fork
+  score, after a motion reference pinned from `@skvortsov.design`.
 - [`ks/`](./ks/) — Kristina Aquila's bilingual web design portfolio and selling
   landing page, live at [ks-design.art](https://ks-design.art).
 - [`misha/`](./misha/) — Mikhail Orlov's one-page English CV portfolio, an

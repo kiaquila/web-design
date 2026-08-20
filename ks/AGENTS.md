@@ -10,11 +10,14 @@ the retired `/en/` prefix redirects to the root. Read
 The reference is a printed café menu card: white paper, black ink, hairline
 rules, heavy tracked capitals. Everything below follows from that.
 
-- **The palette is fully achromatic.** White ground, near-black ink, a short
-  grey ramp — no accent colour anywhere, not even on links or buttons.
-  Hierarchy is carried by weight, tracking, rules and scale, the way it is on
-  paper. A test walks every hex colour in the compiled stylesheet and fails any
-  whose RGB channels spread more than 12, so a stray blue cannot slip in.
+- **The palette is achromatic but for the wordmark's dot.** White ground,
+  near-black ink, a short grey ramp — no accent colour on links, buttons or any
+  other UI. Hierarchy is carried by weight, tracking, rules and scale, the way
+  it is on paper. The single sanctioned exception (client decision,
+  2026-08-19) is `--brand-gold` on the wordmark dot described below. A test
+  walks every hex colour in the compiled stylesheet, allows exactly that one
+  value, and fails any other whose RGB channels spread more than 12, so a stray
+  blue cannot slip in.
 - Type is two families, both already licensed in this repository: **Manrope**
   for the wordmark, headings, navigation and body; **Playfair Display** for the
   chapter numerals, the pull quotes and the italic line in the contact band —
@@ -39,9 +42,17 @@ rules, heavy tracked capitals. Everything below follows from that.
   the container is left alone so the heading keeps the section's left edge.
 - The process numerals grow slightly on hover. Any motion added here stays at
   that scale: a transform on one element, killed by `prefers-reduced-motion`.
-- The wordmark is **typography, not a mark**: `ks-design`, bold lowercase
-  Manrope. There is no logo image; the old gradient monogram is gone and should
-  not come back.
+- The wordmark is **typography, not an image**: `ks·design` set in Manrope as
+  tracked uppercase at the nav's type size, with a gold dot on the baseline
+  between the two words — nearer the KS than the DESIGN in a 1:2 proportion
+  (client decision, 2026-08-19; the dot replaced the hyphen of the earlier
+  bold lowercase `ks-design`). The dot uses `--brand-gold`, the page's only
+  chromatic token, and a test allows exactly that hex and no other colour.
+  There is still no logo image, and the old gradient monogram is gone and
+  should not come back. Running text and footer credits keep plain
+  `ks-design`; the mark is a header-only device. The favicon carries the same
+  treatment as a type-set `KS.` with dark-scheme inversion, plus a baked PNG
+  because Safari ignores SVG favicons.
 - The footer is **one horizontal row directly under the contact band**, and the
   pair is anchored to the bottom of the last slide: copyright hard left, a pin
   icon and the location centred on the page, social icons with no labels hard
@@ -217,11 +228,21 @@ cannot drift from the design:
 node ks/website/scripts/make-og.mjs
 ```
 
-Portfolio card screenshots, from the two live stages:
+Portfolio card screenshots, from the live stages. Every card is 1200×750 and
+800×500 in both JPEG and WebP, so a new shot must be taken at the section's
+8:5 proportion rather than cropped into it:
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=2 --window-size=1440,900 --virtual-time-budget=9000 --screenshot=shot.png https://chaijana.ks-design.workers.dev
 ```
+
+Two cards need more than that flag. Ember's shot must catch the animation
+mid-burn, so it is taken through the DevTools protocol: open the study, click
+Play, wait about 1.3 seconds, then capture — a plain `--screenshot` grabs the
+resting figure. Mikhail Orlov's page holds its entrance reveals until the
+content scrolls into view, so a wide window screenshots as an empty sheet;
+shoot it at 1000×625 (or drive it over the protocol with a pause after load)
+and scale to the card sizes.
 
 Neither is part of `npm run build`; both outputs are committed.
 

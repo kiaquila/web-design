@@ -8,6 +8,7 @@
     "alex-neon",
     "alphacentr",
     "chaijana",
+    "ember",
     "ks",
     "misha"
   ],
@@ -23,6 +24,10 @@
     "chaijana": {
       "rootDirectory": "chaijana/website",
       "watchPath": "chaijana/*"
+    },
+    "ember": {
+      "rootDirectory": "ember/website",
+      "watchPath": "ember/*"
     },
     "misha": {
       "rootDirectory": "misha/website",

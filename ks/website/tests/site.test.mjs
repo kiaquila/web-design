@@ -329,7 +329,9 @@ test("the only external links are the approved destinations", () => {
       links.telegram,
       links.instagram,
       links.work.chaijana,
-      links.work.alexNeon
+      links.work.alexNeon,
+      links.work.ember,
+      links.work.misha
     ].map((url) => new URL(url).origin)
   );
 
@@ -432,14 +434,28 @@ test("the portrait exposes one person, not two images", () => {
   }
 });
 
-test("the carousel buttons have accessible names and start hidden", () => {
+test("the wordmark is still two words to a screen reader", () => {
+  /* The gold dot is decorative and hidden, so without a real separator the
+     home link would be announced as one run-on word instead of the brand. */
+  for (const key of DOCUMENTS) {
+    const brand = pages[key].match(/<a class="brand"[\s\S]*?<\/a>/)[0];
+    assert.match(brand, /aria-hidden="true"/);
+    const spoken = stripTags(brand).replace(/\s+/g, " ").trim();
+    assert.equal(spoken, "ks design", `${key}: the wordmark is announced as "${spoken}"`);
+  }
+});
+
+test("the carousel arrows have accessible names and start hidden", () => {
   for (const key of LOCALES) {
-    const controls = pages[key].match(
-      /<div class="carousel-controls"[\s\S]*?<\/div>/
-    )[0];
-    assert.match(controls, /hidden/);
-    for (const label of [content[key].work.previous, content[key].work.next]) {
-      assert.ok(controls.includes(label), `${key}: missing button label ${label}`);
+    for (const [attr, label] of [
+      ["data-carousel-prev", content[key].work.previous],
+      ["data-carousel-next", content[key].work.next]
+    ]) {
+      const btn = pages[key].match(
+        new RegExp(`<button[^>]*${attr}[^>]*>[\\s\\S]*?</button>`)
+      )[0];
+      assert.match(btn, /\bhidden\b/);
+      assert.ok(btn.includes(label), `${key}: missing button label ${label}`);
     }
   }
 });
@@ -695,13 +711,18 @@ test("the stylesheet layers are concatenated in the declared order", () => {
   }
 });
 
-test("the palette stays fully achromatic", () => {
+test("the palette stays achromatic apart from the brand-gold dot", () => {
   /* The design is black-and-white by decision, like the printed menu it
      follows. Any saturated colour sneaking into the stylesheet — a blue link,
      a brand gradient — should trip this before it ships. Neutral greys have
-     near-equal RGB channels; 12 covers the slightly warm greys in use. */
+     near-equal RGB channels; 12 covers the slightly warm greys in use.
+     The single sanctioned exception (client decision, 2026-08-19) is the
+     brand-gold wordmark dot — exactly that value and nothing else. */
+  const BRAND_GOLD = "e8a038";
   assert.ok(!css.includes("--gradient"), "the old gradient token is back");
+  assert.ok(css.includes(`#${BRAND_GOLD}`), "the brand-gold dot token is gone");
   for (const [, hex] of withoutComments(css).matchAll(/#([0-9a-f]{6})\b/gi)) {
+    if (hex.toLowerCase() === BRAND_GOLD) continue;
     const channels = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
     const spread = Math.max(...channels) - Math.min(...channels);
     assert.ok(spread <= 12, `#${hex} is a chromatic colour (spread ${spread})`);

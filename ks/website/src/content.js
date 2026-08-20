@@ -24,7 +24,10 @@ export const links = {
   email: "krisredlips@gmail.com",
   work: {
     chaijana: "https://chaijana.ks-design.workers.dev",
-    alexNeon: "https://alex-neon.ks-design.workers.dev"
+    alexNeon: "https://alex-neon.ks-design.workers.dev",
+    /* Custom domain configured ahead of the rollout; serves once deployed. */
+    ember: "https://ember.ks-design.art/",
+    misha: "https://misha.ks-design.workers.dev/"
   }
 };
 
@@ -40,7 +43,8 @@ export const languages = {
 /** Locales whose copy is a translation the owner has not signed off on yet.
  *  The build names them on every run, the way unfinished sections are named,
  *  so a draft translation cannot quietly become the published wording. The
- *  owner approved the current Spanish copy on 2026-08-17. */
+ *  owner approved the current Spanish copy on 2026-08-17 and the ember and
+ *  misha work cards on 2026-08-19. */
 export const localesAwaitingReview = [];
 
 /** One social card per language — sharing a page with a card that carries
@@ -108,6 +112,28 @@ export const content = {
           href: links.work.alexNeon,
           image: "alex-neon",
           alt: "Alex Neon landing page, first screen"
+        },
+        {
+          slug: "ember",
+          name: "Ember",
+          kind: "Lab study · interactive",
+          year: "2026",
+          summary:
+            "An interactive canvas study: a wireframe figure smolders under the cursor, burns down and reassembles to a synthesized tuning-fork tone.",
+          href: links.work.ember,
+          image: "ember",
+          alt: "Ember study — a dark wireframe figure with golden embers"
+        },
+        {
+          slug: "misha",
+          name: "Mikhail Orlov",
+          kind: "CV portfolio · one-pager",
+          year: "2026",
+          summary:
+            "An original one-page CV portfolio for a senior backend developer and development lead — one calm scrolling sheet in English.",
+          href: links.work.misha,
+          image: "misha",
+          alt: "Mikhail Orlov one-page CV portfolio, first screen"
         }
       ]
     },
@@ -251,6 +277,28 @@ export const content = {
           href: links.work.alexNeon,
           image: "alex-neon",
           alt: "Primera pantalla de la landing de Alex Neon"
+        },
+        {
+          slug: "ember",
+          name: "Ember",
+          kind: "Estudio de laboratorio · interactivo",
+          year: "2026",
+          summary:
+            "Un estudio interactivo en canvas: una figura de alambre arde bajo el cursor, se consume y se rearma al tono de un diapasón sintetizado.",
+          href: links.work.ember,
+          image: "ember",
+          alt: "Estudio Ember: una figura de alambre oscura con brasas doradas"
+        },
+        {
+          slug: "misha",
+          name: "Mikhail Orlov",
+          kind: "Portfolio CV · una página",
+          year: "2026",
+          summary:
+            "Un portfolio-CV original de una sola página para un desarrollador backend senior y líder de desarrollo: una hoja serena en inglés.",
+          href: links.work.misha,
+          image: "misha",
+          alt: "Primera pantalla del portfolio CV de una página de Mikhail Orlov"
         }
       ]
     },

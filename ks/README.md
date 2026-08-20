@@ -75,11 +75,18 @@ part of that project, which is a record of work done rather than an offer.
 
 ### Portfolio entries
 
-Both projects live in this repository and are linked to their public stages:
-[Chaijaná Noir](https://chaijana.ks-design.workers.dev) and
-[Alex Neon](https://alex-neon.ks-design.workers.dev). The card images are
-screenshots of those stages, regenerated with the command in
-[`AGENTS.md`](./AGENTS.md).
+All four projects live in this repository and are linked to their public
+stages, in the order the carousel shows them:
+[Chaijaná Noir](https://chaijana.ks-design.workers.dev),
+[Alex Neon](https://alex-neon.ks-design.workers.dev),
+[Ember](https://ember.ks-design.art/) and
+[Mikhail Orlov](https://misha.ks-design.workers.dev/). The card images are
+screenshots of those stages at the section's 8:5 proportion, regenerated with
+the commands in [`AGENTS.md`](./AGENTS.md).
+
+Ember's card is not a resting screenshot: it is a frame taken about 1.3
+seconds into the burn, while the figure is still whole and its lower edge is
+alight.
 
 ## Open items
 

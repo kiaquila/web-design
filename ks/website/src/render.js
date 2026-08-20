@@ -111,7 +111,7 @@ function header(lang, copy, anchorBase = "") {
 
   return `<header class="site-header" data-header>
     <div class="container header-inner">
-      <a class="brand" href="${home}">ks-design</a>
+      <a class="brand" href="${home}"><span class="brand-word">ks<span class="brand-dot" aria-hidden="true"></span><span class="visually-hidden"> </span>design</span></a>
       <nav class="site-nav" id="site-nav" aria-label="${escapeHtml(copy.nav.label)}">
         <ul role="list">${navItems}</ul>
       </nav>
@@ -215,18 +215,18 @@ function work(copy) {
     <div class="container">
       <div class="section-head">
         <h2 id="work-title">${escapeHtml(copy.work.title)}</h2>
-        <div class="carousel-controls" data-carousel-controls hidden>
-          <button class="carousel-btn" type="button" data-carousel-prev>
-            <span class="visually-hidden">${escapeHtml(copy.work.previous)}</span>${icons.chevronLeft}
-          </button>
-          <button class="carousel-btn" type="button" data-carousel-next>
-            <span class="visually-hidden">${escapeHtml(copy.work.next)}</span>${icons.chevronRight}
-          </button>
-        </div>
       </div>
-      <ul class="work-track" role="list" data-carousel-track tabindex="0">
-        ${cards}
-      </ul>
+      <div class="carousel" data-carousel>
+        <button class="carousel-btn carousel-prev" type="button" data-carousel-prev hidden>
+          <span class="visually-hidden">${escapeHtml(copy.work.previous)}</span>${icons.chevronLeft}
+        </button>
+        <ul class="work-track" role="list" data-carousel-track tabindex="0">
+          ${cards}
+        </ul>
+        <button class="carousel-btn carousel-next" type="button" data-carousel-next hidden>
+          <span class="visually-hidden">${escapeHtml(copy.work.next)}</span>${icons.chevronRight}
+        </button>
+      </div>
     </div>
   </section>`;
 }
