@@ -31,7 +31,12 @@ import { inflateSync } from "node:zlib";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { FIGURE_FINGERPRINT_KEY, figureFingerprint } from "./og-fingerprint.mjs";
+import {
+  FIGURE_FINGERPRINT_KEY,
+  RENDERER_FINGERPRINT_KEY,
+  figureFingerprint,
+  rendererFingerprint
+} from "./og-fingerprint.mjs";
 
 const SRC = resolve(import.meta.dirname, "..", "src");
 const OUT = join(SRC, "og.png");
@@ -654,6 +659,11 @@ const png = Buffer.concat([
   chunk("tEXt", Buffer.from(
     `Comment\0ember og card, seed ${SEED}, rotY ${ROT_Y}, lump ${LUMP}`, "latin1")),
   chunk("tEXt", Buffer.from(`${FIGURE_FINGERPRINT_KEY}\0${pageFingerprint}`, "latin1")),
+  /* Binds the committed bytes to the renderer itself: a change to SEED, a
+     color, or the rasterizer shows up as a hash mismatch in the tests until
+     the card is regenerated. */
+  chunk("tEXt", Buffer.from(
+    `${RENDERER_FINGERPRINT_KEY}\0${rendererFingerprint(import.meta.dirname)}`, "latin1")),
   chunk("IDAT", idat),
   chunk("IEND", Buffer.alloc(0))
 ]);

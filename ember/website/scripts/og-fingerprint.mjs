@@ -17,6 +17,8 @@
    wolf. */
 
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 /* The section markers in src/index.html. buildFigure() and its constants
    live between them. */
@@ -24,15 +26,37 @@ const SECTION_START = "// ---------- figure geometry ----------";
 const SECTION_END = "// ---------- sprites ----------";
 
 export const FIGURE_FINGERPRINT_KEY = "ember-figure";
+export const RENDERER_FINGERPRINT_KEY = "ember-renderer";
+
+/* Every file whose content decides the card's pixels. Hashing them binds the
+   committed og.png to the renderer itself: editing a seed, a color, or the
+   rasterizer without regenerating turns the tests red. */
+export const RENDERER_SOURCES = ["make-og.mjs", "og-fingerprint.mjs"];
+
+/* A Windows checkout with core.autocrlf=true reads these sources with CRLF;
+   hash the logical text, not the checkout's line-ending flavor. */
+const normalize = (text) => text.replace(/\r\n?/g, "\n");
 
 export function figureFingerprint(pageHtml) {
-  const start = pageHtml.indexOf(SECTION_START);
-  const end = pageHtml.indexOf(SECTION_END);
+  const text = normalize(pageHtml);
+  const start = text.indexOf(SECTION_START);
+  const end = text.indexOf(SECTION_END);
   if (start === -1 || end === -1 || end <= start) {
     throw new Error(
       "index.html no longer carries the figure-geometry section markers; " +
         "update og-fingerprint.mjs alongside the page."
     );
   }
-  return createHash("sha256").update(pageHtml.slice(start, end)).digest("hex");
+  return createHash("sha256").update(text.slice(start, end)).digest("hex");
+}
+
+export function rendererFingerprint(scriptsDir) {
+  const hash = createHash("sha256");
+  for (const name of RENDERER_SOURCES) {
+    hash.update(name);
+    hash.update("\0");
+    hash.update(normalize(readFileSync(join(scriptsDir, name), "utf8")));
+    hash.update("\0");
+  }
+  return hash.digest("hex");
 }

@@ -111,11 +111,14 @@ test("the social card was rendered from the page's current figure geometry", asy
      showing the old figure in every feed. make-og.mjs bakes a hash of the
      page's figure-geometry section into the PNG; recomputing it from the
      shipped page turns that silent drift into this red test. */
-  const { FIGURE_FINGERPRINT_KEY, figureFingerprint } = await import(
-    "../scripts/og-fingerprint.mjs"
-  );
+  const {
+    FIGURE_FINGERPRINT_KEY,
+    RENDERER_FINGERPRINT_KEY,
+    figureFingerprint,
+    rendererFingerprint
+  } = await import("../scripts/og-fingerprint.mjs");
   const card = await readFile(join(dist, "og.png"));
-  let baked = null;
+  const baked = {};
   for (let offset = 8; offset < card.length;) {
     const length = card.readUInt32BE(offset);
     const type = card.toString("ascii", offset + 4, offset + 8);
@@ -123,16 +126,23 @@ test("the social card was rendered from the page's current figure geometry", asy
       const [keyword, value] = card
         .toString("latin1", offset + 8, offset + 8 + length)
         .split("\0");
-      if (keyword === FIGURE_FINGERPRINT_KEY) baked = value;
+      baked[keyword] = value;
     }
     offset += 12 + length;
   }
   assert.equal(
-    baked,
+    baked[FIGURE_FINGERPRINT_KEY],
     figureFingerprint(page),
     "og.png was rendered from different figure code — update the port in " +
       "scripts/make-og.mjs to match the page, then regenerate (see " +
       "PORTED_FIGURE_FINGERPRINT there)"
+  );
+  /* The same gate from the other side: the renderer changed but the card
+     was not regenerated. */
+  assert.equal(
+    baked[RENDERER_FINGERPRINT_KEY],
+    rendererFingerprint(join(root, "scripts")),
+    "og.png predates the current renderer — run `npm run og`"
   );
 });
 
