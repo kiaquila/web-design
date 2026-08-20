@@ -428,8 +428,19 @@
 
   // A tuning-fork strike: near-pure fundamental at 136.1 Hz with a slow
   // beating detune, a faint octave, and a long exponential tail.
-  function strike(vol, opts) {
-    if (!AC || AC.state !== "running") return;
+  function strike(vol, opts, retried) {
+    if (!AC) return;
+    // The context is created on the first pointer move and stays suspended
+    // until a gesture resumes it — and resuming is asynchronous. A strike
+    // issued in the same tick as the Play click would be dropped, leaving the
+    // first burn silent, so it is re-issued once the context is really running.
+    if (AC.state !== "running") {
+      if (retried) return;
+      AC.resume().then(function () {
+        strike(vol, opts, true);
+      }).catch(function () {});
+      return;
+    }
     opts = opts || {};
     var f0 = opts.freq || 136.1;
     var atk = opts.attack || 0.5;

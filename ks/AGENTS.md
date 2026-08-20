@@ -39,9 +39,17 @@ rules, heavy tracked capitals. Everything below follows from that.
   the container is left alone so the heading keeps the section's left edge.
 - The process numerals grow slightly on hover. Any motion added here stays at
   that scale: a transform on one element, killed by `prefers-reduced-motion`.
-- The wordmark is **typography, not a mark**: `ks-design`, bold lowercase
-  Manrope. There is no logo image; the old gradient monogram is gone and should
-  not come back.
+- The wordmark is **typography, not an image**: `ks·design` set in Manrope as
+  tracked uppercase at the nav's type size, with a gold dot on the baseline
+  between the two words — nearer the KS than the DESIGN in a 1:2 proportion
+  (client decision, 2026-08-19; the dot replaced the hyphen of the earlier
+  bold lowercase `ks-design`). The dot uses `--brand-gold`, the page's only
+  chromatic token, and a test allows exactly that hex and no other colour.
+  There is still no logo image, and the old gradient monogram is gone and
+  should not come back. Running text and footer credits keep plain
+  `ks-design`; the mark is a header-only device. The favicon carries the same
+  treatment as a type-set `KS.` with dark-scheme inversion, plus a baked PNG
+  because Safari ignores SVG favicons.
 - The footer is **one horizontal row directly under the contact band**, and the
   pair is anchored to the bottom of the last slide: copyright hard left, a pin
   icon and the location centred on the page, social icons with no labels hard
