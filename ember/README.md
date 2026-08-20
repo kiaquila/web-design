@@ -46,7 +46,13 @@ synthesized with the Web Audio API, no audio files).
   stays in `og:title`/`og:description`. Composition is a client decision
   (Kristina, 2026-08-20): sphere with the smolder at the upper right, chosen
   as variant 1 from ten seeded candidates. The constants in the script pin
-  that choice; rerun `npm run og` to reproduce it byte for byte.
+  that choice; rerun `npm run og` to reproduce it byte for byte — the script
+  carries its own fixed-Huffman deflate, so the bytes do not depend on the
+  runtime's zlib build. A fingerprint of the page's figure-geometry section
+  is baked into the PNG and re-checked by the tests
+  ([`website/scripts/og-fingerprint.mjs`](./website/scripts/og-fingerprint.mjs)),
+  so reshaping the page's figure without regenerating the card fails the
+  build instead of leaving a stale card in other people's feeds.
 - [`website/worker/index.ts`](./website/worker/index.ts) — the Cloudflare
   Worker that serves `dist/` and attaches the security headers.
 - Audio starts only after a user gesture (browser autoplay policy). The page

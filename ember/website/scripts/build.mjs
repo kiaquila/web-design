@@ -9,6 +9,7 @@
 
 import { copyFile, mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
 const src = join(root, "src");
@@ -18,13 +19,18 @@ const dist = join(root, "dist");
 const SERVED = ["index.html", "favicon-32.png", "apple-touch-icon.png", "og.png"];
 
 /* Social scrapers ignore relative URLs, so the og:url/og:image meta tags have
-   to spell out the page's own address in full. That address is this origin —
-   nothing is loaded from anywhere else — so the scan blanks exactly it, and
-   only inside a meta content attribute, before looking for off-origin
-   references. Any other host, or the origin used anywhere else, still fails. */
+   to spell out the page's own address in full. Those two URLs are enumerated
+   exactly, like SERVED, and blanked only when they are the complete value of
+   a content attribute on an og: meta tag. Exact enumeration is what keeps
+   the allowance from becoming a tunnel: a query string, a fragment, or an
+   embedded second URL is not on the list, so the whole value stays visible
+   to the off-origin scan and the build fails. */
 const ORIGIN = "https://ember.ks-design.art";
+const META_OWN_URLS = [`${ORIGIN}/`, `${ORIGIN}/og.png`];
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const META_OWN_ORIGIN = new RegExp(
-  `(<meta\\b[^>]*?\\bcontent\\s*=\\s*)(["'])${ORIGIN.replace(/[./]/g, "\\$&")}(?:/[^"']*)?\\2`,
+  `(<meta\\b[^>]*?\\bproperty\\s*=\\s*(["'])og:(?:url|image)\\2[^>]*?(?<![\\w-])content\\s*=\\s*)` +
+    `(["'])(?:${META_OWN_URLS.map(escapeRegExp).join("|")})\\3`,
   "gi"
 );
 
@@ -68,6 +74,19 @@ const LOCAL_REFERENCE =
   /(?:\b(?:src|poster)\s*=\s*["']([^"']+)["']|<link\b[^>]*\bhref\s*=\s*["']([^"']+)["']|\burl\(\s*["']?([^"')]+)["']?\s*\))/gi;
 const SRCSET = /\bsrcset\s*=\s*["']([^"']+)["']/gi;
 
+/** Every off-origin reference the page carries; empty means self-contained.
+    Exported so the tests can prove the check still bites. */
+export function findOffOrigin(markup) {
+  const decoded = decodeCharacterReferences(markup);
+  const scannable = decoded
+    .replace(DATA_URI, "data:inline")
+    .replace(ANCHOR_HREF, '$1$2local$2')
+    .replace(META_OWN_ORIGIN, '$1$3local$3');
+  const offsite = [...scannable.matchAll(OFF_ORIGIN_ANYWHERE)].map((match) => match[0]);
+  if (/@import/i.test(scannable)) offsite.push("@import");
+  return offsite;
+}
+
 async function main() {
   await rm(dist, { recursive: true, force: true });
   await mkdir(dist, { recursive: true });
@@ -80,12 +99,7 @@ async function main() {
   const page = await readFile(join(dist, "index.html"), "utf8");
 
   const decoded = decodeCharacterReferences(page);
-  const scannable = decoded
-    .replace(DATA_URI, "data:inline")
-    .replace(ANCHOR_HREF, '$1$2local$2')
-    .replace(META_OWN_ORIGIN, '$1$2local$2');
-  const offsite = [...scannable.matchAll(OFF_ORIGIN_ANYWHERE)].map((match) => match[0]);
-  if (/@import/i.test(scannable)) offsite.push("@import");
+  const offsite = findOffOrigin(page);
   if (offsite.length > 0) {
     throw new Error(
       `The study must load nothing from another origin, found: ${offsite.join(", ")}`
@@ -117,4 +131,8 @@ async function main() {
   console.log(`Built ember: ${SERVED.length} files in dist/.`);
 }
 
-await main();
+/* The tests import findOffOrigin above; only a direct `node build.mjs` (or
+   npm run build) may actually build. */
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
+}

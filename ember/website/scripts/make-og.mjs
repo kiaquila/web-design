@@ -16,15 +16,25 @@
    (the favicon's exact geometry) in the corner.
 
    Pure Node and fully seeded — a float framebuffer, supersampled 2× and
-   encoded as a PNG by hand — so the asset is reproducible.
+   encoded as a PNG by hand, including the deflate stream itself (fixed
+   Huffman + greedy LZ77, integer math only). Node's zlib is deliberately not
+   used for compression: its byte stream differs between zlib builds (Node 22
+   and Node 24+ ship different ones), which would leave the committed og.png
+   dirty after a faithful `npm run og` on another runtime. With the encoder
+   in this file, the bytes depend on nothing but this file — reproducible on
+   any Node the package supports. zlib is still imported, but only to verify
+   the stream round-trips before the PNG is written.
 
    Run from the project: npm run og */
 
-import { deflateSync } from "node:zlib";
-import { writeFileSync } from "node:fs";
+import { inflateSync } from "node:zlib";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const OUT = resolve(import.meta.dirname, "..", "src", "og.png");
+import { FIGURE_FINGERPRINT_KEY, figureFingerprint } from "./og-fingerprint.mjs";
+
+const SRC = resolve(import.meta.dirname, "..", "src");
+const OUT = join(SRC, "og.png");
 const W = 1200;
 const H = 630;
 const SS = 2; /* rendered at 2×, then box-filtered down */
@@ -173,17 +183,17 @@ const vigR1 = Math.max(W, H) * 0.85;
 
 for (let y = 0; y < h; y++) {
   for (let x = 0; x < w; x++) {
-    const px = x / SS;
-    const py = y / SS;
+    const cssX = x / SS;
+    const cssY = y / SS;
     /* sky gradient, stops at 0 / 0.55 / 1 */
-    const gt = clamp01((px * gdx + py * gdy) / glen2);
+    const gt = clamp01((cssX * gdx + cssY * gdy) / glen2);
     const out = [0, 0, 0];
     for (let c = 0; c < 3; c++) {
       out[c] = gt < 0.55
         ? SKY[0][c] + (SKY[1][c] - SKY[0][c]) * (gt / 0.55)
         : SKY[1][c] + (SKY[2][c] - SKY[1][c]) * ((gt - 0.55) / 0.45);
     }
-    const dist = Math.hypot(px - CX, py - CY);
+    const dist = Math.hypot(cssX - CX, cssY - CY);
     /* halo behind the figure */
     const ht = clamp01((dist - R * 0.2) / (R * 1.7 - R * 0.2));
     const ha = 0.5 * (1 - ht);
@@ -466,6 +476,122 @@ for (let y = 0; y < H; y++) {
   rows.push(row);
 }
 
+/* ---- deterministic zlib stream (RFC 1950/1951) ---------------------------
+   One final fixed-Huffman block over a greedy 32 KB-window LZ77 parse.
+   Trails zlib level 9 by a modest margin, which the card can afford for the
+   guarantee that the bytes are a pure function of the pixels. */
+function deterministicZlib(data) {
+  const out = [0x78, 0x01]; /* CMF/FLG: deflate, 32 KB window, checksum ok */
+  let bitBuf = 0;
+  let bitCnt = 0;
+  const putBits = (value, count) => {
+    bitBuf |= value << bitCnt;
+    bitCnt += count;
+    while (bitCnt >= 8) {
+      out.push(bitBuf & 0xff);
+      bitBuf >>>= 8;
+      bitCnt -= 8;
+    }
+  };
+  /* Huffman codes are transmitted most-significant bit first, so reverse. */
+  const putCode = (code, len) => {
+    let rev = 0;
+    for (let i = 0; i < len; i++) {
+      rev = (rev << 1) | (code & 1);
+      code >>= 1;
+    }
+    putBits(rev, len);
+  };
+  const putSymbol = (sym) => {
+    if (sym < 144) putCode(0x30 + sym, 8);
+    else if (sym < 256) putCode(0x190 + (sym - 144), 9);
+    else if (sym < 280) putCode(sym - 256, 7);
+    else putCode(0xc0 + (sym - 280), 8);
+  };
+
+  const LEN_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
+    35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+  const LEN_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
+    3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+  const DIST_BASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129,
+    193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193,
+    12289, 16385, 24577];
+  const DIST_EXTRA = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+    7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+
+  putBits(1, 1); /* BFINAL */
+  putBits(1, 2); /* BTYPE: fixed Huffman */
+
+  const HASH_SIZE = 1 << 15;
+  const MAX_CHAIN = 64;
+  const head = new Int32Array(HASH_SIZE).fill(-1);
+  const chain = new Int32Array(data.length);
+  const hashAt = (p) => ((data[p] << 10) ^ (data[p + 1] << 5) ^ data[p + 2]) & (HASH_SIZE - 1);
+  const insert = (p) => {
+    const hsh = hashAt(p);
+    chain[p] = head[hsh];
+    head[hsh] = p;
+  };
+
+  let i = 0;
+  while (i < data.length) {
+    let bestLen = 0;
+    let bestDist = 0;
+    if (i + 2 < data.length) {
+      let cand = head[hashAt(i)];
+      let tries = MAX_CHAIN;
+      const limit = Math.min(258, data.length - i);
+      while (cand >= 0 && tries-- > 0 && i - cand <= 32768) {
+        let l = 0;
+        while (l < limit && data[cand + l] === data[i + l]) l++;
+        if (l > bestLen) {
+          bestLen = l;
+          bestDist = i - cand;
+          if (l >= limit) break;
+        }
+        cand = chain[cand];
+      }
+    }
+    if (bestLen >= 3) {
+      let li = LEN_BASE.length - 1;
+      while (LEN_BASE[li] > bestLen) li--;
+      putSymbol(257 + li);
+      if (LEN_EXTRA[li]) putBits(bestLen - LEN_BASE[li], LEN_EXTRA[li]);
+      let di = DIST_BASE.length - 1;
+      while (DIST_BASE[di] > bestDist) di--;
+      putCode(di, 5);
+      if (DIST_EXTRA[di]) putBits(bestDist - DIST_BASE[di], DIST_EXTRA[di]);
+      const stop = i + bestLen;
+      while (i < stop) {
+        if (i + 2 < data.length) insert(i);
+        i++;
+      }
+    } else {
+      putSymbol(data[i]);
+      if (i + 2 < data.length) insert(i);
+      i++;
+    }
+  }
+  putSymbol(256); /* end of block */
+  if (bitCnt > 0) out.push(bitBuf & 0xff);
+
+  /* adler32, deferred modulo (sums stay far below 2^53) */
+  let a = 1;
+  let b = 0;
+  for (let p = 0; p < data.length; p++) {
+    a += data[p];
+    b += a;
+    if ((p & 0xfff) === 0xfff) {
+      a %= 65521;
+      b %= 65521;
+    }
+  }
+  a %= 65521;
+  b %= 65521;
+  out.push((b >>> 8) & 0xff, b & 0xff, (a >>> 8) & 0xff, a & 0xff);
+  return Buffer.from(out);
+}
+
 const crcTable = (() => {
   const table = new Int32Array(256);
   for (let n = 0; n < 256; n++) {
@@ -493,16 +619,28 @@ ihdr.writeUInt32BE(H, 4);
 ihdr[8] = 8; /* bit depth */
 ihdr[9] = 2; /* truecolor */
 
+const raw = Buffer.concat(rows);
+const idat = deterministicZlib(raw);
+if (!inflateSync(idat).equals(raw)) {
+  throw new Error("the deterministic deflate stream does not round-trip");
+}
+
+/* The figure fingerprint bakes the drift tripwire into the file itself; the
+   tests recompute it from the shipped page (see og-fingerprint.mjs). */
+const pageFingerprint = figureFingerprint(readFileSync(join(SRC, "index.html"), "utf8"));
+
 const png = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   chunk("IHDR", ihdr),
   chunk("tEXt", Buffer.from(
     `Comment\0ember og card, seed ${SEED}, rotY ${ROT_Y}, lump ${LUMP}`, "latin1")),
-  chunk("IDAT", deflateSync(Buffer.concat(rows), { level: 9 })),
+  chunk("tEXt", Buffer.from(`${FIGURE_FINGERPRINT_KEY}\0${pageFingerprint}`, "latin1")),
+  chunk("IDAT", idat),
   chunk("IEND", Buffer.alloc(0))
 ]);
 
 writeFileSync(OUT, png);
 console.log(
-  `Wrote ${join("src", "og.png")} — ${W}×${H}, ${edges.length} edges, ${(png.length / 1024).toFixed(0)} KB`
+  `Wrote ${join("src", "og.png")} — ${W}×${H}, ${edges.length} edges, ` +
+    `${(png.length / 1024).toFixed(0)} KB, figure ${pageFingerprint.slice(0, 12)}`
 );
