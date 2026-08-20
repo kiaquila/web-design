@@ -43,12 +43,18 @@ function decodeCharacterReferences(markup) {
 
 const DATA_URI = /data:[^"'\s)]+/gi;
 const ANCHOR_HREF = /(<a\b[^>]*?\bhref\s*=\s*)(["'])[^"']*\2/gi;
-const OFF_ORIGIN_ANYWHERE = /(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s"'()<>]+/gi;
+/* Two shapes of an off-origin reference: anything with `//`, and a special
+   scheme written without slashes — browsers normalise `http:cdn.example` to
+   `http://cdn.example`, so the scheme alone is enough to leave the site. */
+const OFF_ORIGIN_ANYWHERE =
+  /(?:\b(?:https?|ftp|wss?):[^\s"'()<>]+)|(?:(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s"'()<>]+)/gi;
 
 /* Local references have to resolve to something the build actually publishes,
-   or the page ships a request that 404s. */
+   or the page ships a request that 404s. `srcset` holds comma-separated
+   candidates, each a URL followed by an optional descriptor. */
 const LOCAL_REFERENCE =
   /(?:\b(?:src|poster)\s*=\s*["']([^"']+)["']|<link\b[^>]*\bhref\s*=\s*["']([^"']+)["']|\burl\(\s*["']?([^"')]+)["']?\s*\))/gi;
+const SRCSET = /\bsrcset\s*=\s*["']([^"']+)["']/gi;
 
 async function main() {
   await rm(dist, { recursive: true, force: true });
@@ -71,8 +77,12 @@ async function main() {
     );
   }
 
+  const srcsetCandidates = [...decoded.matchAll(SRCSET)].flatMap((match) =>
+    match[1].split(",").map((candidate) => candidate.trim().split(/\s+/)[0])
+  );
   const unresolved = [...decoded.matchAll(LOCAL_REFERENCE)]
     .map((match) => match[1] ?? match[2] ?? match[3])
+    .concat(srcsetCandidates)
     .filter((reference) => reference && !/^(?:data:|#)/i.test(reference))
     .filter((reference) => !SERVED.includes(reference.replace(/^\.?\//, "")));
   if (unresolved.length > 0) {
