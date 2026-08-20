@@ -426,17 +426,24 @@
   // silent sample (iOS needs it to open the output path).
   function unlockAudio() {
     ensureAudio();
-    if (!AC) return;
-    if (!audioUnlocked && AC.state === "running") {
-      try {
-        var b = AC.createBuffer(1, 1, AC.sampleRate);
-        var src = AC.createBufferSource();
-        src.buffer = b;
-        src.connect(AC.destination);
-        src.start(0);
-        audioUnlocked = true;
-      } catch (e) {}
-    }
+    if (!AC || audioUnlocked) return;
+    // Resuming is asynchronous, so the context is still suspended in this
+    // tick: playing the sample now would do nothing and iOS would keep the
+    // output path closed. Both branches stay inside the gesture that called.
+    if (AC.state === "running") playUnlockSample();
+    else AC.resume().then(playUnlockSample).catch(function () {});
+  }
+
+  function playUnlockSample() {
+    if (!AC || audioUnlocked || AC.state !== "running") return;
+    try {
+      var b = AC.createBuffer(1, 1, AC.sampleRate);
+      var src = AC.createBufferSource();
+      src.buffer = b;
+      src.connect(AC.destination);
+      src.start(0);
+      audioUnlocked = true;
+    } catch (e) {}
   }
 
   // A tuning-fork strike: near-pure fundamental at 136.1 Hz with a slow

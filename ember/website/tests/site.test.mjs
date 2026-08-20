@@ -64,8 +64,12 @@ test("the audio only ever starts from a gesture", () => {
      The context is resumed and unlocked from click, tap and key handlers, and
      the mute button silences the master gain outright. */
   assert.match(page, /function unlockAudio\(\)/);
-  assert.match(page, /addEventListener\("click"[\s\S]{0,200}unlockAudio\(\)|unlockAudio\(\)/);
+  assert.match(page, /unlockAudio\(\)/);
   assert.match(page, /master\.gain\.setTargetAtTime\(m \? 0 : 1/);
+  /* Resuming is asynchronous: both the iOS unlock sample and the first strike
+     have to run after it settles, or the opening burn is silent. */
+  assert.match(page, /AC\.resume\(\)\.then\(playUnlockSample\)/);
+  assert.match(page, /if \(!opts\.awaitResume\) return;/);
 });
 
 test("reduced motion is honoured", () => {

@@ -34,9 +34,10 @@ createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", "http://localhost");
   const file = await resolveFile(url.pathname);
   if (!file) {
-    const fallback = join(dist, "404.html");
-    response.writeHead(404, { "content-type": TYPES[".html"] });
-    createReadStream(fallback).pipe(response);
+    /* The build publishes exactly the page and its two favicons, so there is
+       no 404 document to stream — reading one would crash the preview. */
+    response.writeHead(404, { "content-type": TYPES[".txt"] });
+    response.end(`Not found: ${url.pathname}\n`);
     return;
   }
   response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" });
