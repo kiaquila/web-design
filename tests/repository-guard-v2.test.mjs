@@ -692,6 +692,39 @@ test("cd options and parent segments still land in the isolated checkout", () =>
   assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", step("npm ci", "candidate-other")), []);
 });
 
+test("the option terminator and a computed working directory are both caught", () => {
+  const withStep = (step, rootDefault = "") =>
+    `on: issue_comment\npermissions:\n  contents: write\n${rootDefault}jobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n${step}`;
+  for (const run of ["cd -- candidate && npm ci", "cd -P -- candidate && npm ci"]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", withStep(`      - run: ${run}\n`)).join("\n"),
+      /executes code from the untrusted checkout candidate/,
+      run
+    );
+  }
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      withStep("      - run: npm ci\n        working-directory: ${{ 'candidate' }}\n")
+    ).join("\n"),
+    /computed working directory alongside the untrusted checkout candidate/
+  );
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      withStep("      - run: npm ci\n", "defaults:\n  run:\n    working-directory: ${{ inputs.dir }}\n")
+    ).join("\n"),
+    /computed working directory alongside the untrusted checkout candidate/
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      withStep("      - run: npm ci\n        working-directory: website\n")
+    ),
+    []
+  );
+});
+
 test("a write-capable job may not fetch an actor-selected ref with git", () => {
   const shellStep = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${run}\n`;

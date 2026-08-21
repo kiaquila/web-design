@@ -611,6 +611,18 @@ function stepAcquiresUntrustedRefThroughShell(step) {
   return SHELL_ACQUIRED_UNTRUSTED_REF.some((pattern) => pattern.test(run.value));
 }
 
+// `working-directory: ${{ 'candidate' }}` resolves at run time, so no static
+// comparison can clear it. A write-capable job with an isolated untrusted
+// checkout may not have a computed working directory at all.
+function stepHasComputedWorkingDirectory(step) {
+  const hasRun = isScalar(mapPair(step, "run")?.value);
+  if (!hasRun) return false;
+  const workingDirectory = mapPair(step, "working-directory")?.value;
+  if (!workingDirectory) return false;
+  if (!isScalar(workingDirectory) || typeof workingDirectory.value !== "string") return true;
+  return workingDirectory.value.includes("${{");
+}
+
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
   const uses = mapPair(step, "uses")?.value;
   if (isScalar(uses) && typeof uses.value === "string") {
@@ -636,7 +648,7 @@ function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
     // Changing into the tree makes every later command in that step run there,
     // and the directory has no trailing slash in `cd .proposed && npm ci`.
     new RegExp(
-      `(?:^|[\\s;&|(])(?:cd|pushd)(?:\\s+-[A-Za-z]+)*\\s+["']?(?:\\./)*${quoted}(?:/|["']|\\s|$)`,
+      `(?:^|[\\s;&|(])(?:cd|pushd)(?:\\s+(?:--|-[A-Za-z]+))*\\s+["']?(?:\\./)*${quoted}(?:/|["']|\\s|$)`,
       "m"
     ).test(run.value)
   );
@@ -830,12 +842,23 @@ export function validateWorkflowText(path, text) {
             ? mapPair(jobRunDefaults, "working-directory")?.value
             : undefined;
           const effectiveWorkingDirectory = jobWorkingDirectory ?? rootWorkingDirectory;
+          const computedRootDefault =
+            rootWorkingDirectory !== undefined &&
+            (!isScalar(rootWorkingDirectory) ||
+              typeof rootWorkingDirectory.value !== "string" ||
+              rootWorkingDirectory.value.includes("${{"));
           for (const directory of isolated) {
             const defaultsEnterTree = directoryEntersUntrustedTree(effectiveWorkingDirectory, directory);
             for (const step of steps.items) {
-              if (isMap(step) && stepExecutesFromDirectory(step, directory, defaultsEnterTree)) {
+              if (!isMap(step)) continue;
+              if (stepExecutesFromDirectory(step, directory, defaultsEnterTree)) {
                 failures.push(
                   `Write-capable job ${jobName} executes code from the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepHasComputedWorkingDirectory(step) || (computedRootDefault && !mapPair(step, "working-directory"))) {
+                failures.push(
+                  `Write-capable job ${jobName} runs with a computed working directory alongside the untrusted checkout ${directory}: ${path}`
                 );
               }
             }
