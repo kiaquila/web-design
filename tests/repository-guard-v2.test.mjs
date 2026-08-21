@@ -368,6 +368,31 @@ test("rejects top-level write permissions on a manual-only workflow", () => {
   assert.match(failures.join("\n"), /may not grant top-level write permissions/);
 });
 
+test("rejects write permissions on merge-queue and reusable-workflow triggers", () => {
+  for (const trigger of ["merge_group", "workflow_call"]) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: ${trigger}\npermissions:\n  contents: write\njobs:\n  publish:\n    runs-on: ubuntu-latest\n`
+    );
+    assert.match(failures.join("\n"), /may not grant top-level write permissions/, trigger);
+  }
+});
+
+test("a shell comment ends at its newline and later commands still count", () => {
+  const valid = structuredClone(config);
+  valid.commands.check = [{ name: "site", run: "echo preparing # explanation\nnpm test" }];
+  assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), []);
+});
+
+test("rejects a multi-line check whose every line is a no-op", () => {
+  const invalid = structuredClone(config);
+  invalid.commands.check = [{ name: "placeholder", run: "echo a # x\ntrue\n# done" }];
+  assert.deepEqual(
+    validateProjectConfig(invalid, ["no-deploy"]),
+    ["commands.check[0].run must execute a real product check"]
+  );
+});
+
 test("allows top-level write permissions on default-branch-only events", () => {
   for (const trigger of ["issue_comment", "workflow_run", "schedule"]) {
     const failures = validateWorkflowText(

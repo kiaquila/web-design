@@ -84,30 +84,48 @@ const PERSONAL_PATH_PATTERNS = [
 
 const KNOWN_NO_OP_COMMAND = /^(?:(?:true|:|exit\s+0|echo(?:\s+.*)?|printf(?:\s+.*)?)(?:\s*(?:&&|;)\s*)?)+$/;
 
-// A shell only starts a comment at an unquoted `#` that begins a word, so the
-// no-op test must run against the code the shell would actually execute.
+// A shell only starts a comment at an unquoted `#` that begins a word, and the
+// comment ends at the newline rather than at the end of the script, so later
+// lines must survive.
 function stripShellComments(command) {
+  let stripped = "";
   let quote = null;
-  for (let index = 0; index < command.length; index += 1) {
+  let index = 0;
+  while (index < command.length) {
     const character = command[index];
     if (quote) {
-      if (character === "\\" && quote === '"') index += 1;
-      else if (character === quote) quote = null;
+      if (character === "\\" && quote === '"') {
+        stripped += character + (command[index + 1] ?? "");
+        index += 2;
+        continue;
+      }
+      if (character === quote) quote = null;
+      stripped += character;
+      index += 1;
       continue;
     }
     if (character === "'" || character === '"') {
       quote = character;
-      continue;
-    }
-    if (character === "\\") {
+      stripped += character;
       index += 1;
       continue;
     }
-    if (character !== "#") continue;
-    const previous = index === 0 ? "" : command[index - 1];
-    if (index === 0 || /[\s;&|(]/.test(previous)) return command.slice(0, index);
+    if (character === "\\") {
+      stripped += character + (command[index + 1] ?? "");
+      index += 2;
+      continue;
+    }
+    if (character === "#" && (index === 0 || /[\s;&|(]/.test(command[index - 1]))) {
+      const newline = command.indexOf("\n", index);
+      if (newline === -1) break;
+      stripped += "\n";
+      index = newline + 1;
+      continue;
+    }
+    stripped += character;
+    index += 1;
   }
-  return command;
+  return stripped;
 }
 
 function parseRoot(argv = process.argv.slice(2)) {
@@ -174,8 +192,11 @@ export function validateProjectConfig(config, profiles = []) {
         failures.push(`commands.check[${index}].run must be a non-empty string`);
         continue;
       }
-      const normalized = stripShellComments(check.run).trim().replace(/\s+/g, " ");
-      if (!normalized || KNOWN_NO_OP_COMMAND.test(normalized)) {
+      const lines = stripShellComments(check.run)
+        .split("\n")
+        .map((line) => line.trim().replace(/\s+/g, " "))
+        .filter(Boolean);
+      if (!lines.length || lines.every((line) => KNOWN_NO_OP_COMMAND.test(line))) {
         failures.push(`commands.check[${index}].run must execute a real product check`);
       }
     }
@@ -320,10 +341,12 @@ function permissionWrites(node, scope, failures, path) {
 const REF_SELECTABLE_EVENTS = new Set([
   "create",
   "delete",
+  "merge_group",
   "pull_request",
   "pull_request_target",
   "push",
   "release",
+  "workflow_call",
   "workflow_dispatch"
 ]);
 
