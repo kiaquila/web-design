@@ -114,6 +114,21 @@ test("a wrapper cannot disguise a no-op command", () => {
   }
 });
 
+test("a wrapper option whose value is a separate token is consumed", () => {
+  for (const run of ["env -u FOO true", "nice -n 5 true", "timeout -s TERM 60 true"]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must execute a real product check"],
+      run
+    );
+  }
+  const valid = structuredClone(config);
+  valid.commands.check = [{ name: "site", run: "env -u FOO npm test" }];
+  assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), []);
+});
+
 test("a wrapper around a real command is still a real check", () => {
   for (const run of ["command npm test", "env npm test", "timeout 600 npm --prefix website run check"]) {
     const valid = structuredClone(config);
@@ -657,6 +672,41 @@ test("a local action or dot-mangled directory cannot reach the isolated checkout
     "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - uses: ./scripts/action\n      - run: npm ci\n        working-directory: candidate-other\n"
   );
   assert.deepEqual(safe, []);
+});
+
+test("cd options and parent segments still land in the isolated checkout", () => {
+  const step = (run, wd) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n${wd ? `        working-directory: ${wd}\n` : ""}`;
+  for (const run of ["cd -P candidate && npm ci", "cd -L -P candidate && npm ci", "cd candidate/sub/.. && npm ci"]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
+      /executes code from the untrusted checkout candidate/,
+      run
+    );
+  }
+  assert.match(
+    validateWorkflowText(".github/workflows/example.yml", step("npm ci", "candidate/sub/..")).join("\n"),
+    /executes code from the untrusted checkout candidate/
+  );
+  assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", step("cd website && npm ci")), []);
+  assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", step("npm ci", "candidate-other")), []);
+});
+
+test("a write-capable job may not fetch an actor-selected ref with git", () => {
+  const shellStep = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${run}\n`;
+  for (const run of [
+    "git fetch origin pull/${{ github.event.issue.number }}/head && git checkout FETCH_HEAD && npm ci",
+    "git fetch origin refs/pull/12/head",
+    "git checkout FETCH_HEAD"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", shellStep(run)).join("\n"),
+      /fetches an actor-selected ref with git/,
+      run
+    );
+  }
+  assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", shellStep("git fetch origin main && npm ci")), []);
 });
 
 test("a workflow-level run default reaches into the isolated checkout too", () => {

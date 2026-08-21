@@ -158,6 +158,8 @@ const COMMAND_WRAPPERS = new Set([
   "command", "env", "exec", "nice", "ionice", "nohup", "stdbuf", "time", "timeout", "xargs"
 ]);
 
+const OPTIONS_TAKING_A_SEPARATE_VALUE = /^-(?:u|n|s|k|C|I|L|P|a|-unset|-adjustment|-signal|-chdir|-replace|-max-args)$/;
+
 function unwrapCommandWrappers(command) {
   const tokens = command.split(/\s+/).filter(Boolean);
   let index = 0;
@@ -167,8 +169,17 @@ function unwrapCommandWrappers(command) {
     index += 1;
     // Step over the wrapper's own options and their values: `timeout 60`,
     // `nice -n 5`, `env FOO=bar`. Anything containing `=` is an assignment.
-    while (index < tokens.length && (tokens[index].startsWith("-") || /=/.test(tokens[index]) || /^\d+$/.test(tokens[index]))) {
+    while (index < tokens.length) {
+      const option = tokens[index];
+      if (/=/.test(option) || /^\d+$/.test(option)) {
+        index += 1;
+        continue;
+      }
+      if (!option.startsWith("-")) break;
       index += 1;
+      // `env -u NAME`, `nice -n 5`, `timeout -s TERM`: the value is its own
+      // token, and stopping at it would classify the value as the command.
+      if (OPTIONS_TAKING_A_SEPARATE_VALUE.test(option) && index < tokens.length) index += 1;
     }
   }
   return tokens.slice(index).join(" ");
@@ -556,9 +567,19 @@ function normalizedRelativeSegments(value) {
   const requested = value.trim();
   if (!requested || requested.includes("${{")) return null;
   if (requested.startsWith("/") || /^[A-Za-z]:/.test(requested)) return null;
-  const segments = requested.split(/[\\/]+/).filter((segment) => segment && segment !== ".");
-  if (segments.some((segment) => segment === "..")) return null;
-  return segments;
+  // `candidate/sub/..` resolves back into `candidate`, so `..` is applied
+  // rather than treated as unknown. Escaping above the workspace is unknown.
+  const resolved = [];
+  for (const segment of requested.split(/[\\/]+/)) {
+    if (!segment || segment === ".") continue;
+    if (segment !== "..") {
+      resolved.push(segment);
+      continue;
+    }
+    if (!resolved.length) return null;
+    resolved.pop();
+  }
+  return resolved;
 }
 
 function pathEntersUntrustedTree(value, directory) {
@@ -572,6 +593,22 @@ function pathEntersUntrustedTree(value, directory) {
 function directoryEntersUntrustedTree(node, directory) {
   if (!isScalar(node) || typeof node.value !== "string") return false;
   return pathEntersUntrustedTree(node.value, directory);
+}
+
+// `actions/checkout` is not the only way to put proposed code in the workspace.
+// A write-capable job can fetch a pull ref and check it out with plain git, and
+// everything after that runs attacker-selected code with the write token.
+const SHELL_ACQUIRED_UNTRUSTED_REF = [
+  /git\s+fetch\b[^\n]*\brefs\/pull\//,
+  /git\s+fetch\b[^\n]*[\s'"]pull\/[^\s'"]*\/(?:head|merge)/i,
+  /git\s+(?:checkout|switch|reset|merge|cherry-pick)\b[^\n]*\bFETCH_HEAD\b/,
+  /git\s+fetch\b[^\n]*\$\{\{[^}]*github\.event\.(?:issue|comment|pull_request|client_payload)/
+];
+
+function stepAcquiresUntrustedRefThroughShell(step) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  return SHELL_ACQUIRED_UNTRUSTED_REF.some((pattern) => pattern.test(run.value));
 }
 
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
@@ -598,7 +635,10 @@ function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
     new RegExp(`--prefix\\s+\\S*${quoted}(?:\\s|$|["'])`, "m").test(run.value) ||
     // Changing into the tree makes every later command in that step run there,
     // and the directory has no trailing slash in `cd .proposed && npm ci`.
-    new RegExp(`(?:^|[\\s;&|(])(?:cd|pushd)\\s+["']?(?:\\./)*${quoted}(?:/|["']|\\s|$)`, "m").test(run.value)
+    new RegExp(
+      `(?:^|[\\s;&|(])(?:cd|pushd)(?:\\s+-[A-Za-z]+)*\\s+["']?(?:\\./)*${quoted}(?:/|["']|\\s|$)`,
+      "m"
+    ).test(run.value)
   );
 }
 
@@ -767,6 +807,11 @@ export function validateWorkflowText(path, text) {
           const isolated = [];
           for (const step of steps.items) {
             if (!isMap(step)) continue;
+            if (stepAcquiresUntrustedRefThroughShell(step)) {
+              failures.push(
+                `Write-capable job ${jobName} fetches an actor-selected ref with git: ${path}`
+              );
+            }
             const directory = untrustedCheckoutDirectory(step);
             if (directory === undefined) continue;
             if (directory === null) {
