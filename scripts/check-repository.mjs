@@ -294,9 +294,14 @@ function dispatchOnlyJob(job) {
   if (conditionNode.anchor || conditionNode.tag) return false;
   const condition = conditionNode.value.replace(/^\$\{\{\s*/, "").replace(/\s*\}\}$/, "").trim();
   if (condition.includes("||") || condition.includes("?")) return false;
-  return condition.split(/\s*&&\s*/).some((part) =>
+  const parts = condition.split(/\s*&&\s*/);
+  const dispatchEvent = parts.some((part) =>
     /^\(*\s*github\.event_name\s*==\s*["']workflow_dispatch["']\s*\)*$/.test(part)
   );
+  const defaultBranch = parts.some((part) =>
+    /^\(*\s*github\.ref\s*==\s*format\(\s*["']refs\/heads\/\{0\}["']\s*,\s*github\.event\.repository\.default_branch\s*\)\s*\)*$/.test(part)
+  );
+  return dispatchEvent && defaultBranch;
 }
 
 function directUnsupportedConstructs(node, { blockScalar = false, mergeKey = false } = {}) {

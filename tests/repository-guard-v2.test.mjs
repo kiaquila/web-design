@@ -312,12 +312,28 @@ test("rejects flow-style job permissions on pull requests", () => {
   assert.match(failures.join("\n"), /job test may not grant write permissions/);
 });
 
-test("allows a write-capable job gated strictly to manual dispatch", () => {
+test("allows a write-capable job gated to manual dispatch on the default branch", () => {
   const failures = validateWorkflowText(
     ".github/workflows/example.yml",
-    "on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
+    "on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
   );
   assert.deepEqual(failures, []);
+});
+
+test("rejects a write-capable job gated only to the manual event", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' }}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
+  );
+  assert.match(failures.join("\n"), /job publish may not grant write permissions/);
+});
+
+test("rejects a write-capable manual job gated to a non-default ref", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/feature' }}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
+  );
+  assert.match(failures.join("\n"), /job publish may not grant write permissions/);
 });
 
 test("rejects write-capable jobs whose condition also admits pull requests", () => {
