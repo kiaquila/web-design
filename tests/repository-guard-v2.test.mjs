@@ -103,7 +103,7 @@ test("rejects a check that inverts its exit status", () => {
 });
 
 test("a leading assignment is environment, not the command", () => {
-  for (const run of ["FOO=bar true", "FOO=bar BAZ=qux true"]) {
+  for (const run of ["FOO=bar true", "FOO=bar BAZ=qux true", "FOO='a b' true", 'FOO="a b" true']) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(
@@ -115,9 +115,11 @@ test("a leading assignment is environment, not the command", () => {
   const wrappedAfterAssignment = structuredClone(config);
   wrappedAfterAssignment.commands.check = [{ name: "site", run: "FOO=bar env true" }];
   assert.equal(validateProjectConfig(wrappedAfterAssignment, ["no-deploy"]).length, 1);
-  const valid = structuredClone(config);
-  valid.commands.check = [{ name: "site", run: "FOO=bar npm test" }];
-  assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), []);
+  for (const run of ["FOO=bar npm test", "FOO='a b' npm test"]) {
+    const valid = structuredClone(config);
+    valid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
+  }
 });
 
 test("a product check may not be wrapped", () => {
@@ -735,7 +737,10 @@ test("git global options do not hide the subcommand", () => {
     "git -C . pull origin pull/12/head && npm ci",
     "git -c user.name=x pull origin pull/9/head",
     "git --git-dir=.g fetch origin refs/pull/3/head",
-    "git -C . checkout FETCH_HEAD"
+    "git -C . checkout FETCH_HEAD",
+    "git -p pull origin pull/12/head && npm ci",
+    "git --paginate pull origin pull/9/head",
+    "git -P fetch origin refs/pull/3/head"
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", shellStep(run)).join("\n"),

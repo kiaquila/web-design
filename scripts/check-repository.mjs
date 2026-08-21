@@ -175,11 +175,43 @@ const COMMAND_WRAPPERS = new Set([
 
 // `FOO=bar true` runs `true`: leading assignments are environment, not the
 // command, so the executable is the first word that is not one.
-function commandWordsAfterAssignments(command) {
-  const tokens = command.split(/\s+/).filter(Boolean);
+// `FOO='a b' true` is one assignment and then `true`. Splitting on whitespace
+// after the quotes are gone would see `FOO=a`, `b`, `true` and call `b` the
+// command, so words are cut on unquoted whitespace and unquoted afterwards.
+function wordsRespectingQuotes(segment) {
+  const words = [];
+  let current = "";
+  let quote = null;
+  let started = false;
+  for (const character of segment) {
+    if (quote) {
+      if (character === quote) quote = null;
+      else current += character;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      started = true;
+      continue;
+    }
+    if (/\s/.test(character)) {
+      if (started) words.push(current);
+      current = "";
+      started = false;
+      continue;
+    }
+    current += character;
+    started = true;
+  }
+  if (started) words.push(current);
+  return words;
+}
+
+function commandWordsAfterAssignments(segment) {
+  const words = wordsRespectingQuotes(segment);
   let index = 0;
-  while (index < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index])) index += 1;
-  return tokens.slice(index);
+  while (index < words.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[index])) index += 1;
+  return words.slice(index);
 }
 
 function wrapsTheProductCommand(command) {
@@ -253,10 +285,10 @@ export function validateProductCheckCommand(command) {
     if (executesNestedShell(unquoted)) {
       return "must not hand shell text to another shell";
     }
-    if (wrapsTheProductCommand(unquoted)) {
+    if (wrapsTheProductCommand(trimmed)) {
       return "must not wrap the product command; the first word decides the exit status";
     }
-    const executable = commandWordsAfterAssignments(unquoted).join(" ");
+    const executable = commandWordsAfterAssignments(trimmed).join(" ");
     if (!executable) return "must execute a real product check";
     if (KNOWN_NO_OP_COMMAND.test(executable)) return "must execute a real product check";
   }
@@ -593,7 +625,7 @@ function directoryEntersUntrustedTree(node, directory) {
 // everything after that runs attacker-selected code with the write token.
 // `git [-C <path>] [-c <name>=<value>] … <subcommand>`: global options sit
 // between the program and the verb, so the verb is not always the second word.
-const GIT_WITH_GLOBAL_OPTIONS = "git(?:\\s+(?:-C\\s+\\S+|-c\\s+\\S+|--git-dir(?:=\\S+|\\s+\\S+)|--work-tree(?:=\\S+|\\s+\\S+)|--namespace(?:=\\S+|\\s+\\S+)|--exec-path(?:=\\S+)?|--no-pager|--bare|--literal-pathspecs|--no-replace-objects))*";
+const GIT_WITH_GLOBAL_OPTIONS = "git(?:\\s+(?:-C\\s+\\S+|-c\\s+\\S+|--git-dir(?:=\\S+|\\s+\\S+)|--work-tree(?:=\\S+|\\s+\\S+)|--namespace(?:=\\S+|\\s+\\S+)|--exec-path(?:=\\S+)?|--no-pager|--paginate|-p|-P|--bare|--literal-pathspecs|--no-replace-objects|--no-optional-locks|--no-lazy-fetch))*";
 const SHELL_ACQUIRED_UNTRUSTED_REF = [
   new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:fetch|pull)\\b[^\\n]*\\brefs\\/pull\\/`),
   new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:fetch|pull)\\b[^\\n]*[\\s'"]pull\\/[^\\s'"]*\\/(?:head|merge)`, "i"),
