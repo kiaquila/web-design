@@ -149,6 +149,29 @@ function outsideQuotes(command) {
 // (`/bin/sh -c`), and combined flags (`sh -ec`) are all caught.
 const SHELL_NAMES = new Set(["sh", "bash", "zsh", "dash", "ksh", "csh", "tcsh", "fish"]);
 
+// `command true` and `env true` run `true`. These wrappers pass their arguments
+// through to another executable, so the word that decides the exit status is
+// behind them and the no-op test has to look there.
+const COMMAND_WRAPPERS = new Set([
+  "command", "env", "exec", "nice", "ionice", "nohup", "stdbuf", "time", "timeout", "xargs"
+]);
+
+function unwrapCommandWrappers(command) {
+  const tokens = command.split(/\s+/).filter(Boolean);
+  let index = 0;
+  while (index < tokens.length) {
+    const name = tokens[index].slice(tokens[index].lastIndexOf("/") + 1);
+    if (!COMMAND_WRAPPERS.has(name)) break;
+    index += 1;
+    // Step over the wrapper's own options and their values: `timeout 60`,
+    // `nice -n 5`, `env FOO=bar`. Anything containing `=` is an assignment.
+    while (index < tokens.length && (tokens[index].startsWith("-") || /=/.test(tokens[index]) || /^\d+$/.test(tokens[index]))) {
+      index += 1;
+    }
+  }
+  return tokens.slice(index).join(" ");
+}
+
 function executesNestedShell(bareSegment) {
   const tokens = bareSegment.split(/\s+/).filter(Boolean);
   for (const [index, token] of tokens.entries()) {
@@ -224,7 +247,9 @@ export function validateProductCheckCommand(command) {
     if (executesNestedShell(unquoted)) {
       return "must not hand shell text to another shell";
     }
-    if (KNOWN_NO_OP_COMMAND.test(unquoted)) return "must execute a real product check";
+    if (KNOWN_NO_OP_COMMAND.test(unwrapCommandWrappers(unquoted))) {
+      return "must execute a real product check";
+    }
   }
   return null;
 }
@@ -565,7 +590,10 @@ function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
   return (
     new RegExp(`(?:^|[\\s;&|(])(?:[^\\s;&|(]*/)?${quoted}/`, "m").test(run.value) ||
     new RegExp(`(?:^|[\\s;&|(])(?:${interpreters})\\s+\\S*${quoted}/`, "m").test(run.value) ||
-    new RegExp(`--prefix\\s+\\S*${quoted}(?:\\s|$|["'])`, "m").test(run.value)
+    new RegExp(`--prefix\\s+\\S*${quoted}(?:\\s|$|["'])`, "m").test(run.value) ||
+    // Changing into the tree makes every later command in that step run there,
+    // and the directory has no trailing slash in `cd .proposed && npm ci`.
+    new RegExp(`(?:^|[\\s;&|(])(?:cd|pushd)\\s+["']?(?:\\./)*${quoted}(?:/|["']|\\s|$)`, "m").test(run.value)
   );
 }
 
