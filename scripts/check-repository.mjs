@@ -96,6 +96,8 @@ const PERSONAL_PATH_PATTERNS = [
 // the project runs, where the code is reviewed rather than quoted.
 const KNOWN_NO_OP_COMMAND = /^(?:true|:|exit\s+0|echo(?:\s+.*)?|printf(?:\s+.*)?)$/;
 const SHELL_CONTROL_CHARACTERS = /[;|&`<>(){}$\\]/;
+// `! npm test` succeeds precisely when the product tests fail.
+const SHELL_NEGATION = /(?:^|[\s;&|(])!(?:\s|$)/;
 
 function splitOutsideQuotes(command) {
   const segments = [];
@@ -238,6 +240,9 @@ export function validateProductCheckCommand(command) {
     const bare = outsideQuotes(trimmed);
     if (SHELL_CONTROL_CHARACTERS.test(bare)) {
       return "must join commands only with && and use no other shell operators";
+    }
+    if (SHELL_NEGATION.test(bare)) {
+      return "must not invert a command's exit status";
     }
     if (hasExpansionOutsideSingleQuotes(trimmed)) {
       return "must not expand anything outside single quotes";
@@ -694,6 +699,11 @@ export function validateWorkflowText(path, text) {
       event === "push" ? !trustedPush : REF_SELECTABLE_EVENTS.has(event)
     );
     let topLevelWrites = false;
+    const rootDefaults = mapPair(root, "defaults")?.value;
+    const rootRunDefaults = isMap(rootDefaults) ? mapPair(rootDefaults, "run")?.value : undefined;
+    const rootWorkingDirectory = isMap(rootRunDefaults)
+      ? mapPair(rootRunDefaults, "working-directory")?.value
+      : undefined;
     const topPermissions = mapPair(root, "permissions");
     if (!topPermissions) {
       failures.push(`Workflow must declare top-level permissions: ${path}`);
@@ -767,13 +777,16 @@ export function validateWorkflowText(path, text) {
             }
             isolated.push(directory);
           }
+          // A job's own defaults win, but a workflow-level default applies to
+          // every job that does not override it.
           const jobDefaults = mapPair(jobPair.value, "defaults")?.value;
           const jobRunDefaults = isMap(jobDefaults) ? mapPair(jobDefaults, "run")?.value : undefined;
           const jobWorkingDirectory = isMap(jobRunDefaults)
             ? mapPair(jobRunDefaults, "working-directory")?.value
             : undefined;
+          const effectiveWorkingDirectory = jobWorkingDirectory ?? rootWorkingDirectory;
           for (const directory of isolated) {
-            const defaultsEnterTree = directoryEntersUntrustedTree(jobWorkingDirectory, directory);
+            const defaultsEnterTree = directoryEntersUntrustedTree(effectiveWorkingDirectory, directory);
             for (const step of steps.items) {
               if (isMap(step) && stepExecutesFromDirectory(step, directory, defaultsEnterTree)) {
                 failures.push(
