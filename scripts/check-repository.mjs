@@ -211,11 +211,13 @@ function hasTopLevelPipeline(branch) {
 }
 
 // `run-project-checks.mjs` runs the command through a shell without `pipefail`,
-// so a pipeline reports only its last stage. `npm test | tee build.log` is green
-// whatever the tests did. A check may still pipe if it turns `pipefail` on.
-function discardsPipelineFailure(line, command) {
-  if (/(?:^|[\s;&|])set\s+-o\s+pipefail\b/.test(command)) return false;
-  if (/(?:^|[\s;&|])set\s+-[a-z]*o[a-z]*\s/.test(command) && /pipefail/.test(command)) return false;
+// so a pipeline reports only its last stage: `npm test | tee build.log` is green
+// whatever the tests did. There is deliberately no opt-out. Searching the text
+// for `set -o pipefail` would accept `echo set -o pipefail; npm test | tee log`,
+// where the shell only prints it — the same trap as validating a script by
+// grepping it. A check that needs a pipeline belongs in a script file the
+// project already runs, where the shell options are real.
+function discardsPipelineFailure(line) {
   return shortCircuitBranches(line).some((branch) => hasTopLevelPipeline(branch));
 }
 
@@ -295,9 +297,9 @@ export function validateProjectConfig(config, profiles = []) {
         .filter(Boolean);
       if (!lines.length || lines.every((line) => isNoOpCommandLine(line))) {
         failures.push(`commands.check[${index}].run must execute a real product check`);
-      } else if (lines.some((line) => discardsPipelineFailure(line, check.run))) {
+      } else if (lines.some((line) => discardsPipelineFailure(line))) {
         failures.push(
-          `commands.check[${index}].run must not discard an earlier pipeline stage's failure`
+          `commands.check[${index}].run must not pipe; a pipeline hides an earlier stage's failure`
         );
       }
     }

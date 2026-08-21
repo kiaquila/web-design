@@ -522,21 +522,29 @@ test("rejects a pipeline whose last stage cannot fail", () => {
 });
 
 test("rejects a pipeline that swallows an earlier stage's failure", () => {
-  for (const run of ["npm test | tee build.log", "npm run build | tee build.log"]) {
+  const piped = [
+    "npm test | tee build.log",
+    "npm run build | tee build.log",
+    "set -o pipefail; npm test | tee build.log",
+    "echo set -o pipefail; npm test | tee build.log"
+  ];
+  for (const run of piped) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(
       validateProjectConfig(invalid, ["no-deploy"]),
-      ["commands.check[0].run must not discard an earlier pipeline stage's failure"],
+      ["commands.check[0].run must not pipe; a pipeline hides an earlier stage's failure"],
       run
     );
   }
 });
 
-test("allows a pipeline that turns pipefail on", () => {
-  const valid = structuredClone(config);
-  valid.commands.check = [{ name: "site", run: "set -o pipefail; npm test | tee build.log" }];
-  assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), []);
+test("a quoted pipe is not a pipeline", () => {
+  for (const run of ['npm test -- --grep "a|b"', "npm test -- --grep 'x|y'"]) {
+    const valid = structuredClone(config);
+    valid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
+  }
 });
 
 test("allows top-level write permissions on default-branch-only events", () => {
