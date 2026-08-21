@@ -620,28 +620,36 @@ function directoryEntersUntrustedTree(node, directory) {
   return pathEntersUntrustedTree(node.value, directory);
 }
 
-// `actions/checkout` is not the only way to put proposed code in the workspace.
-// A write-capable job can fetch a pull ref and check it out with plain git, and
-// everything after that runs attacker-selected code with the write token.
-// `git [-C <path>] [-c <name>=<value>] … <subcommand>`: global options sit
-// between the program and the verb, so the verb is not always the second word.
-const GIT_WITH_GLOBAL_OPTIONS = "git(?:\\s+(?:-C\\s+\\S+|-c\\s+\\S+|--git-dir(?:=\\S+|\\s+\\S+)|--work-tree(?:=\\S+|\\s+\\S+)|--namespace(?:=\\S+|\\s+\\S+)|--exec-path(?:=\\S+)?|--no-pager|--paginate|-p|-P|--bare|--literal-pathspecs|--no-replace-objects|--no-optional-locks|--no-lazy-fetch))*";
-const SHELL_ACQUIRED_UNTRUSTED_REF = [
-  new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:fetch|pull)\\b[^\\n]*\\brefs\\/pull\\/`),
-  new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:fetch|pull)\\b[^\\n]*[\\s'"]pull\\/[^\\s'"]*\\/(?:head|merge)`, "i"),
-  new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:checkout|switch|reset|merge|cherry-pick)\\b[^\\n]*\\bFETCH_HEAD\\b`),
-  new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:fetch|pull)\\b[^\\n]*\\$\\{\\{[^}]*github\\.event\\.(?:issue|comment|pull_request|client_payload)`)
+// Enumerating the commands that can fetch proposed code was a losing game:
+// `git fetch`, then `git pull`, then past Git's global options, then a line
+// continuation, then `gh pr checkout`. The command surface is open-ended, so
+// the rule is about inputs instead. A write-capable job's shell may not name
+// an actor-controlled ref at all — not the expressions that carry one, not a
+// pull ref, not `FETCH_HEAD`, not the CLI that resolves one for you. Trusted
+// refs stay available, and anything that genuinely needs proposed code belongs
+// in a read-only job that hands its findings on.
+const ACTOR_CONTROLLED_REF_INPUT = [
+  /\$\{\{[^}]*github\.event\.(?:issue|comment|pull_request|client_payload|workflow_run)\b/,
+  /\$\{\{[^}]*github\.head_ref\b/,
+  /\brefs\/pull\//,
+  /[\s'"=]pull\/[^\s'"]*\/(?:head|merge)\b/i,
+  /\bFETCH_HEAD\b/,
+  /\bgh\s+pr\s+(?:checkout|diff|view)\b/
 ];
 
-function stepAcquiresUntrustedRefThroughShell(step) {
-  const run = mapPair(step, "run")?.value;
-  if (!isScalar(run) || typeof run.value !== "string") return false;
-  return SHELL_ACQUIRED_UNTRUSTED_REF.some((pattern) => pattern.test(run.value));
+// A backslash-newline is a line continuation: the shell sees one command, so
+// the scan must too.
+function joinShellContinuations(text) {
+  return text.replace(/\\\r?\n[ \t]*/g, " ");
 }
 
-// `working-directory: ${{ 'candidate' }}` resolves at run time, so no static
-// comparison can clear it. A write-capable job with an isolated untrusted
-// checkout may not have a computed working directory at all.
+function stepNamesActorControlledRef(step) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  const joined = joinShellContinuations(run.value);
+  return ACTOR_CONTROLLED_REF_INPUT.some((pattern) => pattern.test(joined));
+}
+
 function stepHasComputedWorkingDirectory(step) {
   const hasRun = isScalar(mapPair(step, "run")?.value);
   if (!hasRun) return false;
@@ -649,6 +657,16 @@ function stepHasComputedWorkingDirectory(step) {
   if (!workingDirectory) return false;
   if (!isScalar(workingDirectory) || typeof workingDirectory.value !== "string") return true;
   return workingDirectory.value.includes("${{");
+}
+
+function changeDirectoryDestinations(text) {
+  const destinations = [];
+  const pattern = /(?:^|[\s;&|(])(?:cd|pushd)((?:\s+(?:--|-[A-Za-z]+))*)\s+("[^"]*"|'[^']*'|[^\s;&|)]+)/g;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    destinations.push(match[2].replace(/^["']|["']$/g, ""));
+  }
+  return destinations;
 }
 
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
@@ -667,18 +685,18 @@ function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
   if (hasRun && !workingDirectory && jobDefaultsEnterTree) return true;
   const run = mapPair(step, "run")?.value;
   if (!isScalar(run) || typeof run.value !== "string") return false;
+  const text = joinShellContinuations(run.value);
+  // `cd website/../candidate` resolves into the tree, so destinations are
+  // normalized rather than matched literally.
+  if (changeDirectoryDestinations(text).some((d) => pathEntersUntrustedTree(d, directory))) {
+    return true;
+  }
   const quoted = directory.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const interpreters = "node|bash|sh|zsh|dash|python3?|npx|deno|ruby|perl|go|make";
   return (
-    new RegExp(`(?:^|[\\s;&|(])(?:[^\\s;&|(]*/)?${quoted}/`, "m").test(run.value) ||
-    new RegExp(`(?:^|[\\s;&|(])(?:${interpreters})\\s+\\S*${quoted}/`, "m").test(run.value) ||
-    new RegExp(`--prefix\\s+\\S*${quoted}(?:\\s|$|["'])`, "m").test(run.value) ||
-    // Changing into the tree makes every later command in that step run there,
-    // and the directory has no trailing slash in `cd .proposed && npm ci`.
-    new RegExp(
-      `(?:^|[\\s;&|(])(?:cd|pushd)(?:\\s+(?:--|-[A-Za-z]+))*\\s+["']?(?:\\./)*${quoted}(?:/|["']|\\s|$)`,
-      "m"
-    ).test(run.value)
+    new RegExp(`(?:^|[\\s;&|(])(?:[^\\s;&|(]*/)?${quoted}/`, "m").test(text) ||
+    new RegExp(`(?:^|[\\s;&|(])(?:${interpreters})\\s+\\S*${quoted}/`, "m").test(text) ||
+    new RegExp(`--prefix\\s+\\S*${quoted}(?:\\s|$|["'])`, "m").test(text)
   );
 }
 
@@ -847,9 +865,9 @@ export function validateWorkflowText(path, text) {
           const isolated = [];
           for (const step of steps.items) {
             if (!isMap(step)) continue;
-            if (stepAcquiresUntrustedRefThroughShell(step)) {
+            if (stepNamesActorControlledRef(step)) {
               failures.push(
-                `Write-capable job ${jobName} fetches an actor-selected ref with git: ${path}`
+                `Write-capable job ${jobName} names an actor-controlled ref in its shell: ${path}`
               );
             }
             const directory = untrustedCheckoutDirectory(step);

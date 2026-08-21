@@ -730,6 +730,28 @@ test("the option terminator and a computed working directory are both caught", (
   );
 });
 
+test("a write-capable job may not name an actor-controlled ref in its shell", () => {
+  const shellStep = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: |\n${run.split("\n").map((line) => `          ${line}`).join("\n")}\n`;
+  const refused = [
+    "gh pr checkout ${{ github.event.issue.number }} && npm ci",
+    "gh pr checkout 12",
+    "git fetch origin \\\n  refs/pull/12/head:candidate\ngit switch candidate && npm ci",
+    "git fetch origin ${{ github.event.workflow_run.head_sha }}",
+    "git checkout FETCH_HEAD"
+  ];
+  for (const run of refused) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", shellStep(run)).join("\n"),
+      /names an actor-controlled ref in its shell/,
+      run
+    );
+  }
+  for (const run of ["npm ci && npm test", "git fetch origin main && npm ci"]) {
+    assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", shellStep(run)), [], run);
+  }
+});
+
 test("git global options do not hide the subcommand", () => {
   const shellStep = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${run}\n`;
@@ -744,7 +766,7 @@ test("git global options do not hide the subcommand", () => {
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", shellStep(run)).join("\n"),
-      /fetches an actor-selected ref with git/,
+      /names an actor-controlled ref in its shell/,
       run
     );
   }
@@ -764,7 +786,7 @@ test("a write-capable job may not fetch an actor-selected ref with git", () => {
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", shellStep(run)).join("\n"),
-      /fetches an actor-selected ref with git/,
+      /names an actor-controlled ref in its shell/,
       run
     );
   }
