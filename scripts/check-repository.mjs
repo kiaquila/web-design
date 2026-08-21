@@ -94,7 +94,7 @@ const PERSONAL_PATH_PATTERNS = [
 // discarded, and command substitution, redirection, and expansion can reach
 // around the rule entirely. Anything that needs them belongs in a script file
 // the project runs, where the code is reviewed rather than quoted.
-const KNOWN_NO_OP_COMMAND = /^(?:true|:|exit\s+0|echo(?:\s+.*)?|printf(?:\s+.*)?)$/;
+const KNOWN_NO_OP_COMMAND = /^(?:true(?:\s+.*)?|:(?:\s+.*)?|exit\s+0|echo(?:\s+.*)?|printf(?:\s+.*)?)$/;
 const SHELL_CONTROL_CHARACTERS = /[;|&`<>(){}$\\]/;
 // `! npm test` succeeds precisely when the product tests fail.
 const SHELL_NEGATION = /(?:^|[\s;&|(])!(?:\s|$)/;

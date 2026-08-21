@@ -143,7 +143,7 @@ test("a product check may not be wrapped", () => {
 });
 
 test("rejects commands that only report success", () => {
-  for (const run of ["true", ":", "exit 0", "echo ok", "printf ok", "npm test && true", "echo ok && npm test"]) {
+  for (const run of ["true", ":", "exit 0", "echo ok", "printf ok", "npm test && true", "echo ok && npm test", "true ignored", ": ignored"]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(
