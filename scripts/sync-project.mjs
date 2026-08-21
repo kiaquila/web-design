@@ -261,7 +261,7 @@ export async function syncProject({
       const currentHash = existsSync(destination) ? sha256(readFileSync(destination)) : null;
       const previousHash = lock.files?.[file.path] ?? null;
       if (currentHash === file.sha256) changes.push({ path: file.path, action: "same" });
-      else if (currentHash === null && (!previousHash || acceptOwnershipChange)) {
+      else if (currentHash === null && (!previousHash || release.additions.includes(file.path))) {
         changes.push({ path: file.path, action: "create" });
       } else if (previousHash && currentHash === previousHash) {
         changes.push({ path: file.path, action: "update" });

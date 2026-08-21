@@ -4,7 +4,7 @@
   "files": [
     {
       "path": ".github/CODEOWNERS",
-      "sha256": "f8446f5baffd70a7df055eaa9c26f855ea8a9e2f3063e0035615c03580b83074"
+      "sha256": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e"
     },
     {
       "path": ".github/pull_request_template.md",
@@ -16,19 +16,19 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "sha256": "b64acf683401f3f79abd177a25e54be3d63d0371950bfce5f741d039b32b55d3"
+      "sha256": "975f430f8ada6878132d03f60634ca9aa11df489dea7c0cfa99aa79a86705555"
     },
     {
       "path": ".github/workflows/codex-review-request.yml",
-      "sha256": "0cdd54876071e88763afd71871cf27b70555110918f3df4b7afd98814d865353"
+      "sha256": "c85c2538c93c1af2ade53b739acbc0ee4f1849922294fb6ec30c3d5474b64cd6"
     },
     {
       "path": ".github/workflows/codex-review-rerun.yml",
-      "sha256": "ac0dd32e0f6907e978325671652c55b6ab101acd494155be716fa33656cfd28d"
+      "sha256": "21ee494d3809e93c14812a98ec1508e90ecf367e0d148eaf3d6582bf4a6669c6"
     },
     {
       "path": ".github/workflows/codex-review.yml",
-      "sha256": "12517894b7995189e4097d2a3d41f5d4d1b5eee74c4dbfd2f485f3692f04037c"
+      "sha256": "c0347f955853474d771300520c0e9b6b5e93507da1df891d522d2ff18cd29de5"
     },
     {
       "path": ".github/workflows/osv-scan.yml",
@@ -124,7 +124,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "545038ce46f89a97cae6bbe115f96f9e2f05aa8870cb2ef9da034e93d4cac706"
+      "sha256": "5d55cb88808bbd66ce36dda7dc6befe01e22dff6129c98a5800aa7f8b02e600d"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -152,7 +152,7 @@
     },
     {
       "path": "scripts/sync-project.mjs",
-      "sha256": "9c37d74d002f601b55b84d2fca228b3b13b6bb1b95e16ba0f69ea5d5501d342c"
+      "sha256": "107c18734d59c7a1733f2f9ff539b11677f232a5c121092fb2b436957b5c5781"
     },
     {
       "path": "scripts/test-web-design.mjs",
@@ -180,11 +180,11 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "1cdb1491b65f9801bb9ac86f522bd7414aba84580ae0c7c3f76822931e5d5d00"
+      "sha256": "c67922f3c3ce8dcfd612ad86fe59b3e76545a832f15c5a69e03a6f0eb42adb41"
     },
     {
       "path": "tests/sync-project.test.mjs",
-      "sha256": "ce77f30e6769fa4e47d1e328efa789b2457cd53def3038a6f8ba1b3ade06a60f"
+      "sha256": "e3270eadf443247b72d0404d51cd40bd63e1bb02c5bb1144b42069f17f23ff83"
     }
   ]
 }

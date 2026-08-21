@@ -151,6 +151,40 @@ test("requires explicit review before accepting a new managed path", async () =>
   }
 });
 
+test("ownership acceptance does not restore a deleted managed file", async () => {
+  const initialPaths = [".web-design/managed-files.json", "managed.txt"];
+  const { parent, source, target } = fixture(initialPaths);
+  try {
+    release(source, "1.0.0", { "managed.txt": "v1\n" }, initialPaths);
+    await applyLocal(target, source, "1.0.0");
+    const oldLock = readFileSync(join(target, ".web-design/lock.json"), "utf8");
+    rmSync(join(target, "managed.txt"));
+
+    const nextPaths = [
+      ".web-design/managed-files.json",
+      "managed.txt",
+      "scripts/new-policy.mjs"
+    ];
+    release(
+      source,
+      "1.1.0",
+      {
+        "managed.txt": "v2\n",
+        "scripts/new-policy.mjs": "export {};\n"
+      },
+      nextPaths
+    );
+    const result = await applyLocal(target, source, "1.1.0", { acceptOwnershipChange: true });
+
+    assert.deepEqual(result.conflicts, ["managed.txt"]);
+    assert.equal(existsSync(join(target, "managed.txt")), false);
+    assert.equal(existsSync(join(target, "scripts/new-policy.mjs")), false);
+    assert.equal(readFileSync(join(target, ".web-design/lock.json"), "utf8"), oldLock);
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
 test("removes a revoked managed file only when it is unchanged", async () => {
   const initialPaths = [".web-design/managed-files.json", "managed.txt", "retired.txt"];
   const { parent, source, target } = fixture(initialPaths);

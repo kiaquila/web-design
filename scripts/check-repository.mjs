@@ -68,6 +68,8 @@ const PERSONAL_PATH_PATTERNS = [
   /[A-Za-z]:\\Users\\[A-Za-z0-9._-]+\\/
 ];
 
+const KNOWN_NO_OP_COMMAND = /^(?:(?:true|:|exit\s+0|echo(?:\s+.*)?|printf(?:\s+.*)?)(?:\s*(?:&&|;)\s*)?)+$/;
+
 function parseRoot(argv = process.argv.slice(2)) {
   const index = argv.indexOf("--root");
   if (index === -1) return resolve(import.meta.dirname, "..");
@@ -119,6 +121,24 @@ export function validateProjectConfig(config, profiles = []) {
     failures.push("commands.check must be an array");
   } else if (config?.governance?.mode === "consumer" && config.commands.check.length === 0) {
     failures.push("consumer projects must configure at least one product check");
+  } else {
+    for (const [index, check] of config.commands.check.entries()) {
+      if (!check || typeof check !== "object" || Array.isArray(check)) {
+        failures.push(`commands.check[${index}] must be an object`);
+        continue;
+      }
+      if (typeof check.name !== "string" || !check.name.trim()) {
+        failures.push(`commands.check[${index}].name must be a non-empty string`);
+      }
+      if (typeof check.run !== "string" || !check.run.trim()) {
+        failures.push(`commands.check[${index}].run must be a non-empty string`);
+        continue;
+      }
+      const normalized = check.run.trim().replace(/\s+/g, " ");
+      if (KNOWN_NO_OP_COMMAND.test(normalized)) {
+        failures.push(`commands.check[${index}].run must execute a real product check`);
+      }
+    }
   }
   const rootDirectory = config?.deployment?.rootDirectory;
   const normalizedRoot = typeof rootDirectory === "string" ? normalize(rootDirectory) : "";
@@ -146,6 +166,53 @@ export function validateProjectConfig(config, profiles = []) {
   return failures;
 }
 
+function hasPullRequestTrigger(text) {
+  if (/^on:\s*pull_request(?:\s*:)?\s*$/m.test(text)) return true;
+  if (/^on:\s*\[[^\]]*\bpull_request\b[^\]]*\]\s*$/m.test(text)) return true;
+  const lines = text.split("\n");
+  const onIndex = lines.findIndex((line) => /^on:\s*$/.test(line));
+  if (onIndex === -1) return false;
+  for (let index = onIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    if (!/^\s/.test(line)) break;
+    if (/^\s+pull_request\s*:/.test(line)) return true;
+  }
+  return false;
+}
+
+function permissionBlockWrites(lines, start, indent) {
+  const first = lines[start].slice(indent).trim();
+  if (/^permissions:\s*["']?(?:write-all|write)["']?\s*$/.test(first)) return true;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    const currentIndent = line.match(/^\s*/)[0].length;
+    if (currentIndent <= indent) break;
+    if (/^\s*[a-z-]+:\s*["']?write["']?\s*(?:#.*)?$/.test(line)) return true;
+  }
+  return false;
+}
+
+function dispatchOnlyJob(jobLines) {
+  const ifIndex = jobLines.findIndex((line) => /^\s{4}if\s*:/.test(line));
+  if (ifIndex === -1) return false;
+  const first = jobLines[ifIndex].replace(/^\s{4}if\s*:\s*/, "").trim();
+  const parts = first && !new Set(["|", ">", "|-", ">-"]).has(first) ? [first] : [];
+  for (let index = ifIndex + 1; index < jobLines.length; index += 1) {
+    const line = jobLines[index];
+    if (!line.trim()) continue;
+    const indent = line.match(/^\s*/)[0].length;
+    if (indent <= 4) break;
+    parts.push(line.trim());
+  }
+  const condition = parts.join(" ").replace(/^\$\{\{\s*/, "").replace(/\s*\}\}$/, "").trim();
+  if (condition.includes("||") || condition.includes("?")) return false;
+  return condition.split(/\s*&&\s*/).some((part) =>
+    /^\(*\s*github\.event_name\s*==\s*["']workflow_dispatch["']\s*\)*$/.test(part)
+  );
+}
+
 export function validateWorkflowText(path, text) {
   const failures = [];
   if (/\bpull_request_target\b/.test(text)) {
@@ -156,6 +223,35 @@ export function validateWorkflowText(path, text) {
   }
   if (/^permissions:\s*["']?write-all["']?\s*$/m.test(text)) {
     failures.push(`Workflow may not use write-all permissions: ${path}`);
+  }
+  if (hasPullRequestTrigger(text)) {
+    const lines = text.split("\n");
+    const topPermissions = lines.findIndex((line) => /^permissions\s*:/.test(line));
+    if (topPermissions !== -1 && permissionBlockWrites(lines, topPermissions, 0)) {
+      failures.push(`Pull-request workflow may not grant top-level write permissions: ${path}`);
+    }
+    const jobsIndex = lines.findIndex((line) => /^jobs:\s*$/.test(line));
+    if (jobsIndex !== -1) {
+      for (let start = jobsIndex + 1; start < lines.length;) {
+        if (!/^\s{2}[A-Za-z0-9_-]+:\s*$/.test(lines[start])) {
+          start += 1;
+          continue;
+        }
+        let end = start + 1;
+        while (end < lines.length && !/^\s{2}[A-Za-z0-9_-]+:\s*$/.test(lines[end])) end += 1;
+        const jobLines = lines.slice(start, end);
+        const permissionsIndex = jobLines.findIndex((line) => /^\s{4}permissions\s*:/.test(line));
+        if (
+          permissionsIndex !== -1 &&
+          permissionBlockWrites(jobLines, permissionsIndex, 4) &&
+          !dispatchOnlyJob(jobLines)
+        ) {
+          const job = lines[start].trim().slice(0, -1);
+          failures.push(`Pull-request job ${job} may not grant write permissions: ${path}`);
+        }
+        start = end;
+      }
+    }
   }
   for (const match of text.matchAll(/^\s*-?\s*uses:\s*["']?([^\s"']+)["']?\s*(?:#.*)?$/gm)) {
     const action = match[1];

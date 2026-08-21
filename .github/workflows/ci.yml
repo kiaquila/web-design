@@ -23,5 +23,25 @@ jobs:
         with:
           node-version: "22.18.0"
 
+      - name: Install npm dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          declare -A installed=()
+          while IFS= read -r -d '' lockfile; do
+            directory="$(dirname "$lockfile")"
+            if [ -n "${installed[$directory]:-}" ]; then
+              continue
+            fi
+            installed["$directory"]=1
+            npm ci --prefix "$directory"
+          done < <(
+            find . -type f \
+              \( -name package-lock.json -o -name npm-shrinkwrap.json \) \
+              -not -path './.git/*' \
+              -not -path '*/node_modules/*' \
+              -print0
+          )
+
       - name: Run project checks
         run: node scripts/run-project-checks.mjs

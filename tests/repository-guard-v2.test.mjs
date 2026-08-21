@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 import { validateProjectConfig, validateWorkflowText } from "../scripts/check-repository.mjs";
@@ -34,6 +34,18 @@ test("requires at least one real product check in consumer mode", () => {
   );
 });
 
+test("rejects product checks that only report success", () => {
+  for (const run of ["true", ":", "exit 0", "echo ok", "printf ok", "echo ok && true"]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "placeholder", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must execute a real product check"],
+      run
+    );
+  }
+});
+
 test("rejects unsafe slugs, product paths, and unknown profiles", () => {
   const invalid = structuredClone(config);
   invalid.project.slug = "Demo Site";
@@ -60,6 +72,91 @@ test("accepts a least-privilege workflow with a full SHA pin", () => {
   assert.deepEqual(failures, []);
 });
 
+test("rejects pull-request workflows with top-level write permissions", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: pull_request\npermissions:\n  contents: write\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
+  );
+  assert.match(failures.join("\n"), /top-level write permissions/);
+});
+
+test("rejects pull-request jobs with write permissions", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: pull_request\npermissions:\n  contents: read\njobs:\n  test:\n    permissions:\n      issues: write\n    runs-on: ubuntu-latest\n"
+  );
+  assert.match(failures.join("\n"), /job test may not grant write permissions/);
+});
+
+test("allows a write-capable job gated strictly to manual dispatch", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
+  );
+  assert.deepEqual(failures, []);
+});
+
+test("rejects write-capable jobs whose condition also admits pull requests", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' }}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
+  );
+  assert.match(failures.join("\n"), /job publish may not grant write permissions/);
+});
+
+test("workflow jobs that execute Node install the pinned runtime first", () => {
+  const workflows = readdirSync(resolve(".github/workflows"))
+    .filter((file) => file.endsWith(".yml"));
+  const setupNode = "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020";
+  for (const file of workflows) {
+    const workflow = readFileSync(resolve(".github/workflows", file), "utf8");
+    const jobBlocks = workflow
+      .split(/^jobs:\s*$/m)[1]
+      ?.split(/(?=^  [A-Za-z0-9_-]+:\s*$)/m)
+      .filter((block) => /^  [A-Za-z0-9_-]+:\s*$/m.test(block)) ?? [];
+    for (const job of jobBlocks) {
+      if (!/^\s+run:\s*node\b/m.test(job) && !/^\s+run:\s*[|>]\s*$[\s\S]*?^\s+node\b/m.test(job)) {
+        continue;
+      }
+      const nodeCommand = job.search(/^\s+run:\s*node\s+|^\s+node\s+/m);
+      const setup = job.indexOf(setupNode);
+      assert.ok(setup !== -1 && setup < nodeCommand, `${file} must set up pinned Node before executing it`);
+      assert.match(job.slice(setup, nodeCommand), /node-version:\s*["']22\.18\.0["']/);
+    }
+  }
+});
+
+test("project CI installs lockfile dependencies before running configured checks", () => {
+  const workflow = readFileSync(resolve(".github/workflows/ci.yml"), "utf8");
+  const install = workflow.indexOf("npm ci --prefix");
+  const checks = workflow.indexOf("node scripts/run-project-checks.mjs");
+  assert.match(workflow, /-name package-lock\.json -o -name npm-shrinkwrap\.json/);
+  assert.ok(install !== -1 && install < checks);
+});
+
+test("CODEOWNERS protects every managed and release-control path", () => {
+  const codeowners = readFileSync(resolve(".github/CODEOWNERS"), "utf8")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => line.split(/\s+/)[0]);
+  const managed = JSON.parse(readFileSync(resolve(".web-design/managed-files.json"), "utf8"));
+  const paths = [
+    ...managed.files,
+    ".web-design/lock.json",
+    ".web-design/release-manifest.json"
+  ];
+  for (const path of paths) {
+    assert.ok(
+      codeowners.some((pattern) => {
+        const normalized = pattern.replace(/^\//, "");
+        return normalized.endsWith("/") ? path.startsWith(normalized) : path === normalized;
+      }),
+      `${path} must be covered by CODEOWNERS`
+    );
+  }
+});
+
 test("trusted baseline verification is repository-identity and run-SHA bound", () => {
   const workflow = readFileSync(resolve(".github/workflows/baseline-source-verification.yml"), "utf8");
   const codeowners = readFileSync(resolve(".github/CODEOWNERS"), "utf8");
@@ -67,7 +164,7 @@ test("trusted baseline verification is repository-identity and run-SHA bound", (
   assert.match(workflow, /RUN_HEAD_SHA" != "\$ASSOCIATED_HEAD_SHA"/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
   assert.match(workflow, /HEAD_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
-  assert.match(codeowners, /^\/\.github\/CODEOWNERS @kiaquila$/m);
+  assert.match(codeowners, /^\/\.github\/ @kiaquila$/m);
 });
 
 test("repository guard uses branch policy only for the template-v2 bootstrap", () => {
