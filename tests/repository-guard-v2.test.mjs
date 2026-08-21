@@ -446,6 +446,22 @@ test("keeps checks whose control flow still decides the outcome", () => {
   }
 });
 
+test("rejects a reusable-workflow job that inherits caller secrets", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: pull_request\npermissions:\n  contents: read\njobs:\n  call:\n    uses: kiaquila/web-design/.github/workflows/x.yml@3d3c42e5aac5ba805825da76410c181273ba90b1\n    secrets: inherit\n"
+  );
+  assert.match(failures.join("\n"), /may not inherit caller secrets/);
+});
+
+test("keeps explicitly named secrets on a reusable-workflow job", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: pull_request\npermissions:\n  contents: read\njobs:\n  call:\n    uses: kiaquila/web-design/.github/workflows/x.yml@3d3c42e5aac5ba805825da76410c181273ba90b1\n    secrets:\n      TOKEN: ${{ secrets.SCOPED_TOKEN }}\n"
+  );
+  assert.deepEqual(failures, []);
+});
+
 test("allows top-level write permissions on default-branch-only events", () => {
   for (const trigger of ["issue_comment", "workflow_run", "schedule"]) {
     const failures = validateWorkflowText(

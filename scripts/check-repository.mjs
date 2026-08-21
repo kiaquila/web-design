@@ -547,6 +547,10 @@ export function validateWorkflowText(path, text) {
         validateMappingKeys(jobPair.value, `job ${jobName} mapping`, failures, path);
         const reusableWorkflow = mapPair(jobPair.value, "uses");
         if (reusableWorkflow) validateActionReference(reusableWorkflow.value, failures, path);
+        const jobSecrets = mapPair(jobPair.value, "secrets");
+        if (jobSecrets && isScalar(jobSecrets.value) && jobSecrets.value.value === "inherit") {
+          failures.push(`Workflow job ${jobName} may not inherit caller secrets: ${path}`);
+        }
         const steps = mapPair(jobPair.value, "steps")?.value;
         if (steps !== undefined && !isSeq(steps)) {
           failures.push(`Workflow job ${jobName} steps must be a sequence: ${path}`);
