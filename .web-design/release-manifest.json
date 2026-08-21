@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "9bbe9db46a6dd010144ab77a25339acd9e22a21398d4d637b1985fdaf8e090bf"
+      "sha256": "449b3f2487465bb10e080dc8e253cc14ffaa503104a707a9695e20506a5de352"
     },
     {
       "path": "scripts/codex-review-gate.mjs",

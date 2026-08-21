@@ -628,14 +628,22 @@ function directoryEntersUntrustedTree(node, directory) {
 // pull ref, not `FETCH_HEAD`, not the CLI that resolves one for you. Trusted
 // refs stay available, and anything that genuinely needs proposed code belongs
 // in a read-only job that hands its findings on.
-const ACTOR_CONTROLLED_REF_INPUT = [
-  /\$\{\{[^}]*github\.event\.(?:issue|comment|pull_request|client_payload|workflow_run)\b/,
-  /\$\{\{[^}]*github\.head_ref\b/,
+// Some inputs are acquisition on their own: a pull ref, `FETCH_HEAD`, or the
+// `gh pr` subcommands exist only to obtain proposed code.
+const ALWAYS_UNTRUSTED_REF_INPUT = [
   /\brefs\/pull\//,
   /[\s'"=]pull\/[^\s'"]*\/(?:head|merge)\b/i,
   /\bFETCH_HEAD\b/,
   /\bgh\s+pr\s+(?:checkout|diff|view)\b/
 ];
+
+// An actor-controlled expression is not dangerous by itself — the baseline's own
+// verification workflow compares `workflow_run.head_sha` as data and never
+// fetches with it. It becomes dangerous when the same shell can also acquire
+// code, so the expression is refused only alongside a tool that can.
+const ACTOR_CONTROLLED_REF_EXPRESSION =
+  /\$\{\{[^}]*(?:github\.event\.(?:issue|comment|pull_request|client_payload|workflow_run)|github\.head_ref)\b/;
+const REF_ACQUIRING_TOOL = /(?:^|[\s;&|(])(?:[^\s;&|(]*\/)?(?:git(?:\s|$)|gh\s+repo\s+clone\b)/;
 
 // A backslash-newline is a line continuation: the shell sees one command, so
 // the scan must too.
@@ -643,37 +651,33 @@ function joinShellContinuations(text) {
   return text.replace(/\\\r?\n[ \t]*/g, " ");
 }
 
-function namesActorControlledRef(text) {
-  return ACTOR_CONTROLLED_REF_INPUT.some((pattern) => pattern.test(joinShellContinuations(text)));
+function alwaysUntrustedInput(text) {
+  const joined = joinShellContinuations(text);
+  return ALWAYS_UNTRUSTED_REF_INPUT.some((pattern) => pattern.test(joined));
 }
 
-// `env: CANDIDATE_REF: ${{ github.event.comment.body }}` puts the ref in the
-// shell's environment, where a scan of the `run` text sees only `$CANDIDATE_REF`.
-// Environment values are read at every level for the same inputs.
-function environmentNamesActorControlledRef(node) {
+function environmentRefExpression(node) {
   const env = mapPair(node, "env")?.value;
   if (!isMap(env)) return false;
-  return env.items.some((pair) =>
-    isScalar(pair.value) &&
-    typeof pair.value.value === "string" &&
-    namesActorControlledRef(pair.value.value)
-  );
+  return env.items.some((pair) => {
+    if (!isScalar(pair.value) || typeof pair.value.value !== "string") return false;
+    return (
+      ACTOR_CONTROLLED_REF_EXPRESSION.test(pair.value.value) ||
+      alwaysUntrustedInput(pair.value.value)
+    );
+  });
 }
 
-function stepNamesActorControlledRef(step) {
-  if (environmentNamesActorControlledRef(step)) return true;
+function stepNamesActorControlledRef(step, refExpressionInScope) {
   const run = mapPair(step, "run")?.value;
-  if (!isScalar(run) || typeof run.value !== "string") return false;
-  return namesActorControlledRef(run.value);
-}
-
-function stepHasComputedWorkingDirectory(step) {
-  const hasRun = isScalar(mapPair(step, "run")?.value);
+  const hasRun = isScalar(run) && typeof run.value === "string";
+  const stepEnvExpression = environmentRefExpression(step);
+  if (hasRun && alwaysUntrustedInput(run.value)) return true;
   if (!hasRun) return false;
-  const workingDirectory = mapPair(step, "working-directory")?.value;
-  if (!workingDirectory) return false;
-  if (!isScalar(workingDirectory) || typeof workingDirectory.value !== "string") return true;
-  return workingDirectory.value.includes("${{");
+  const text = joinShellContinuations(run.value);
+  const expressionAvailable =
+    refExpressionInScope || stepEnvExpression || ACTOR_CONTROLLED_REF_EXPRESSION.test(text);
+  return expressionAvailable && REF_ACQUIRING_TOOL.test(text);
 }
 
 function changeDirectoryDestinations(text) {
@@ -690,6 +694,18 @@ function changeDirectoryDestinations(text) {
 // checkout present there is no safe reading of a computed destination.
 function hasComputedChangeDirectory(text) {
   return changeDirectoryDestinations(text).some((destination) => /[$`]/.test(destination));
+}
+
+// `working-directory: ${{ 'candidate' }}` resolves at run time, so no static
+// comparison can clear it. A write-capable job with an isolated untrusted
+// checkout may not have a computed working directory at all.
+function stepHasComputedWorkingDirectory(step) {
+  const hasRun = isScalar(mapPair(step, "run")?.value);
+  if (!hasRun) return false;
+  const workingDirectory = mapPair(step, "working-directory")?.value;
+  if (!workingDirectory) return false;
+  if (!isScalar(workingDirectory) || typeof workingDirectory.value !== "string") return true;
+  return workingDirectory.value.includes("${{");
 }
 
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
@@ -886,12 +902,12 @@ export function validateWorkflowText(path, text) {
           ? permissionWrites(jobPermissions.value, `job ${jobName} permissions`, failures, path)
           : topLevelWrites;
         if (writes && isSeq(steps)) {
-          const jobOrWorkflowEnvNamesActorControlledRef =
-            environmentNamesActorControlledRef(root) || environmentNamesActorControlledRef(jobPair.value);
+          const refExpressionInScope =
+            environmentRefExpression(root) || environmentRefExpression(jobPair.value);
           const isolated = [];
           for (const step of steps.items) {
             if (!isMap(step)) continue;
-            if (jobOrWorkflowEnvNamesActorControlledRef || stepNamesActorControlledRef(step)) {
+            if (stepNamesActorControlledRef(step, refExpressionInScope)) {
               failures.push(
                 `Write-capable job ${jobName} names an actor-controlled ref in its shell: ${path}`
               );
