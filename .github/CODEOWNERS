@@ -3,7 +3,5 @@
 /.web-design/ @kiaquila
 /docs/operations/ @kiaquila
 /docs/standards/ @kiaquila
-/package-lock.json @kiaquila
-/package.json @kiaquila
 /scripts/ @kiaquila
 /tests/ @kiaquila

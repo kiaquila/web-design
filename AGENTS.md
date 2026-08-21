@@ -36,7 +36,9 @@ task-relevant product documents before changing the project.
   `Co-authored-by: OpenAI Codex <codex@openai.com>` after a blank line.
 - End materially Codex-assisted pull-request descriptions with
   `Co-authored-by: Codex <codex@openai.com>`.
-- Run `npm run preflight` plus the project commands configured in
+- Run `npm ci --ignore-scripts --prefix .web-design/policy` before the first
+  policy check in a fresh clone or after a baseline update. Then run
+  `npm run preflight` plus the project commands configured in
   `.web-design/project.json` before publishing a pull request.
 - A change is complete only when source content is traceable, durable docs match
   the implementation, relevant tests pass, responsive and accessibility states

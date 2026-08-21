@@ -16,6 +16,7 @@ the project owner then records the real project shape in
 2. Clone it and run:
 
    ```bash
+   npm ci --ignore-scripts --prefix .web-design/policy
    npm run setup -- --slug my-project --profile static-cloudflare \
      --source-commit <40-character-web-design-release-sha> \
      --root-directory website \
@@ -60,6 +61,9 @@ npm run sync:web-design -- plan \
 npm run sync:web-design -- apply \
   --source-ref <40-character-release-commit> \
   --version <release-version>
+
+npm ci --ignore-scripts --prefix .web-design/policy
+npm run preflight
 ```
 
 The updater replaces only allowlisted managed files. If a managed file was

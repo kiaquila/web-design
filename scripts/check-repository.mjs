@@ -1,10 +1,22 @@
 #!/usr/bin/env node
 
 import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { basename, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { isAlias, isMap, isScalar, isSeq, parseDocument } from "yaml";
+
+const requirePolicyDependency = createRequire(
+  new URL("../.web-design/policy/package.json", import.meta.url)
+);
+const policyNodeModules = resolve(
+  fileURLToPath(new URL("../.web-design/policy/node_modules", import.meta.url))
+);
+const yamlEntry = resolve(requirePolicyDependency.resolve("yaml"));
+if (!yamlEntry.startsWith(`${policyNodeModules}${sep}`)) {
+  throw new Error("Managed policy dependency yaml is not installed under .web-design/policy");
+}
+const { isAlias, isMap, isScalar, isSeq, parseDocument } = requirePolicyDependency(yamlEntry);
 
 const REQUIRED_ROOT_FILES = [
   ".gitignore",
@@ -31,8 +43,8 @@ const REQUIRED_ROOT_FILES = [
   "docs/operations/bootstrap.md",
   "docs/operations/github-setup.md",
   "docs/operations/updates.md",
-  "package-lock.json",
-  "package.json",
+  ".web-design/policy/package-lock.json",
+  ".web-design/policy/package.json",
   "scripts/check-managed-files.mjs",
   "scripts/check-baseline-change.mjs",
   "scripts/check-repository.mjs",

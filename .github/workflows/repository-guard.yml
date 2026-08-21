@@ -37,9 +37,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm ci --ignore-scripts
-          if [ -f .guard-trusted/package-lock.json ]; then
-            npm ci --ignore-scripts --prefix .guard-trusted
+          npm ci --ignore-scripts --prefix .web-design/policy
+          if [ -f .guard-trusted/.web-design/policy/package-lock.json ]; then
+            npm ci --ignore-scripts --prefix .guard-trusted/.web-design/policy
           fi
 
       - name: Run trusted repository policy

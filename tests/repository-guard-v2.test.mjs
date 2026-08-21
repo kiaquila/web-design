@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { validateProjectConfig, validateWorkflowText } from "../scripts/check-repository.mjs";
 
@@ -339,22 +349,71 @@ test("workflow jobs that execute Node install the pinned runtime first", () => {
   }
 });
 
-test("trusted YAML policy installs its pinned root dependency without scripts", () => {
-  const packageData = JSON.parse(readFileSync(resolve("package.json"), "utf8"));
-  const packageLock = JSON.parse(readFileSync(resolve("package-lock.json"), "utf8"));
+test("trusted YAML policy installs its pinned managed dependency without scripts", () => {
+  const packageData = JSON.parse(readFileSync(resolve(".web-design/policy/package.json"), "utf8"));
+  const packageLock = JSON.parse(readFileSync(resolve(".web-design/policy/package-lock.json"), "utf8"));
   const managed = JSON.parse(readFileSync(resolve(".web-design/managed-files.json"), "utf8"));
   assert.equal(packageData.dependencies.yaml, "2.9.0");
   assert.equal(packageLock.packages["node_modules/yaml"].version, "2.9.0");
-  assert.ok(managed.files.includes("package-lock.json"));
+  assert.ok(managed.files.includes(".web-design/policy/package-lock.json"));
+  assert.equal(managed.files.includes("package.json"), false);
+  assert.equal(managed.files.includes("package-lock.json"), false);
+  const templatePackage = JSON.parse(readFileSync(resolve("package.json"), "utf8"));
+  assert.equal(
+    templatePackage.scripts.preflight,
+    "npm run policy:install && npm run check && npm test"
+  );
 
   const guard = readFileSync(resolve(".github/workflows/repository-guard.yml"), "utf8");
-  assert.match(guard, /npm ci --ignore-scripts\n/);
-  assert.match(guard, /npm ci --ignore-scripts --prefix \.guard-trusted/);
+  assert.match(guard, /npm ci --ignore-scripts --prefix \.web-design\/policy/);
+  assert.match(guard, /npm ci --ignore-scripts --prefix \.guard-trusted\/\.web-design\/policy/);
   assert.ok(guard.indexOf("npm ci --ignore-scripts") < guard.indexOf("node .guard-trusted/scripts/check-repository.mjs"));
 
   const baseline = readFileSync(resolve(".github/workflows/baseline-source-verification.yml"), "utf8");
-  assert.match(baseline, /run: npm ci --ignore-scripts/);
-  assert.ok(baseline.indexOf("run: npm ci --ignore-scripts") < baseline.indexOf("node scripts/check-baseline-change.mjs"));
+  assert.match(baseline, /run: npm ci --ignore-scripts --prefix \.web-design\/policy/);
+  assert.ok(baseline.indexOf("npm ci --ignore-scripts") < baseline.indexOf("node scripts/check-baseline-change.mjs"));
+
+  const osv = readFileSync(resolve(".github/workflows/osv-scan.yml"), "utf8");
+  assert.match(osv, /--recursive\s+\./);
+});
+
+test("a cold clone installs only the managed policy dependency before preflight", {
+  skip: process.env.WEB_DESIGN_COLD_CLONE_CHILD === "1"
+}, () => {
+  const cold = mkdtempSync(join(tmpdir(), "web-design-cold-clone-"));
+  try {
+    const listed = spawnSync(
+      "git",
+      ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+      { cwd: resolve("."), encoding: "utf8" }
+    );
+    assert.equal(listed.status, 0, listed.stderr);
+    for (const file of listed.stdout.split("\0").filter(Boolean)) {
+      const source = resolve(file);
+      if (!existsSync(source)) continue;
+      const destination = join(cold, file);
+      mkdirSync(dirname(destination), { recursive: true });
+      copyFileSync(source, destination);
+    }
+    for (const args of [["init", "-q"], ["add", "-A"]]) {
+      const result = spawnSync("git", args, { cwd: cold, encoding: "utf8" });
+      assert.equal(result.status, 0, result.stderr);
+    }
+
+    assert.equal(existsSync(join(cold, "node_modules")), false);
+
+    const preflight = spawnSync("npm", ["run", "preflight"], {
+      cwd: cold,
+      encoding: "utf8",
+      env: { ...process.env, WEB_DESIGN_COLD_CLONE_CHILD: "1" },
+      timeout: 60_000
+    });
+    assert.equal(preflight.status, 0, preflight.stderr || preflight.stdout);
+    assert.equal(existsSync(join(cold, ".web-design/policy/node_modules/yaml")), true);
+    assert.equal(existsSync(join(cold, "node_modules")), false);
+  } finally {
+    rmSync(cold, { recursive: true, force: true });
+  }
 });
 
 test("project CI installs lockfile dependencies before running configured checks", () => {

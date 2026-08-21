@@ -4,7 +4,7 @@
   "files": [
     {
       "path": ".github/CODEOWNERS",
-      "sha256": "110d8ba4cfa7b88f934a93159622d0baa531d3e1490fbe810bd30bde64cdd907"
+      "sha256": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e"
     },
     {
       "path": ".github/pull_request_template.md",
@@ -12,7 +12,7 @@
     },
     {
       "path": ".github/workflows/baseline-source-verification.yml",
-      "sha256": "cf0da8c84539a074c317cb79fd18128507671f477e8596f6ad1245baf42f3fc5"
+      "sha256": "27226921933ee55613cb9e23eae0f5daf8ba2763060967af316d97fe59bfb82d"
     },
     {
       "path": ".github/workflows/ci.yml",
@@ -36,7 +36,7 @@
     },
     {
       "path": ".github/workflows/repository-guard.yml",
-      "sha256": "99a24cb8cff46af2ae135221e51dba5968049d0203ad9c5075574152139a0f47"
+      "sha256": "686d5d927fc6d52f189ebd003333391e51cd7437b38b3475cbec347aa1b79735"
     },
     {
       "path": ".github/workflows/web-design-update.yml",
@@ -44,7 +44,15 @@
     },
     {
       "path": ".web-design/managed-files.json",
-      "sha256": "68ec379bed3adeba978aca94b4c22c10070abd4c8fd3ae64da14937d6e7648e2"
+      "sha256": "cec64750dabba3dc10a8ecdaf7f45c3206e58bd933ee486a31ab039015619231"
+    },
+    {
+      "path": ".web-design/policy/package-lock.json",
+      "sha256": "a13e6dead7cf8e58f785b0ef48483bfbe3e0513fe162bfb35d81b0a0b923bec9"
+    },
+    {
+      "path": ".web-design/policy/package.json",
+      "sha256": "b83a9b6bc1503475c4126e2b63351134997951239f49b57c9f6bcc8db8945d05"
     },
     {
       "path": ".web-design/profiles/custom-production.json",
@@ -68,7 +76,7 @@
     },
     {
       "path": "docs/operations/bootstrap.md",
-      "sha256": "dd8dba71ba95eedf95f6eac67bb3cc6ba2f26eefdc01cbd1a2abfc92ee455410"
+      "sha256": "b57803b9e48f59af442270a57eb2a8c9c84978eec4c0929418d1c2fb79ac463c"
     },
     {
       "path": "docs/operations/cloudflare.md",
@@ -84,7 +92,7 @@
     },
     {
       "path": "docs/operations/updates.md",
-      "sha256": "27ef0b519f2de4c905f1150e770e49bfe684ec2675fc434c7457891db3e26663"
+      "sha256": "0e08788fba0c8dcec60c7dd034057e0e5c17337f431c426ccd48c1620e9fa0ba"
     },
     {
       "path": "docs/standards/content-and-design.md",
@@ -111,14 +119,6 @@
       "sha256": "4419cf5da4affc47a61177ee3a9f833596f844dea7ddf236ac862ca36cf2941b"
     },
     {
-      "path": "package-lock.json",
-      "sha256": "51b0cb9ef3d9a93414492bbb350a94308489ed3a16c74bd7ab13ec6e0d190e1c"
-    },
-    {
-      "path": "package.json",
-      "sha256": "5d24536827f81fe5f31c0bb684845885551e8e4d8b224d2485304a657fe6c899"
-    },
-    {
       "path": "scripts/bootstrap-project.mjs",
       "sha256": "9e43b3f1942ebf950532da800810e747eb3e0b96515608fbcc5ce86fae3834ac"
     },
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "52d262f24e78ec779622c20dccc20a6eca751ead949ec30e8751984dd0591c41"
+      "sha256": "9aeb269a1827beaf1d0c5c69d7c72ab63834b2f8e80f60b0810bc11a0f3e5d2e"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -188,11 +188,11 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "fff91282a35cd871f94f14dc96f0188dc9b9ce3d2c57e2fd279a35ae861641ee"
+      "sha256": "1f18bf05eb6f4e4169670212cecd476b709ce90a7a85b98871b0f8c3feb1f914"
     },
     {
       "path": "tests/sync-project.test.mjs",
-      "sha256": "a2e83247b1b7f345d2658aede34c0c06767dd6ef3dbeffb527f73d17c689f779"
+      "sha256": "5b82be74206d67e540a3c552df3376f6b2a273b2ef3376e507d93ca11735a444"
     }
   ]
 }

@@ -39,7 +39,7 @@ jobs:
           node-version: "22.18.0"
 
       - name: Install trusted policy dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --prefix .web-design/policy
 
       - name: Validate with trusted policy
         id: validation

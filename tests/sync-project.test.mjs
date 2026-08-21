@@ -115,6 +115,49 @@ test("plans and applies only allowlisted files", async () => {
   }
 });
 
+test("installs managed policy dependencies without claiming the consumer root package", async () => {
+  const { parent, source, target } = fixture();
+  const consumerPackage = `${JSON.stringify({
+    name: "chaijana",
+    private: true,
+    scripts: { test: "node --test" }
+  }, null, 2)}\n`;
+  const policyPackage = `${JSON.stringify({
+    name: "web-design-managed-policy",
+    private: true,
+    dependencies: { yaml: "2.9.0" }
+  }, null, 2)}\n`;
+  const policyLock = `${JSON.stringify({
+    name: "web-design-managed-policy",
+    lockfileVersion: 3,
+    requires: true,
+    packages: {
+      "": {
+        name: "web-design-managed-policy",
+        dependencies: { yaml: "2.9.0" }
+      }
+    }
+  }, null, 2)}\n`;
+  try {
+    write(target, "package.json", consumerPackage);
+    release(source, "1.0.0", {
+      ".web-design/policy/package.json": policyPackage,
+      ".web-design/policy/package-lock.json": policyLock
+    });
+
+    const result = await applyLocal(target, source, "1.0.0", { acceptOwnershipChange: true });
+
+    assert.deepEqual(result.conflicts, []);
+    assert.equal(readFileSync(join(target, "package.json"), "utf8"), consumerPackage);
+    assert.equal(readFileSync(join(target, ".web-design/policy/package.json"), "utf8"), policyPackage);
+    const ownership = JSON.parse(readFileSync(join(target, ".web-design/managed-files.json"), "utf8"));
+    assert.equal(ownership.files.includes("package.json"), false);
+    assert.equal(ownership.files.includes("package-lock.json"), false);
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
 test("fails closed on local drift and leaves lock unchanged", async () => {
   const paths = [".web-design/managed-files.json", "managed.txt"];
   const { parent, source, target } = fixture(paths);
