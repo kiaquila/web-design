@@ -221,6 +221,43 @@ function discardsPipelineFailure(line) {
   return shortCircuitBranches(line).some((branch) => hasTopLevelPipeline(branch));
 }
 
+// A nested shell re-parses its quoted argument, so `sh -c 'npm test | true'`
+// hides a pipeline from every check above: the outer scan sees the pipe as
+// quoted text and the inner shell runs it. Rather than re-implement shell
+// parsing one nesting level at a time, a product check may not hand text to
+// another shell at all. Anything that needs shell logic belongs in a script
+// file the project runs, where the code is reviewable instead of quoted.
+const NESTED_SHELL_COMMAND = /(?:^|[;&|(]\s*)\s*(?:[\w./-]*\/)?(?:ba|z|da|k)?sh\s+(?:-[A-Za-z]+\s+)*-c(?:\s|$)/;
+const EVAL_COMMAND = /(?:^|[;&|(]\s*)\s*eval(?:\s|$)/;
+
+function withoutQuotedSpans(line) {
+  let bare = "";
+  let quote = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (quote) {
+      if (character === "\\" && quote === '"') {
+        index += 1;
+        continue;
+      }
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      bare += " ";
+      continue;
+    }
+    bare += character;
+  }
+  return bare;
+}
+
+function executesNestedShell(line) {
+  const bare = withoutQuotedSpans(line);
+  return NESTED_SHELL_COMMAND.test(bare) || EVAL_COMMAND.test(bare);
+}
+
 function isNoOpCommandLine(line) {
   const branches = shortCircuitBranches(line);
   if (!branches.length) return true;
@@ -297,6 +334,10 @@ export function validateProjectConfig(config, profiles = []) {
         .filter(Boolean);
       if (!lines.length || lines.every((line) => isNoOpCommandLine(line))) {
         failures.push(`commands.check[${index}].run must execute a real product check`);
+      } else if (lines.some((line) => executesNestedShell(line))) {
+        failures.push(
+          `commands.check[${index}].run must not hand shell text to another shell`
+        );
       } else if (lines.some((line) => discardsPipelineFailure(line))) {
         failures.push(
           `commands.check[${index}].run must not pipe; a pipeline hides an earlier stage's failure`

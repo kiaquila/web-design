@@ -539,6 +539,33 @@ test("rejects a pipeline that swallows an earlier stage's failure", () => {
   }
 });
 
+test("rejects a check that hands shell text to another shell", () => {
+  const nested = [
+    "sh -c 'npm test | true'",
+    "bash -c 'npm test | true'",
+    "/bin/sh -c 'npm test | true'",
+    "bash -eu -c 'npm test | true'",
+    "eval 'npm test | true'"
+  ];
+  for (const run of nested) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must not hand shell text to another shell"],
+      run
+    );
+  }
+});
+
+test("keeps ordinary commands that merely mention a shell", () => {
+  for (const run of ["bash scripts/build.sh", "npm run x -- --shell -c", "node --test tests/a.test.mjs"]) {
+    const valid = structuredClone(config);
+    valid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
+  }
+});
+
 test("a quoted pipe is not a pipeline", () => {
   for (const run of ['npm test -- --grep "a|b"', "npm test -- --grep 'x|y'"]) {
     const valid = structuredClone(config);
