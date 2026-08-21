@@ -472,7 +472,19 @@ function untrustedCheckoutDirectory(step) {
 // moment a step runs something out of it. Passing the directory as an argument
 // to a trusted program is still fine, which is what the baseline's own
 // verification workflow does.
-function stepExecutesFromDirectory(step, directory) {
+function directoryEntersUntrustedTree(node, directory) {
+  if (!isScalar(node) || typeof node.value !== "string") return false;
+  const requested = node.value.trim().replace(/^\.\//, "").replace(/\/+$/, "");
+  return requested === directory || requested.startsWith(`${directory}/`);
+}
+
+function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
+  const workingDirectory = mapPair(step, "working-directory")?.value;
+  const hasRun = isScalar(mapPair(step, "run")?.value);
+  if (hasRun && workingDirectory && directoryEntersUntrustedTree(workingDirectory, directory)) {
+    return true;
+  }
+  if (hasRun && !workingDirectory && jobDefaultsEnterTree) return true;
   const run = mapPair(step, "run")?.value;
   if (!isScalar(run) || typeof run.value !== "string") return false;
   const quoted = directory.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -654,9 +666,15 @@ export function validateWorkflowText(path, text) {
             }
             isolated.push(directory);
           }
+          const jobDefaults = mapPair(jobPair.value, "defaults")?.value;
+          const jobRunDefaults = isMap(jobDefaults) ? mapPair(jobDefaults, "run")?.value : undefined;
+          const jobWorkingDirectory = isMap(jobRunDefaults)
+            ? mapPair(jobRunDefaults, "working-directory")?.value
+            : undefined;
           for (const directory of isolated) {
+            const defaultsEnterTree = directoryEntersUntrustedTree(jobWorkingDirectory, directory);
             for (const step of steps.items) {
-              if (isMap(step) && stepExecutesFromDirectory(step, directory)) {
+              if (isMap(step) && stepExecutesFromDirectory(step, directory, defaultsEnterTree)) {
                 failures.push(
                   `Write-capable job ${jobName} executes code from the untrusted checkout ${directory}: ${path}`
                 );

@@ -564,6 +564,24 @@ test("an isolated checkout stays data and is never executed", () => {
     );
     assert.match(failures.join("\n"), /executes code from the untrusted checkout \.proposed/, run);
   }
+
+  const workingDirectoryForms = [
+    "      - run: npm ci\n        working-directory: .proposed\n",
+    "      - run: npm ci\n        working-directory: ./.proposed\n",
+    "      - run: npm ci\n        working-directory: .proposed/website\n"
+  ];
+  for (const step of workingDirectoryForms) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: .proposed\n${step}`
+    );
+    assert.match(failures.join("\n"), /executes code from the untrusted checkout \.proposed/, step);
+  }
+  const viaDefaults = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    defaults:\n      run:\n        working-directory: .proposed\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          path: .proposed\n      - run: npm ci\n"
+  );
+  assert.match(viaDefaults.join("\n"), /executes code from the untrusted checkout \.proposed/);
 });
 
 test("passing an isolated checkout to a trusted program is still allowed", () => {
