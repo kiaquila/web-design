@@ -733,6 +733,29 @@ function stepHasComputedWorkingDirectory(step) {
   return workingDirectory.value.includes("${{");
 }
 
+// `actions/github-script` with `script: await import(...'/candidate/x.mjs')`
+// executes the isolated tree without a `run:` block, and nothing structural
+// separates an action that evaluates its inputs from one that does not: inputs
+// are opaque, and scanning them would be reading a language again. So beside
+// an untrusted checkout a write-capable job may reach for only the published
+// actions that stand this tree up — checkout and the pinned runtime, whose
+// handling of inputs the baseline vouches for. A job needing another published
+// action does not belong beside proposed code; `docs/standards/security.md`
+// keeps that work in a read-only job that hands its findings on. A local
+// action is this repository's own code under the same CODEOWNERS boundary as
+// the scripts a `run:` step calls, so it stays available — one that reaches
+// into the tree is refused as execution, above.
+const TREE_ADJACENT_ACTION = /^actions\/(?:checkout|setup-node)@[0-9a-f]{40}$/;
+
+function stepUsesUnvouchedAction(step) {
+  const uses = mapPair(step, "uses")?.value;
+  if (!uses) return false;
+  if (!isScalar(uses) || typeof uses.value !== "string") return true;
+  const reference = uses.value.trim();
+  if (reference.startsWith("./")) return false;
+  return !TREE_ADJACENT_ACTION.test(reference);
+}
+
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
   const uses = mapPair(step, "uses")?.value;
   if (isScalar(uses) && typeof uses.value === "string") {
@@ -837,23 +860,75 @@ function stepSeedsEnvironmentWithTree(step, directory) {
   return shellAssignmentValues(text).some(({ value }) => valueNamesTree(value, directory));
 }
 
-// `y=cand && x="$y"idate` assembles the tree name without ever writing it, so
-// beside an untrusted checkout a shell assignment may only be a literal or a
-// whole-value copy of one other variable: `code=$?` and
-// `GH_TOKEN="$SOURCE_TOKEN"` stay expressible, while concatenation, command
-// substitution, and arithmetic fail closed as assembly. The raw text decides —
-// quote stripping would make `"$y"idate` look like the single variable
-// `$yidate`.
+// `y=cand && x="$y"idate` assembles the tree name without ever writing it, and
+// `name=GITHUB_""OUTPUT` does the same to an environment-file name, so beside
+// an untrusted checkout a shell assignment may only be a whole literal or a
+// whole-value copy of one other variable: `code=$?`, `head_sha="$HEAD_SHA"`,
+// and `-f name=baseline-source-verification` stay expressible, while any
+// splice — quotes closing mid-value, concatenation, command substitution,
+// arithmetic — fails closed. The raw text decides, because quote stripping
+// would make `"$y"idate` look like the single variable `$yidate`.
 const WHOLE_VALUE_EXPANSION = /^"?\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\}|[?$!#*@0-9])"?$/;
+const WHOLE_LITERAL_VALUE = [/^[^'"$`]*$/, /^'[^']*'$/, /^"[^"'$`]*"$/];
 
 function stepAssemblesShellValue(step) {
   const run = mapPair(step, "run")?.value;
   if (!isScalar(run) || typeof run.value !== "string") return false;
   const text = joinShellContinuations(run.value);
   return shellAssignmentValues(text).some(
-    ({ value, raw }) =>
-      /[$`]/.test(value) && !WHOLE_VALUE_EXPANSION.test(raw) && !/^'[^']*'$/.test(raw)
+    ({ raw }) =>
+      !WHOLE_VALUE_EXPANSION.test(raw) && !WHOLE_LITERAL_VALUE.some((form) => form.test(raw))
   );
+}
+
+// `>> "${!name}"` resolves to whatever `name` spells, so scanning for the
+// literal `GITHUB_OUTPUT` reads a name the shell never has to write. Indirect
+// expansion, command substitution, arithmetic, and the modifier forms are all
+// ways to produce a word the scan cannot predict, so beside an untrusted
+// checkout a shell may expand only whole variables — `$VAR`, `${VAR}`, and the
+// simple specials. With assembly refused above, that makes the literal
+// environment-file scan sound: those files can then only be named outright.
+// Single-quoted spans cannot expand at all, so they are read as the literals
+// they are.
+function stepUsesUnreadableExpansion(step) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  const text = joinShellContinuations(run.value);
+  let index = 0;
+  let quote = null;
+  while (index < text.length) {
+    const character = text[index];
+    if (quote === "'") {
+      if (character === "'") quote = null;
+      index += 1;
+      continue;
+    }
+    if (character === "'" && quote === null) {
+      quote = "'";
+      index += 1;
+      continue;
+    }
+    if (character === '"') {
+      quote = quote === '"' ? null : '"';
+      index += 1;
+      continue;
+    }
+    if (character === "`") return true;
+    if (character === "$") {
+      const rest = text.slice(index + 1);
+      if (/^[A-Za-z_][A-Za-z0-9_]*/.test(rest) || /^[?$!#*@0-9]/.test(rest)) {
+        index += 1;
+        continue;
+      }
+      if (/^\{[A-Za-z_][A-Za-z0-9_]*\}/.test(rest)) {
+        index += 1;
+        continue;
+      }
+      return true;
+    }
+    index += 1;
+  }
+  return false;
 }
 
 // `PATH: ${{ format('{0}/{1}', github.workspace, 'candidate') }}` resolves to
@@ -1152,6 +1227,16 @@ export function validateWorkflowText(path, text) {
               if (stepAssemblesShellValue(step)) {
                 failures.push(
                   `Write-capable job ${jobName} assembles a shell value alongside the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepUsesUnreadableExpansion(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} expands more than a whole variable alongside the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepUsesUnvouchedAction(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} uses an action that is not vouched for beside the untrusted checkout ${directory}: ${path}`
                 );
               }
               if (stepInterpolatesExpression(step)) {

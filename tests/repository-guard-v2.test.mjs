@@ -901,6 +901,69 @@ test("step outputs cannot launder the untrusted tree into the environment", () =
   );
 });
 
+test("an environment-file name cannot be assembled or reached indirectly", () => {
+  const step = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      step('name=GITHUB_""OUTPUT; echo "path=$PWD/candidate" >> "${!name}"')
+    ).join("\n"),
+    /assembles a shell value alongside the untrusted checkout candidate/
+  );
+  for (const run of [
+    'echo "path=x" >> "${!name}"',
+    'echo "path=x" >> "${name:-out}"',
+    'echo "path=$(pwd)/candidate" >> out',
+    "echo `pwd` > out",
+    'echo "$((1+1))" > out'
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
+      /expands more than a whole variable alongside the untrusted checkout candidate/,
+      run
+    );
+  }
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      step('node run.mjs "$GITHUB_WORKSPACE" "${HOME}" \'$(pwd)\'')
+    ),
+    []
+  );
+});
+
+test("only vouched-for actions may run beside an untrusted checkout", () => {
+  const workflow = (stepYaml) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n${stepYaml}`;
+  const scripted =
+    "      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea\n        with:\n          script: await import(process.env.GITHUB_WORKSPACE + '/candidate/payload.mjs')\n";
+  assert.match(
+    validateWorkflowText(".github/workflows/example.yml", workflow(scripted)).join("\n"),
+    /uses an action that is not vouched for beside the untrusted checkout candidate/
+  );
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      workflow("      - uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11\n")
+    ).join("\n"),
+    /uses an action that is not vouched for beside the untrusted checkout candidate/
+  );
+  assert.deepEqual(
+    validateWorkflowText(".github/workflows/example.yml", workflow("      - uses: ./scripts/action\n")),
+    []
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      workflow(
+        "      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020\n        with:\n          node-version: \"22.18.0\"\n"
+      )
+    ),
+    []
+  );
+});
+
 test("expression interpolation into the shell fails closed beside an untrusted checkout", () => {
   const step = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
