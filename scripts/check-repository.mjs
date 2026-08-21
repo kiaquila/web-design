@@ -162,6 +162,49 @@ function executesNestedShell(bareSegment) {
   return false;
 }
 
+// Single quotes suppress every expansion; double quotes do not, so a command
+// substitution can hide inside them and decide the command word at runtime.
+function hasExpansionOutsideSingleQuotes(segment) {
+  let quote = null;
+  for (let index = 0; index < segment.length; index += 1) {
+    const character = segment[index];
+    if (quote === "'") {
+      if (character === "'") quote = null;
+      continue;
+    }
+    if (character === "'" && quote === null) {
+      quote = "'";
+      continue;
+    }
+    if (character === '"') {
+      quote = quote === '"' ? null : '"';
+      continue;
+    }
+    if (character === "$" || character === "`" || character === "\\") return true;
+  }
+  return false;
+}
+
+// With expansions refused, quotes are pure grouping, so removing the quote
+// characters (keeping their content) yields the words the shell would run.
+function withoutQuoteCharacters(segment) {
+  let bare = "";
+  let quote = null;
+  for (const character of segment) {
+    if (quote) {
+      if (character === quote) quote = null;
+      else bare += character;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      continue;
+    }
+    bare += character;
+  }
+  return bare;
+}
+
 export function validateProductCheckCommand(command) {
   if (/[\n\r]/.test(command)) return "must be a single line";
   const segments = splitOutsideQuotes(command);
@@ -173,9 +216,15 @@ export function validateProductCheckCommand(command) {
     if (SHELL_CONTROL_CHARACTERS.test(bare)) {
       return "must join commands only with && and use no other shell operators";
     }
+    if (hasExpansionOutsideSingleQuotes(trimmed)) {
+      return "must not expand anything outside single quotes";
+    }
     if (bare.includes("#")) return "must not contain a shell comment";
-    if (executesNestedShell(bare)) return "must not hand shell text to another shell";
-    if (KNOWN_NO_OP_COMMAND.test(trimmed)) return "must execute a real product check";
+    const unquoted = withoutQuoteCharacters(trimmed).trim().replace(/\s+/g, " ");
+    if (executesNestedShell(unquoted)) {
+      return "must not hand shell text to another shell";
+    }
+    if (KNOWN_NO_OP_COMMAND.test(unquoted)) return "must execute a real product check";
   }
   return null;
 }
@@ -472,13 +521,37 @@ function untrustedCheckoutDirectory(step) {
 // moment a step runs something out of it. Passing the directory as an argument
 // to a trusted program is still fine, which is what the baseline's own
 // verification workflow does.
+function normalizedRelativeSegments(value) {
+  if (typeof value !== "string") return null;
+  const requested = value.trim();
+  if (!requested || requested.includes("${{")) return null;
+  if (requested.startsWith("/") || /^[A-Za-z]:/.test(requested)) return null;
+  const segments = requested.split(/[\\/]+/).filter((segment) => segment && segment !== ".");
+  if (segments.some((segment) => segment === "..")) return null;
+  return segments;
+}
+
+function pathEntersUntrustedTree(value, directory) {
+  const segments = normalizedRelativeSegments(value);
+  if (segments === null) return false;
+  const target = directory.split("/");
+  if (segments.length < target.length) return false;
+  return target.every((segment, index) => segments[index] === segment);
+}
+
 function directoryEntersUntrustedTree(node, directory) {
   if (!isScalar(node) || typeof node.value !== "string") return false;
-  const requested = node.value.trim().replace(/^\.\//, "").replace(/\/+$/, "");
-  return requested === directory || requested.startsWith(`${directory}/`);
+  return pathEntersUntrustedTree(node.value, directory);
 }
 
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
+  const uses = mapPair(step, "uses")?.value;
+  if (isScalar(uses) && typeof uses.value === "string") {
+    const reference = uses.value.trim();
+    if (reference.startsWith("./") && pathEntersUntrustedTree(reference.slice(2), directory)) {
+      return true;
+    }
+  }
   const workingDirectory = mapPair(step, "working-directory")?.value;
   const hasRun = isScalar(mapPair(step, "run")?.value);
   if (hasRun && workingDirectory && directoryEntersUntrustedTree(workingDirectory, directory)) {

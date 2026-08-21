@@ -139,6 +139,23 @@ test("rejects comments, continuations, and unbalanced quotes", () => {
   }
 });
 
+test("quoting cannot disguise a no-op or smuggle an expansion", () => {
+  for (const run of ['"true"', "'true'", '"echo" "ok"', '"sh" -c \'npm test\'']) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.equal(validateProjectConfig(invalid, ["no-deploy"]).length, 1, run);
+  }
+  const expansion = structuredClone(config);
+  expansion.commands.check = [{ name: "site", run: 'npm test -- --grep "$(evil)"' }];
+  assert.deepEqual(
+    validateProjectConfig(expansion, ["no-deploy"]),
+    ["commands.check[0].run must not expand anything outside single quotes"]
+  );
+  const singleQuoted = structuredClone(config);
+  singleQuoted.commands.check = [{ name: "site", run: "npm test -- --grep '$(literal)'" }];
+  assert.deepEqual(validateProjectConfig(singleQuoted, ["no-deploy"]), []);
+});
+
 test("rejects unsafe slugs, product paths, and unknown profiles", () => {
   const invalid = structuredClone(config);
   invalid.project.slug = "Demo Site";
@@ -582,6 +599,27 @@ test("an isolated checkout stays data and is never executed", () => {
     "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    defaults:\n      run:\n        working-directory: .proposed\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          path: .proposed\n      - run: npm ci\n"
   );
   assert.match(viaDefaults.join("\n"), /executes code from the untrusted checkout \.proposed/);
+});
+
+test("a local action or dot-mangled directory cannot reach the isolated checkout", () => {
+  const forms = [
+    "      - uses: ./candidate/action\n",
+    "      - uses: ./candidate\n",
+    "      - run: npm ci\n        working-directory: ././candidate\n",
+    "      - run: npm ci\n        working-directory: candidate//sub\n"
+  ];
+  for (const step of forms) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n${step}`
+    );
+    assert.match(failures.join("\n"), /executes code from the untrusted checkout candidate/, step);
+  }
+  const safe = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - uses: ./scripts/action\n      - run: npm ci\n        working-directory: candidate-other\n"
+  );
+  assert.deepEqual(safe, []);
 });
 
 test("passing an isolated checkout to a trusted program is still allowed", () => {
