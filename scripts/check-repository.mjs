@@ -205,6 +205,15 @@ function yamlScalar(value) {
   return trimmed;
 }
 
+function unsupportedYamlConstruct(value) {
+  const trimmed = stripYamlComment(value).trim();
+  if (/^[|>](?:[1-9]?[+-]?|[+-]?[1-9]?)?$/.test(trimmed)) return "block scalar";
+  if (trimmed === "<<" || /^[&*!?]/.test(trimmed)) {
+    return "anchor, alias, tag, or complex key";
+  }
+  return null;
+}
+
 function flowDepth(value) {
   let depth = 0;
   let quote = null;
@@ -343,6 +352,105 @@ function hasPullRequestTrigger(text) {
   return false;
 }
 
+function unsupportedTriggerConstructs(text) {
+  const lines = text.split("\n");
+  const onIndex = lines.findIndex((line) => /^(?:on|["']on["'])\s*:(?:\s|$)/.test(line));
+  if (onIndex === -1) return [];
+  const separator = lines[onIndex].indexOf(":");
+  let value = stripYamlComment(lines[onIndex].slice(separator + 1)).trim();
+  if (value) {
+    let index = onIndex + 1;
+    while ((value.startsWith("[") || value.startsWith("{")) && flowDepth(value) > 0 && index < lines.length) {
+      value += ` ${stripYamlComment(lines[index]).trim()}`;
+      index += 1;
+    }
+    if (!value.startsWith("[") && !value.startsWith("{")) {
+      const kind = unsupportedYamlConstruct(value);
+      return kind ? [kind] : [];
+    }
+    if (flowDepth(value) !== 0 || !value.endsWith(value.startsWith("[") ? "]" : "}")) {
+      return ["malformed flow collection"];
+    }
+    const items = splitFlowItems(value.slice(1, -1));
+    const kinds = new Set();
+    for (const item of items) {
+      const colon = value.startsWith("{") ? topLevelColon(item) : -1;
+      const parts = colon === -1 ? [item] : [item.slice(0, colon), item.slice(colon + 1)];
+      for (const part of parts) {
+        const kind = unsupportedYamlConstruct(part);
+        if (kind) kinds.add(kind);
+      }
+    }
+    return [...kinds];
+  }
+  let eventIndent = null;
+  const kinds = new Set();
+  for (let index = onIndex + 1; index < lines.length; index += 1) {
+    const line = stripYamlComment(lines[index]);
+    if (!line.trim()) continue;
+    const indent = line.match(/^\s*/)[0].length;
+    if (indent === 0) break;
+    if (eventIndent === null) eventIndent = indent;
+    if (indent !== eventIndent) continue;
+    const event = line.trim().replace(/^-\s*/, "");
+    const colon = topLevelColon(event);
+    const parts = colon === -1 ? [event] : [event.slice(0, colon), event.slice(colon + 1)];
+    for (const part of parts) {
+      const kind = unsupportedYamlConstruct(part);
+      if (kind) kinds.add(kind);
+    }
+  }
+  return [...kinds];
+}
+
+function unsupportedPermissionConstructs(lines, start, indent) {
+  const kinds = new Set();
+  const first = stripYamlComment(lines[start].slice(indent)).trim();
+  const separator = first.indexOf(":");
+  let value = separator === -1 ? "" : first.slice(separator + 1).trim();
+  if (value) {
+    let index = start + 1;
+    while (value.startsWith("{") && flowDepth(value) > 0 && index < lines.length) {
+      value += ` ${stripYamlComment(lines[index]).trim()}`;
+      index += 1;
+    }
+    if (value.startsWith("{")) {
+      if (flowDepth(value) !== 0 || !value.endsWith("}")) kinds.add("malformed flow collection");
+      else {
+        for (const item of splitFlowItems(value.slice(1, -1))) {
+          const colon = topLevelColon(item);
+          const parts = colon === -1 ? [item] : [item.slice(0, colon), item.slice(colon + 1)];
+          for (const part of parts) {
+            const kind = unsupportedYamlConstruct(part);
+            if (kind) kinds.add(kind);
+          }
+        }
+      }
+    } else {
+      const kind = unsupportedYamlConstruct(value);
+      if (kind) kinds.add(kind);
+    }
+    return [...kinds];
+  }
+  let entryIndent = null;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const line = stripYamlComment(lines[index]);
+    if (!line.trim()) continue;
+    const currentIndent = line.match(/^\s*/)[0].length;
+    if (currentIndent <= indent) break;
+    if (entryIndent === null) entryIndent = currentIndent;
+    if (currentIndent !== entryIndent) continue;
+    const entry = line.trim();
+    const colon = topLevelColon(entry);
+    const parts = colon === -1 ? [entry] : [entry.slice(0, colon), entry.slice(colon + 1)];
+    for (const part of parts) {
+      const kind = unsupportedYamlConstruct(part);
+      if (kind) kinds.add(kind);
+    }
+  }
+  return [...kinds];
+}
+
 function permissionBlockWrites(lines, start, indent) {
   const first = stripYamlComment(lines[start].slice(indent)).trim();
   const separator = first.indexOf(":");
@@ -412,8 +520,20 @@ export function validateWorkflowText(path, text) {
   if (/^permissions:\s*["']?write-all["']?\s*$/m.test(text)) {
     failures.push(`Workflow may not use write-all permissions: ${path}`);
   }
+  for (const kind of unsupportedTriggerConstructs(text)) {
+    failures.push(`Workflow trigger uses unsupported YAML ${kind}: ${path}`);
+  }
+  const lines = text.split("\n");
+  const permissionBlocks = lines
+    .map((line, index) => ({ index, indent: line.match(/^\s*/)[0].length }))
+    .filter(({ index, indent }) => (indent === 0 || indent === 4) && /^\s*permissions\s*:/.test(lines[index]));
+  for (const { index, indent } of permissionBlocks) {
+    const scope = indent === 0 ? "top-level permissions" : "job permissions";
+    for (const kind of unsupportedPermissionConstructs(lines, index, indent)) {
+      failures.push(`Workflow ${scope} use unsupported YAML ${kind}: ${path}`);
+    }
+  }
   if (hasPullRequestTrigger(text)) {
-    const lines = text.split("\n");
     const topPermissions = lines.findIndex((line) => /^permissions\s*:/.test(line));
     if (topPermissions !== -1 && permissionBlockWrites(lines, topPermissions, 0)) {
       failures.push(`Pull-request workflow may not grant top-level write permissions: ${path}`);

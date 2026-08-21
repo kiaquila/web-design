@@ -114,7 +114,32 @@ test("fails closed when a workflow trigger is supplied indirectly", () => {
     ".github/workflows/example.yml",
     "on: *shared-events\npermissions:\n  contents: write\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
   );
-  assert.match(failures.join("\n"), /top-level write permissions/);
+  assert.match(failures.join("\n"), /unsupported YAML anchor, alias, tag, or complex key/);
+});
+
+test("rejects block-scalar workflow triggers", () => {
+  for (const indicator of ["|", "|-", "|+", ">", ">-", ">+"]) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: ${indicator}\n  pull_request\npermissions:\n  contents: write\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
+    );
+    assert.match(failures.join("\n"), /Workflow trigger uses unsupported YAML block scalar/, indicator);
+  }
+});
+
+test("rejects unsupported direct workflow event constructs", () => {
+  for (const trigger of [
+    "on: &events [pull_request]",
+    "on: !events [pull_request]",
+    "on: [push, *shared-events]",
+    "on: { <<: *shared-events }"
+  ]) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `${trigger}\npermissions:\n  contents: read\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
+    );
+    assert.match(failures.join("\n"), /Workflow trigger uses unsupported YAML anchor, alias, tag, or complex key/, trigger);
+  }
 });
 
 test("rejects flow-style pull-request permission grants", () => {
@@ -127,6 +152,40 @@ test("rejects flow-style pull-request permission grants", () => {
       `on: { pull_request: {} }\n${permissions}\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
     );
     assert.match(failures.join("\n"), /top-level write permissions/, permissions);
+  }
+});
+
+test("rejects block-scalar permission levels", () => {
+  for (const indicator of ["|", "|-", "|+", ">", ">-", ">+"]) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: pull_request\npermissions:\n  contents: ${indicator}\n    write\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
+    );
+    assert.match(failures.join("\n"), /Workflow top-level permissions use unsupported YAML block scalar/, indicator);
+  }
+});
+
+test("rejects block-scalar job permission levels", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: pull_request\npermissions:\n  contents: read\njobs:\n  test:\n    permissions:\n      contents: >-\n        write\n    runs-on: ubuntu-latest\n"
+  );
+  assert.match(failures.join("\n"), /Workflow job permissions use unsupported YAML block scalar/);
+});
+
+test("rejects unsupported permission aliases, anchors, and tags", () => {
+  for (const permissions of [
+    "permissions: *shared-permissions",
+    "permissions: &shared-permissions { contents: read }",
+    "permissions: !policy { contents: read }",
+    "permissions: { <<: *shared-permissions }",
+    "permissions:\n  contents: *shared-level"
+  ]) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: pull_request\n${permissions}\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
+    );
+    assert.match(failures.join("\n"), /Workflow top-level permissions use unsupported YAML anchor, alias, tag, or complex key/, permissions);
   }
 });
 
