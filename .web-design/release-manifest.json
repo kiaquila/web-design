@@ -188,7 +188,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "1f18bf05eb6f4e4169670212cecd476b709ce90a7a85b98871b0f8c3feb1f914"
+      "sha256": "3fc6461e84a3d79b22d01f47bb253bc0ff702b4c6fb0d77d330a4b9dd6245494"
     },
     {
       "path": "tests/sync-project.test.mjs",

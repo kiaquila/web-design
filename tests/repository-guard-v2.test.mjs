@@ -6,7 +6,8 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
-  rmSync
+  rmSync,
+  writeFileSync
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -358,11 +359,14 @@ test("trusted YAML policy installs its pinned managed dependency without scripts
   assert.ok(managed.files.includes(".web-design/policy/package-lock.json"));
   assert.equal(managed.files.includes("package.json"), false);
   assert.equal(managed.files.includes("package-lock.json"), false);
-  const templatePackage = JSON.parse(readFileSync(resolve("package.json"), "utf8"));
-  assert.equal(
-    templatePackage.scripts.preflight,
-    "npm run policy:install && npm run check && npm test"
-  );
+  const project = JSON.parse(readFileSync(resolve(".web-design/project.json"), "utf8"));
+  if (project.governance.mode === "source") {
+    const templatePackage = JSON.parse(readFileSync(resolve("package.json"), "utf8"));
+    assert.equal(
+      templatePackage.scripts.preflight,
+      "npm run policy:install && npm run check && npm test"
+    );
+  }
 
   const guard = readFileSync(resolve(".github/workflows/repository-guard.yml"), "utf8");
   assert.match(guard, /npm ci --ignore-scripts --prefix \.web-design\/policy/);
@@ -377,7 +381,7 @@ test("trusted YAML policy installs its pinned managed dependency without scripts
   assert.match(osv, /--recursive\s+\./);
 });
 
-test("a cold clone installs only the managed policy dependency before preflight", {
+test("cold source and existing-consumer preflight install only the managed policy dependency", {
   skip: process.env.WEB_DESIGN_COLD_CLONE_CHILD === "1"
 }, () => {
   const cold = mkdtempSync(join(tmpdir(), "web-design-cold-clone-"));
@@ -388,7 +392,11 @@ test("a cold clone installs only the managed policy dependency before preflight"
       { cwd: resolve("."), encoding: "utf8" }
     );
     assert.equal(listed.status, 0, listed.stderr);
-    for (const file of listed.stdout.split("\0").filter(Boolean)) {
+    const files = listed.stdout
+      .split("\0")
+      .filter(Boolean)
+      .filter((file) => file !== ".guard-trusted" && !file.startsWith(".guard-trusted/"));
+    for (const file of files) {
       const source = resolve(file);
       if (!existsSync(source)) continue;
       const destination = join(cold, file);
@@ -411,6 +419,39 @@ test("a cold clone installs only the managed policy dependency before preflight"
     assert.equal(preflight.status, 0, preflight.stderr || preflight.stdout);
     assert.equal(existsSync(join(cold, ".web-design/policy/node_modules/yaml")), true);
     assert.equal(existsSync(join(cold, "node_modules")), false);
+
+    const consumerPackagePath = join(cold, "package.json");
+    const consumerPackage = JSON.parse(readFileSync(consumerPackagePath, "utf8"));
+    delete consumerPackage.scripts["policy:install"];
+    consumerPackage.scripts.preflight = "npm run check && npm test";
+    const consumerPackageBytes = `${JSON.stringify(consumerPackage, null, 2)}\n`;
+    writeFileSync(consumerPackagePath, consumerPackageBytes);
+
+    const projectPath = join(cold, ".web-design/project.json");
+    const project = JSON.parse(readFileSync(projectPath, "utf8"));
+    project.commands.check = [{ name: "baseline tests", run: "npm test" }];
+    project.governance.mode = "consumer";
+    writeFileSync(projectPath, `${JSON.stringify(project, null, 2)}\n`);
+    const lockPath = join(cold, ".web-design/lock.json");
+    const lock = JSON.parse(readFileSync(lockPath, "utf8"));
+    lock.sourceCommit = "a".repeat(40);
+    writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+    rmSync(join(cold, ".web-design/policy/node_modules"), { recursive: true, force: true });
+
+    const consumerInstall = spawnSync(
+      "npm",
+      ["ci", "--ignore-scripts", "--prefix", ".web-design/policy"],
+      { cwd: cold, encoding: "utf8" }
+    );
+    assert.equal(consumerInstall.status, 0, consumerInstall.stderr || consumerInstall.stdout);
+    const consumerPreflight = spawnSync("npm", ["run", "preflight"], {
+      cwd: cold,
+      encoding: "utf8",
+      env: { ...process.env, WEB_DESIGN_COLD_CLONE_CHILD: "1" },
+      timeout: 60_000
+    });
+    assert.equal(consumerPreflight.status, 0, consumerPreflight.stderr || consumerPreflight.stdout);
+    assert.equal(readFileSync(consumerPackagePath, "utf8"), consumerPackageBytes);
   } finally {
     rmSync(cold, { recursive: true, force: true });
   }
