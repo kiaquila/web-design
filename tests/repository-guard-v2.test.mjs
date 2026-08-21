@@ -102,38 +102,23 @@ test("rejects a check that inverts its exit status", () => {
   }
 });
 
-test("a wrapper cannot disguise a no-op command", () => {
-  for (const run of ["command true", "env true", "exec true", "timeout 60 true", "nice -n 5 true", "env FOO=bar true"]) {
+test("a product check may not be wrapped", () => {
+  const wrapped = [
+    "command true",
+    "env -u FOO true",
+    "stdbuf -o L true",
+    "nice -n 5 npm test",
+    "timeout 600 npm --prefix website run check",
+    "sudo npm test"
+  ];
+  for (const run of wrapped) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(
       validateProjectConfig(invalid, ["no-deploy"]),
-      ["commands.check[0].run must execute a real product check"],
+      ["commands.check[0].run must not wrap the product command; the first word decides the exit status"],
       run
     );
-  }
-});
-
-test("a wrapper option whose value is a separate token is consumed", () => {
-  for (const run of ["env -u FOO true", "nice -n 5 true", "timeout -s TERM 60 true"]) {
-    const invalid = structuredClone(config);
-    invalid.commands.check = [{ name: "site", run }];
-    assert.deepEqual(
-      validateProjectConfig(invalid, ["no-deploy"]),
-      ["commands.check[0].run must execute a real product check"],
-      run
-    );
-  }
-  const valid = structuredClone(config);
-  valid.commands.check = [{ name: "site", run: "env -u FOO npm test" }];
-  assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), []);
-});
-
-test("a wrapper around a real command is still a real check", () => {
-  for (const run of ["command npm test", "env npm test", "timeout 600 npm --prefix website run check"]) {
-    const valid = structuredClone(config);
-    valid.commands.check = [{ name: "site", run }];
-    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
   }
 });
 

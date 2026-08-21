@@ -151,40 +151,6 @@ function outsideQuotes(command) {
 // (`/bin/sh -c`), and combined flags (`sh -ec`) are all caught.
 const SHELL_NAMES = new Set(["sh", "bash", "zsh", "dash", "ksh", "csh", "tcsh", "fish"]);
 
-// `command true` and `env true` run `true`. These wrappers pass their arguments
-// through to another executable, so the word that decides the exit status is
-// behind them and the no-op test has to look there.
-const COMMAND_WRAPPERS = new Set([
-  "command", "env", "exec", "nice", "ionice", "nohup", "stdbuf", "time", "timeout", "xargs"
-]);
-
-const OPTIONS_TAKING_A_SEPARATE_VALUE = /^-(?:u|n|s|k|C|I|L|P|a|-unset|-adjustment|-signal|-chdir|-replace|-max-args)$/;
-
-function unwrapCommandWrappers(command) {
-  const tokens = command.split(/\s+/).filter(Boolean);
-  let index = 0;
-  while (index < tokens.length) {
-    const name = tokens[index].slice(tokens[index].lastIndexOf("/") + 1);
-    if (!COMMAND_WRAPPERS.has(name)) break;
-    index += 1;
-    // Step over the wrapper's own options and their values: `timeout 60`,
-    // `nice -n 5`, `env FOO=bar`. Anything containing `=` is an assignment.
-    while (index < tokens.length) {
-      const option = tokens[index];
-      if (/=/.test(option) || /^\d+$/.test(option)) {
-        index += 1;
-        continue;
-      }
-      if (!option.startsWith("-")) break;
-      index += 1;
-      // `env -u NAME`, `nice -n 5`, `timeout -s TERM`: the value is its own
-      // token, and stopping at it would classify the value as the command.
-      if (OPTIONS_TAKING_A_SEPARATE_VALUE.test(option) && index < tokens.length) index += 1;
-    }
-  }
-  return tokens.slice(index).join(" ");
-}
-
 function executesNestedShell(bareSegment) {
   const tokens = bareSegment.split(/\s+/).filter(Boolean);
   for (const [index, token] of tokens.entries()) {
@@ -196,6 +162,21 @@ function executesNestedShell(bareSegment) {
     }
   }
   return false;
+}
+
+// `command true`, `env -u FOO true`, `stdbuf -o L true` — each wrapper has its
+// own option grammar, and getting one wrong lets the word that decides the exit
+// status hide behind it. Rather than learn every grammar, a product check may
+// not be wrapped at all: the first word is the command whose status counts.
+const COMMAND_WRAPPERS = new Set([
+  "command", "env", "exec", "nice", "ionice", "nohup", "stdbuf", "time", "timeout",
+  "xargs", "setsid", "chrt", "taskset", "unbuffer", "script", "sudo", "doas", "su"
+]);
+
+function wrapsTheProductCommand(command) {
+  const first = command.split(/\s+/).filter(Boolean)[0];
+  if (!first) return false;
+  return COMMAND_WRAPPERS.has(first.slice(first.lastIndexOf("/") + 1));
 }
 
 // Single quotes suppress every expansion; double quotes do not, so a command
@@ -263,9 +244,10 @@ export function validateProductCheckCommand(command) {
     if (executesNestedShell(unquoted)) {
       return "must not hand shell text to another shell";
     }
-    if (KNOWN_NO_OP_COMMAND.test(unwrapCommandWrappers(unquoted))) {
-      return "must execute a real product check";
+    if (wrapsTheProductCommand(unquoted)) {
+      return "must not wrap the product command; the first word decides the exit status";
     }
+    if (KNOWN_NO_OP_COMMAND.test(unquoted)) return "must execute a real product check";
   }
   return null;
 }
@@ -599,10 +581,10 @@ function directoryEntersUntrustedTree(node, directory) {
 // A write-capable job can fetch a pull ref and check it out with plain git, and
 // everything after that runs attacker-selected code with the write token.
 const SHELL_ACQUIRED_UNTRUSTED_REF = [
-  /git\s+fetch\b[^\n]*\brefs\/pull\//,
-  /git\s+fetch\b[^\n]*[\s'"]pull\/[^\s'"]*\/(?:head|merge)/i,
+  /git\s+(?:fetch|pull)\b[^\n]*\brefs\/pull\//,
+  /git\s+(?:fetch|pull)\b[^\n]*[\s'"]pull\/[^\s'"]*\/(?:head|merge)/i,
   /git\s+(?:checkout|switch|reset|merge|cherry-pick)\b[^\n]*\bFETCH_HEAD\b/,
-  /git\s+fetch\b[^\n]*\$\{\{[^}]*github\.event\.(?:issue|comment|pull_request|client_payload)/
+  /git\s+(?:fetch|pull)\b[^\n]*\$\{\{[^}]*github\.event\.(?:issue|comment|pull_request|client_payload)/
 ];
 
 function stepAcquiresUntrustedRefThroughShell(step) {
@@ -842,11 +824,13 @@ export function validateWorkflowText(path, text) {
             ? mapPair(jobRunDefaults, "working-directory")?.value
             : undefined;
           const effectiveWorkingDirectory = jobWorkingDirectory ?? rootWorkingDirectory;
+          // The effective default is what the steps inherit, so it is the one
+          // that has to be statically knowable — job-level or workflow-level.
           const computedRootDefault =
-            rootWorkingDirectory !== undefined &&
-            (!isScalar(rootWorkingDirectory) ||
-              typeof rootWorkingDirectory.value !== "string" ||
-              rootWorkingDirectory.value.includes("${{"));
+            effectiveWorkingDirectory !== undefined &&
+            (!isScalar(effectiveWorkingDirectory) ||
+              typeof effectiveWorkingDirectory.value !== "string" ||
+              effectiveWorkingDirectory.value.includes("${{"));
           for (const directory of isolated) {
             const defaultsEnterTree = directoryEntersUntrustedTree(effectiveWorkingDirectory, directory);
             for (const step of steps.items) {
