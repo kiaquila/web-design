@@ -618,6 +618,36 @@ test("accepts only checkout refs that are provably the trusted branch", () => {
   }
 });
 
+test("a checkout repository override is untrusted even without a ref", () => {
+  const workflow = (withLines) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n${withLines}      - run: npm ci\n`;
+  for (const withLines of [
+    "          repository: ${{ github.event.comment.body }}\n",
+    "          repository: octo/evil\n",
+    "          repository: octo/evil\n          ref: main\n"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", workflow(withLines)).join("\n"),
+      /checks an untrusted ref out over the workspace/,
+      withLines
+    );
+  }
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      workflow("          repository: ${{ github.repository }}\n          ref: main\n")
+    ),
+    []
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      workflow("          repository: octo/tool\n          path: candidate\n")
+    ),
+    []
+  );
+});
+
 test("a checkout path that lands back on the workspace is not isolation", () => {
   for (const path of [".", "./", "../..", "/tmp/proposed", "${{ inputs.target }}"]) {
     const failures = validateWorkflowText(
@@ -780,6 +810,56 @@ test("a computed cd destination fails closed beside an untrusted checkout", () =
     );
   }
   assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", step("cd website && npm ci")), []);
+});
+
+test("no environment value may name the untrusted tree", () => {
+  const step = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
+  for (const run of [
+    'PATH="$PWD/candidate:$PATH" evil',
+    'export NODE_PATH="$GITHUB_WORKSPACE/candidate"',
+    "TARGET=candidate && node run.mjs",
+    'X="a b/candidate" && node run.mjs',
+    "X=cand\\idate && node run.mjs"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
+      /seeds the environment with the untrusted checkout candidate/,
+      run
+    );
+  }
+  const stepEnv =
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - env:\n          EXTRA: candidate\n        run: node run.mjs\n`;
+  assert.match(
+    validateWorkflowText(".github/workflows/example.yml", stepEnv).join("\n"),
+    /seeds the environment with the untrusted checkout candidate/
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      step('GH_TOKEN="$SOURCE_TOKEN" node scripts/check.mjs --proposed "$GITHUB_WORKSPACE/candidate"')
+    ),
+    []
+  );
+});
+
+test("the step environment files are off the table beside an untrusted checkout", () => {
+  const step = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
+  for (const run of ['echo "$PWD/candidate" >> "$GITHUB_PATH"', 'echo "X=1" >> "$GITHUB_ENV"']) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
+      /touches the step environment files alongside the untrusted checkout candidate/,
+      run
+    );
+  }
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      step('echo "conclusion=ok" >> "$GITHUB_OUTPUT"')
+    ),
+    []
+  );
 });
 
 test("git global options do not hide the subcommand", () => {

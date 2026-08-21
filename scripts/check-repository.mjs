@@ -573,6 +573,18 @@ function isolatedCheckoutDirectory(node) {
   return segments.join("/");
 }
 
+// `repository:` retargets the checkout: any other repository's tree replaces
+// the workspace even when `ref` is absent, because Checkout then takes that
+// repository's default branch. Only `${{ github.repository }}` is provably
+// this repository — a literal owner/name cannot be verified statically in a
+// template shared across consumers, so it fails closed as untrusted.
+function checkoutTargetsCurrentRepository(withNode) {
+  const repository = mapPair(withNode, "repository")?.value;
+  if (repository === undefined) return true;
+  if (!isScalar(repository) || typeof repository.value !== "string") return false;
+  return /^\$\{\{\s*github\.repository\s*\}\}$/.test(repository.value.trim());
+}
+
 function untrustedCheckoutDirectory(step) {
   const uses = mapPair(step, "uses");
   if (!isScalar(uses?.value) || typeof uses.value.value !== "string") return undefined;
@@ -580,10 +592,12 @@ function untrustedCheckoutDirectory(step) {
   const withNode = mapPair(step, "with")?.value;
   if (!isMap(withNode)) return undefined;
   const ref = mapPair(withNode, "ref")?.value;
-  if (!ref) return undefined;
-  if (isScalar(ref) && typeof ref.value === "string") {
-    const requested = ref.value.trim();
-    if (TRUSTED_CHECKOUT_REFS.some((pattern) => pattern.test(requested))) return undefined;
+  if (checkoutTargetsCurrentRepository(withNode)) {
+    if (!ref) return undefined;
+    if (isScalar(ref) && typeof ref.value === "string") {
+      const requested = ref.value.trim();
+      if (TRUSTED_CHECKOUT_REFS.some((pattern) => pattern.test(requested))) return undefined;
+    }
   }
   return isolatedCheckoutDirectory(mapPair(withNode, "path")?.value);
 }
@@ -749,6 +763,90 @@ function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
     new RegExp(`(?:^|[\\s;&|(])(?:${interpreters})\\s+\\S*${quoted}/`, "m").test(text) ||
     new RegExp(`--prefix\\s+\\S*${quoted}(?:\\s|$|["'])`, "m").test(text)
   );
+}
+
+// `PATH="$PWD/candidate:$PATH" evil` executes the checkout's `evil` without
+// the directory ever being followed by a slash, and `NODE_PATH`, `PYTHONPATH`,
+// `LD_PRELOAD`, or `BASH_ENV` reach the same place — enumerating search-path
+// variables is a denylist. So no environment value, shell assignment or YAML
+// `env:`, may name the untrusted tree at all; the directory stays passable as
+// a program argument to a trusted tool. Assignment values are read quote-aware
+// with backslashes applied, so `X="a b/candidate"` and `X=cand\idate` cannot
+// hide the name, while `X='cand\idate'` stays the literal it is.
+function shellAssignmentValues(text) {
+  const values = [];
+  const starts = /(?:^|[\s;&|(])[A-Za-z_][A-Za-z0-9_]*=/g;
+  let match;
+  while ((match = starts.exec(text)) !== null) {
+    let index = starts.lastIndex;
+    let quote = null;
+    let value = "";
+    while (index < text.length) {
+      const character = text[index];
+      if (quote === "'") {
+        if (character === "'") quote = null;
+        else value += character;
+      } else if (quote === '"') {
+        if (character === '"') quote = null;
+        else if (character === "\\") {
+          index += 1;
+          if (index < text.length) value += text[index];
+        } else value += character;
+      } else if (character === "'") {
+        quote = "'";
+      } else if (character === '"') {
+        quote = '"';
+      } else if (character === "\\") {
+        index += 1;
+        if (index < text.length) value += text[index];
+      } else if (/[\s;&|)]/.test(character)) {
+        break;
+      } else {
+        value += character;
+      }
+      index += 1;
+    }
+    values.push(value);
+    starts.lastIndex = index;
+  }
+  return values;
+}
+
+function valueNamesTree(value, directory) {
+  const quoted = directory.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[=:/\\s])${quoted}(?:[=:/\\s]|$)`).test(value);
+}
+
+function environmentSeedsTree(node, directory) {
+  const env = mapPair(node, "env")?.value;
+  if (!isMap(env)) return false;
+  return env.items.some(
+    (pair) =>
+      isScalar(pair.value) &&
+      typeof pair.value.value === "string" &&
+      valueNamesTree(pair.value.value, directory)
+  );
+}
+
+function stepSeedsEnvironmentWithTree(step, directory) {
+  if (environmentSeedsTree(step, directory)) return true;
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  const text = joinShellContinuations(run.value);
+  return shellAssignmentValues(text).some((value) => valueNamesTree(value, directory));
+}
+
+// `echo "$PWD/candidate" >> "$GITHUB_PATH"` puts the checkout on every later
+// step's PATH, and `$GITHUB_ENV` persists arbitrary variables the same way.
+// What flows into those files cannot be read statically, so beside an
+// untrusted checkout they are off the table entirely; trusted results travel
+// through `$GITHUB_OUTPUT`.
+const STEP_ENVIRONMENT_FILE = /\bGITHUB_(?:ENV|PATH)\b/;
+
+function stepTouchesEnvironmentFiles(step) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  return STEP_ENVIRONMENT_FILE.test(run.value);
 }
 
 function dispatchOnlyJob(job) {
@@ -950,11 +1048,26 @@ export function validateWorkflowText(path, text) {
               effectiveWorkingDirectory.value.includes("${{"));
           for (const directory of isolated) {
             const defaultsEnterTree = directoryEntersUntrustedTree(effectiveWorkingDirectory, directory);
+            if (environmentSeedsTree(root, directory) || environmentSeedsTree(jobPair.value, directory)) {
+              failures.push(
+                `Write-capable job ${jobName} seeds the environment with the untrusted checkout ${directory}: ${path}`
+              );
+            }
             for (const step of steps.items) {
               if (!isMap(step)) continue;
               if (stepExecutesFromDirectory(step, directory, defaultsEnterTree)) {
                 failures.push(
                   `Write-capable job ${jobName} executes code from the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepSeedsEnvironmentWithTree(step, directory)) {
+                failures.push(
+                  `Write-capable job ${jobName} seeds the environment with the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepTouchesEnvironmentFiles(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} touches the step environment files alongside the untrusted checkout ${directory}: ${path}`
                 );
               }
               if (stepHasComputedWorkingDirectory(step) || (computedRootDefault && !mapPair(step, "working-directory"))) {
