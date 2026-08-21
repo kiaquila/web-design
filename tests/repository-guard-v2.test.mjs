@@ -102,6 +102,24 @@ test("rejects a check that inverts its exit status", () => {
   }
 });
 
+test("a leading assignment is environment, not the command", () => {
+  for (const run of ["FOO=bar true", "FOO=bar BAZ=qux true"]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must execute a real product check"],
+      run
+    );
+  }
+  const wrappedAfterAssignment = structuredClone(config);
+  wrappedAfterAssignment.commands.check = [{ name: "site", run: "FOO=bar env true" }];
+  assert.equal(validateProjectConfig(wrappedAfterAssignment, ["no-deploy"]).length, 1);
+  const valid = structuredClone(config);
+  valid.commands.check = [{ name: "site", run: "FOO=bar npm test" }];
+  assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), []);
+});
+
 test("a product check may not be wrapped", () => {
   const wrapped = [
     "command true",
@@ -706,6 +724,27 @@ test("the option terminator and a computed working directory are both caught", (
       ".github/workflows/example.yml",
       withStep("      - run: npm ci\n        working-directory: website\n")
     ),
+    []
+  );
+});
+
+test("git global options do not hide the subcommand", () => {
+  const shellStep = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${run}\n`;
+  for (const run of [
+    "git -C . pull origin pull/12/head && npm ci",
+    "git -c user.name=x pull origin pull/9/head",
+    "git --git-dir=.g fetch origin refs/pull/3/head",
+    "git -C . checkout FETCH_HEAD"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", shellStep(run)).join("\n"),
+      /fetches an actor-selected ref with git/,
+      run
+    );
+  }
+  assert.deepEqual(
+    validateWorkflowText(".github/workflows/example.yml", shellStep("git -C . pull origin main")),
     []
   );
 });

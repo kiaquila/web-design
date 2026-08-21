@@ -173,8 +173,17 @@ const COMMAND_WRAPPERS = new Set([
   "xargs", "setsid", "chrt", "taskset", "unbuffer", "script", "sudo", "doas", "su"
 ]);
 
+// `FOO=bar true` runs `true`: leading assignments are environment, not the
+// command, so the executable is the first word that is not one.
+function commandWordsAfterAssignments(command) {
+  const tokens = command.split(/\s+/).filter(Boolean);
+  let index = 0;
+  while (index < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index])) index += 1;
+  return tokens.slice(index);
+}
+
 function wrapsTheProductCommand(command) {
-  const first = command.split(/\s+/).filter(Boolean)[0];
+  const first = commandWordsAfterAssignments(command)[0];
   if (!first) return false;
   return COMMAND_WRAPPERS.has(first.slice(first.lastIndexOf("/") + 1));
 }
@@ -247,7 +256,9 @@ export function validateProductCheckCommand(command) {
     if (wrapsTheProductCommand(unquoted)) {
       return "must not wrap the product command; the first word decides the exit status";
     }
-    if (KNOWN_NO_OP_COMMAND.test(unquoted)) return "must execute a real product check";
+    const executable = commandWordsAfterAssignments(unquoted).join(" ");
+    if (!executable) return "must execute a real product check";
+    if (KNOWN_NO_OP_COMMAND.test(executable)) return "must execute a real product check";
   }
   return null;
 }
@@ -580,11 +591,14 @@ function directoryEntersUntrustedTree(node, directory) {
 // `actions/checkout` is not the only way to put proposed code in the workspace.
 // A write-capable job can fetch a pull ref and check it out with plain git, and
 // everything after that runs attacker-selected code with the write token.
+// `git [-C <path>] [-c <name>=<value>] … <subcommand>`: global options sit
+// between the program and the verb, so the verb is not always the second word.
+const GIT_WITH_GLOBAL_OPTIONS = "git(?:\\s+(?:-C\\s+\\S+|-c\\s+\\S+|--git-dir(?:=\\S+|\\s+\\S+)|--work-tree(?:=\\S+|\\s+\\S+)|--namespace(?:=\\S+|\\s+\\S+)|--exec-path(?:=\\S+)?|--no-pager|--bare|--literal-pathspecs|--no-replace-objects))*";
 const SHELL_ACQUIRED_UNTRUSTED_REF = [
-  /git\s+(?:fetch|pull)\b[^\n]*\brefs\/pull\//,
-  /git\s+(?:fetch|pull)\b[^\n]*[\s'"]pull\/[^\s'"]*\/(?:head|merge)/i,
-  /git\s+(?:checkout|switch|reset|merge|cherry-pick)\b[^\n]*\bFETCH_HEAD\b/,
-  /git\s+(?:fetch|pull)\b[^\n]*\$\{\{[^}]*github\.event\.(?:issue|comment|pull_request|client_payload)/
+  new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:fetch|pull)\\b[^\\n]*\\brefs\\/pull\\/`),
+  new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:fetch|pull)\\b[^\\n]*[\\s'"]pull\\/[^\\s'"]*\\/(?:head|merge)`, "i"),
+  new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:checkout|switch|reset|merge|cherry-pick)\\b[^\\n]*\\bFETCH_HEAD\\b`),
+  new RegExp(`${GIT_WITH_GLOBAL_OPTIONS}\\s+(?:fetch|pull)\\b[^\\n]*\\$\\{\\{[^}]*github\\.event\\.(?:issue|comment|pull_request|client_payload)`)
 ];
 
 function stepAcquiresUntrustedRefThroughShell(step) {
