@@ -698,9 +698,13 @@ function changeDirectoryDestinations(text) {
 // `target=candidate; cd "$target"` resolves at run time. With an untrusted
 // checkout present there is no safe reading of a computed destination.
 function hasComputedChangeDirectory(text) {
-  // `cd can*` expands to `candidate` when that is the matching entry, so glob
-  // metacharacters are as unresolvable here as a variable is.
-  return changeDirectoryDestinations(text).some((destination) => /[$`*?[\]]/.test(destination));
+  // Enumerating shell metacharacters kept missing expansions (`cand{i..i}date`
+  // slipped past a `$`/backtick/glob denylist), so only destinations made of
+  // plain literal path characters are readable; anything else — variables,
+  // backticks, globs, braces, tildes, escapes, or `cd -` — resolves at run time.
+  return changeDirectoryDestinations(text).some(
+    (destination) => destination === "-" || !/^[A-Za-z0-9._/-]+$/.test(destination)
+  );
 }
 
 // `working-directory: ${{ 'candidate' }}` resolves at run time, so no static

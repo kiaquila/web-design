@@ -772,7 +772,7 @@ test("an actor-controlled ref reaching the shell through env is refused", () => 
 test("a computed cd destination fails closed beside an untrusted checkout", () => {
   const step = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
-  for (const run of ['target=candidate; cd "$target" && npm ci', 'cd "${DIR}" && npm ci', "cd can* && npm ci", "cd ca?didate && npm ci"]) {
+  for (const run of ['target=candidate; cd "$target" && npm ci', 'cd "${DIR}" && npm ci', "cd can* && npm ci", "cd ca?didate && npm ci", "cd cand{i..i}date && npm ci", "cd ~/candidate && npm ci", "cd - && npm ci", "cd cand\\idate && npm ci"]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
       /executes code from the untrusted checkout candidate/,
