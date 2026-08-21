@@ -72,6 +72,73 @@ test("accepts a least-privilege workflow with a full SHA pin", () => {
   assert.deepEqual(failures, []);
 });
 
+test("structurally rejects mutable action refs in quoted and flow-style steps", () => {
+  for (const workflow of [
+    `on: push\npermissions: { contents: read }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - "uses": actions/checkout@v4\n`,
+    `on: push\npermissions: { contents: read }\njobs: { test: { runs-on: ubuntu-latest, steps: [{ "uses": actions/checkout@v4 }] } }\n`
+  ]) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      workflow
+    );
+    assert.match(failures.join("\n"), /not pinned to a full commit SHA/, workflow);
+  }
+});
+
+test("fails closed on indirect and decorated action references", () => {
+  const workflows = [
+    `shared: &shared { uses: actions/checkout@main }\non: push\npermissions: { contents: read }\njobs: { test: { runs-on: ubuntu-latest, steps: [*shared] } }\n`,
+    `on: push\npermissions: { contents: read }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: &action actions/checkout@main\n`,
+    `on: push\npermissions: { contents: read }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: !action actions/checkout@main\n`,
+    `on: push\npermissions: { contents: read }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: >-\n          actions/checkout@main\n`,
+    `shared: &shared { uses: actions/checkout@main }\non: push\npermissions: { contents: read }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - <<: *shared\n`
+  ];
+  for (const workflow of workflows) {
+    const failures = validateWorkflowText(".github/workflows/example.yml", workflow);
+    assert.match(failures.join("\n"), /unsupported YAML (?:alias|anchor|tag|block scalar|merge key)/, workflow);
+  }
+});
+
+test("fails closed on indirect and decorated security mapping keys", () => {
+  const workflows = [
+    `permissionKey: &permissionKey permissions\non: pull_request\npermissions: { contents: read }\njobs:\n  test:\n    ? *permissionKey\n    : { contents: write }\n    runs-on: ubuntu-latest\n`,
+    `usesKey: &usesKey uses\non: push\npermissions: { contents: read }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - ? *usesKey\n        : actions/checkout@main\n`,
+    `on: pull_request\npermissions: { contents: read }\njobs:\n  test:\n    ? [permissions]\n    : { contents: write }\n    runs-on: ubuntu-latest\n`,
+    `on: pull_request\npermissions: { contents: read }\njobs:\n  test:\n    &permissionKey permissions: { contents: write }\n    runs-on: ubuntu-latest\n`
+  ];
+  for (const workflow of workflows) {
+    const failures = validateWorkflowText(".github/workflows/example.yml", workflow);
+    assert.match(
+      failures.join("\n"),
+      /key uses unsupported YAML (?:alias|anchor)|keys must be undecorated string scalars/,
+      workflow
+    );
+  }
+});
+
+test("rejects merge-key permission injection anywhere in the jobs tree", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    `shared: &shared { permissions: { contents: write } }\non: pull_request\npermissions: { contents: read }\njobs: { test: { <<: *shared, runs-on: ubuntu-latest } }\n`
+  );
+  assert.match(failures.join("\n"), /Workflow jobs use unsupported YAML (?:alias|merge key)/);
+});
+
+test("external Docker actions require an immutable SHA-256 digest", () => {
+  const mutable = validateWorkflowText(
+    ".github/workflows/example.yml",
+    `on: push\npermissions: { contents: read }\njobs: { test: { runs-on: ubuntu-latest, steps: [{ uses: docker://alpine:latest }] } }\n`
+  );
+  assert.match(mutable.join("\n"), /Docker action is not pinned to an immutable SHA-256 digest/);
+
+  const digest = "a".repeat(64);
+  const pinned = validateWorkflowText(
+    ".github/workflows/example.yml",
+    `on: push\npermissions: { contents: read }\njobs: { test: { runs-on: ubuntu-latest, steps: [{ uses: docker://alpine@sha256:${digest} }] } }\n`
+  );
+  assert.deepEqual(pinned, []);
+});
+
 test("rejects pull-request workflows with top-level write permissions", () => {
   const failures = validateWorkflowText(
     ".github/workflows/example.yml",
@@ -114,7 +181,7 @@ test("fails closed when a workflow trigger is supplied indirectly", () => {
     ".github/workflows/example.yml",
     "on: *shared-events\npermissions:\n  contents: write\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
   );
-  assert.match(failures.join("\n"), /unsupported YAML anchor, alias, tag, or complex key/);
+  assert.match(failures.join("\n"), /Workflow trigger uses unsupported YAML alias/);
 });
 
 test("rejects block-scalar workflow triggers", () => {
@@ -138,7 +205,7 @@ test("rejects unsupported direct workflow event constructs", () => {
       ".github/workflows/example.yml",
       `${trigger}\npermissions:\n  contents: read\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
     );
-    assert.match(failures.join("\n"), /Workflow trigger uses unsupported YAML anchor, alias, tag, or complex key/, trigger);
+    assert.match(failures.join("\n"), /Workflow trigger uses unsupported YAML (?:anchor|alias|tag|merge key)/, trigger);
   }
 });
 
@@ -170,7 +237,7 @@ test("rejects block-scalar job permission levels", () => {
     ".github/workflows/example.yml",
     "on: pull_request\npermissions:\n  contents: read\njobs:\n  test:\n    permissions:\n      contents: >-\n        write\n    runs-on: ubuntu-latest\n"
   );
-  assert.match(failures.join("\n"), /Workflow job permissions use unsupported YAML block scalar/);
+  assert.match(failures.join("\n"), /Workflow job test permissions use unsupported YAML block scalar/);
 });
 
 test("rejects unsupported permission aliases, anchors, and tags", () => {
@@ -185,7 +252,36 @@ test("rejects unsupported permission aliases, anchors, and tags", () => {
       ".github/workflows/example.yml",
       `on: pull_request\n${permissions}\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
     );
-    assert.match(failures.join("\n"), /Workflow top-level permissions use unsupported YAML anchor, alias, tag, or complex key/, permissions);
+    assert.match(failures.join("\n"), /Workflow top-level permissions use unsupported YAML (?:anchor|alias|tag|merge key)/, permissions);
+  }
+});
+
+test("structurally rejects quoted, escaped, spaced, flow, and arbitrarily indented write grants", () => {
+  const workflows = [
+    String.raw`"\u006fn": pull_request
+"permissions":
+    contents: "wr\u0069te"
+"jobs":
+    "test":
+        runs-on: ubuntu-latest
+`,
+    `on : { pull_request: {} }
+permissions : { contents: read }
+"jobs" : { "publish": { "permissions": { contents: write }, runs-on: ubuntu-latest } }
+`,
+    `on: pull_request
+permissions:
+    contents: read
+jobs:
+    "publish job":
+        "permissions":
+            issues: write
+        runs-on: ubuntu-latest
+`
+  ];
+  for (const workflow of workflows) {
+    const failures = validateWorkflowText(".github/workflows/example.yml", workflow);
+    assert.match(failures.join("\n"), /may not grant (?:top-level write permissions|write permissions)/, workflow);
   }
 });
 
@@ -241,6 +337,24 @@ test("workflow jobs that execute Node install the pinned runtime first", () => {
       assert.match(job.slice(setup, nodeCommand), /node-version:\s*["']22\.18\.0["']/);
     }
   }
+});
+
+test("trusted YAML policy installs its pinned root dependency without scripts", () => {
+  const packageData = JSON.parse(readFileSync(resolve("package.json"), "utf8"));
+  const packageLock = JSON.parse(readFileSync(resolve("package-lock.json"), "utf8"));
+  const managed = JSON.parse(readFileSync(resolve(".web-design/managed-files.json"), "utf8"));
+  assert.equal(packageData.dependencies.yaml, "2.9.0");
+  assert.equal(packageLock.packages["node_modules/yaml"].version, "2.9.0");
+  assert.ok(managed.files.includes("package-lock.json"));
+
+  const guard = readFileSync(resolve(".github/workflows/repository-guard.yml"), "utf8");
+  assert.match(guard, /npm ci --ignore-scripts\n/);
+  assert.match(guard, /npm ci --ignore-scripts --prefix \.guard-trusted/);
+  assert.ok(guard.indexOf("npm ci --ignore-scripts") < guard.indexOf("node .guard-trusted/scripts/check-repository.mjs"));
+
+  const baseline = readFileSync(resolve(".github/workflows/baseline-source-verification.yml"), "utf8");
+  assert.match(baseline, /run: npm ci --ignore-scripts/);
+  assert.ok(baseline.indexOf("run: npm ci --ignore-scripts") < baseline.indexOf("node scripts/check-baseline-change.mjs"));
 });
 
 test("project CI installs lockfile dependencies before running configured checks", () => {

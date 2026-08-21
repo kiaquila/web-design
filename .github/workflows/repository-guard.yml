@@ -33,6 +33,15 @@ jobs:
           path: .guard-trusted
           fetch-depth: 1
 
+      - name: Install proposed and trusted policy dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          if [ -f .guard-trusted/package-lock.json ]; then
+            npm ci --ignore-scripts --prefix .guard-trusted
+          fi
+
       - name: Run trusted repository policy
         shell: bash
         run: |

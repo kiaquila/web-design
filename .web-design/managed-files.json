@@ -28,6 +28,8 @@
     "docs/standards/project-structure.md",
     "docs/standards/security.md",
     "docs/standards/testing.md",
+    "package-lock.json",
+    "package.json",
     "scripts/bootstrap-project.mjs",
     "scripts/check-baseline-change.mjs",
     "scripts/check-managed-files.mjs",

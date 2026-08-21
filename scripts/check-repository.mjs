@@ -4,6 +4,7 @@ import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { isAlias, isMap, isScalar, isSeq, parseDocument } from "yaml";
 
 const REQUIRED_ROOT_FILES = [
   ".gitignore",
@@ -30,6 +31,7 @@ const REQUIRED_ROOT_FILES = [
   "docs/operations/bootstrap.md",
   "docs/operations/github-setup.md",
   "docs/operations/updates.md",
+  "package-lock.json",
   "package.json",
   "scripts/check-managed-files.mjs",
   "scripts/check-baseline-change.mjs",
@@ -166,407 +168,257 @@ export function validateProjectConfig(config, profiles = []) {
   return failures;
 }
 
-function stripYamlComment(value) {
-  let quote = null;
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
-    if (quote === '"' && char === "\\") {
-      index += 1;
-      continue;
+function mapPair(map, key) {
+  if (!isMap(map)) return null;
+  return map.items.find((pair) => isScalar(pair.key) && pair.key.value === key) ?? null;
+}
+
+function unsupportedSecurityConstructs(node, kinds = new Set()) {
+  if (!node) return kinds;
+  if (isAlias(node)) {
+    kinds.add("alias");
+    return kinds;
+  }
+  if (node.anchor) kinds.add("anchor");
+  if (node.tag) kinds.add("tag");
+  if (isScalar(node) && new Set(["BLOCK_FOLDED", "BLOCK_LITERAL"]).has(node.type)) {
+    kinds.add("block scalar");
+  }
+  if (isMap(node)) {
+    for (const pair of node.items) {
+      if (isScalar(pair.key) && pair.key.value === "<<") kinds.add("merge key");
+      unsupportedSecurityConstructs(pair.key, kinds);
+      unsupportedSecurityConstructs(pair.value, kinds);
     }
-    if (quote && char === quote) {
-      if (quote === "'" && value[index + 1] === "'") {
-        index += 1;
+  } else if (isSeq(node)) {
+    for (const item of node.items) unsupportedSecurityConstructs(item, kinds);
+  }
+  return kinds;
+}
+
+function unsupportedJobTreeConstructs(node, kinds = new Set()) {
+  if (!node) return kinds;
+  if (isAlias(node)) {
+    kinds.add("alias");
+    return kinds;
+  }
+  if (node.anchor) kinds.add("anchor");
+  if (node.tag) kinds.add("tag");
+  if (isMap(node)) {
+    for (const pair of node.items) {
+      if (isScalar(pair.key) && pair.key.value === "<<") kinds.add("merge key");
+      unsupportedJobTreeConstructs(pair.key, kinds);
+      unsupportedJobTreeConstructs(pair.value, kinds);
+    }
+  } else if (isSeq(node)) {
+    for (const item of node.items) unsupportedJobTreeConstructs(item, kinds);
+  }
+  return kinds;
+}
+
+function workflowEvents(node, failures, path) {
+  const events = new Set();
+  for (const kind of unsupportedSecurityConstructs(node)) {
+    failures.push(`Workflow trigger uses unsupported YAML ${kind}: ${path}`);
+  }
+  if (isScalar(node) && typeof node.value === "string") {
+    events.add(node.value);
+  } else if (isSeq(node)) {
+    for (const item of node.items) {
+      if (!isScalar(item) || typeof item.value !== "string") {
+        failures.push(`Workflow trigger list must contain event names: ${path}`);
         continue;
       }
-      quote = null;
-      continue;
+      events.add(item.value);
     }
-    if (!quote && (char === '"' || char === "'")) {
-      quote = char;
-      continue;
-    }
-    if (!quote && char === "#" && (index === 0 || /\s/.test(value[index - 1]))) {
-      return value.slice(0, index).trimEnd();
-    }
-  }
-  return value;
-}
-
-function yamlScalar(value) {
-  const trimmed = value.trim();
-  if (
-    trimmed.length >= 2 &&
-    ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-      (trimmed.startsWith("'") && trimmed.endsWith("'")))
-  ) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
-}
-
-function unsupportedYamlConstruct(value) {
-  const trimmed = stripYamlComment(value).trim();
-  if (/^[|>](?:[1-9]?[+-]?|[+-]?[1-9]?)?$/.test(trimmed)) return "block scalar";
-  if (trimmed === "<<" || /^[&*!?]/.test(trimmed)) {
-    return "anchor, alias, tag, or complex key";
-  }
-  return null;
-}
-
-function flowDepth(value) {
-  let depth = 0;
-  let quote = null;
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
-    if (quote === '"' && char === "\\") {
-      index += 1;
-      continue;
-    }
-    if (quote && char === quote) {
-      if (quote === "'" && value[index + 1] === "'") {
-        index += 1;
+  } else if (isMap(node)) {
+    for (const pair of node.items) {
+      if (!isScalar(pair.key) || typeof pair.key.value !== "string") {
+        failures.push(`Workflow trigger map must use event-name keys: ${path}`);
         continue;
       }
-      quote = null;
-    } else if (!quote && (char === '"' || char === "'")) {
-      quote = char;
-    } else if (!quote && (char === "[" || char === "{")) {
-      depth += 1;
-    } else if (!quote && (char === "]" || char === "}")) {
-      depth -= 1;
+      events.add(pair.key.value);
     }
+  } else {
+    failures.push(`Workflow trigger must be a scalar, sequence, or mapping: ${path}`);
   }
-  return depth;
+  return events;
 }
 
-function splitFlowItems(value) {
-  const items = [];
-  let start = 0;
-  let depth = 0;
-  let quote = null;
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
-    if (quote === '"' && char === "\\") {
-      index += 1;
+function permissionWrites(node, scope, failures, path) {
+  for (const kind of unsupportedSecurityConstructs(node)) {
+    failures.push(`Workflow ${scope} use unsupported YAML ${kind}: ${path}`);
+  }
+  if (isScalar(node)) {
+    if (!new Set(["read-all", "write-all"]).has(node.value)) {
+      failures.push(`Workflow ${scope} must be read-all, write-all, or a permission map: ${path}`);
+    }
+    return node.value === "write-all";
+  }
+  if (!isMap(node)) {
+    failures.push(`Workflow ${scope} must be a permission map: ${path}`);
+    return true;
+  }
+  let writes = false;
+  for (const pair of node.items) {
+    if (!isScalar(pair.key) || typeof pair.key.value !== "string") {
+      failures.push(`Workflow ${scope} must use scalar permission keys: ${path}`);
+      writes = true;
       continue;
     }
-    if (quote && char === quote) {
-      if (quote === "'" && value[index + 1] === "'") {
-        index += 1;
-        continue;
-      }
-      quote = null;
-    } else if (!quote && (char === '"' || char === "'")) {
-      quote = char;
-    } else if (!quote && (char === "[" || char === "{")) {
-      depth += 1;
-    } else if (!quote && (char === "]" || char === "}")) {
-      depth -= 1;
-    } else if (!quote && depth === 0 && char === ",") {
-      items.push(value.slice(start, index));
-      start = index + 1;
-    }
-  }
-  items.push(value.slice(start));
-  return items;
-}
-
-function topLevelColon(value) {
-  let depth = 0;
-  let quote = null;
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index];
-    if (quote === '"' && char === "\\") {
-      index += 1;
+    if (!isScalar(pair.value) || !new Set(["read", "write", "none"]).has(pair.value.value)) {
+      failures.push(`Workflow ${scope} has an invalid level for ${pair.key.value}: ${path}`);
+      writes = true;
       continue;
     }
-    if (quote && char === quote) {
-      if (quote === "'" && value[index + 1] === "'") {
-        index += 1;
-        continue;
-      }
-      quote = null;
-    } else if (!quote && (char === '"' || char === "'")) {
-      quote = char;
-    } else if (!quote && (char === "[" || char === "{")) {
-      depth += 1;
-    } else if (!quote && (char === "]" || char === "}")) {
-      depth -= 1;
-    } else if (!quote && depth === 0 && char === ":") {
-      return index;
-    }
+    if (pair.value.value === "write") writes = true;
   }
-  return -1;
+  return writes;
 }
 
-function flowHasPullRequest(value) {
-  const open = value[0];
-  const close = open === "[" ? "]" : "}";
-  if (!new Set(["[", "{"]).has(open) || !value.endsWith(close)) return false;
-  const items = splitFlowItems(value.slice(1, -1));
-  if (open === "[") {
-    return items.some((item) => {
-      const scalar = yamlScalar(item);
-      return scalar === "pull_request" || /^[&*!]/.test(scalar);
-    });
-  }
-  return items.some((item) => {
-    const colon = topLevelColon(item);
-    if (colon === -1) return /^[&*!]/.test(item.trim());
-    const key = yamlScalar(item.slice(0, colon));
-    return key === "pull_request" || key === "<<" || /^[&*!]/.test(key);
-  });
-}
-
-function hasPullRequestTrigger(text) {
-  const lines = text.split("\n");
-  const onIndex = lines.findIndex((line) => /^(?:on|["']on["'])\s*:(?:\s|$)/.test(line));
-  if (onIndex === -1) return false;
-  const separator = lines[onIndex].indexOf(":");
-  let value = stripYamlComment(lines[onIndex].slice(separator + 1)).trim();
-  if (value) {
-    let index = onIndex + 1;
-    while ((value.startsWith("[") || value.startsWith("{")) && flowDepth(value) > 0 && index < lines.length) {
-      value += ` ${stripYamlComment(lines[index]).trim()}`;
-      index += 1;
-    }
-    if (value.startsWith("[") || value.startsWith("{")) return flowHasPullRequest(value);
-    const scalar = yamlScalar(value);
-    return scalar === "pull_request" || /^[&*!]/.test(scalar);
-  }
-  let eventIndent = null;
-  for (let index = onIndex + 1; index < lines.length; index += 1) {
-    const line = stripYamlComment(lines[index]);
-    if (!line.trim()) continue;
-    const indent = line.match(/^\s*/)[0].length;
-    if (indent === 0) break;
-    if (eventIndent === null) eventIndent = indent;
-    if (indent !== eventIndent) continue;
-    const event = line.trim().replace(/^-\s*/, "");
-    const colon = event.indexOf(":");
-    const scalar = colon === -1 ? event : event.slice(0, colon);
-    const eventName = yamlScalar(scalar);
-    if (eventName === "pull_request" || eventName === "<<" || /^[&*!]/.test(eventName)) return true;
-  }
-  return false;
-}
-
-function unsupportedTriggerConstructs(text) {
-  const lines = text.split("\n");
-  const onIndex = lines.findIndex((line) => /^(?:on|["']on["'])\s*:(?:\s|$)/.test(line));
-  if (onIndex === -1) return [];
-  const separator = lines[onIndex].indexOf(":");
-  let value = stripYamlComment(lines[onIndex].slice(separator + 1)).trim();
-  if (value) {
-    let index = onIndex + 1;
-    while ((value.startsWith("[") || value.startsWith("{")) && flowDepth(value) > 0 && index < lines.length) {
-      value += ` ${stripYamlComment(lines[index]).trim()}`;
-      index += 1;
-    }
-    if (!value.startsWith("[") && !value.startsWith("{")) {
-      const kind = unsupportedYamlConstruct(value);
-      return kind ? [kind] : [];
-    }
-    if (flowDepth(value) !== 0 || !value.endsWith(value.startsWith("[") ? "]" : "}")) {
-      return ["malformed flow collection"];
-    }
-    const items = splitFlowItems(value.slice(1, -1));
-    const kinds = new Set();
-    for (const item of items) {
-      const colon = value.startsWith("{") ? topLevelColon(item) : -1;
-      const parts = colon === -1 ? [item] : [item.slice(0, colon), item.slice(colon + 1)];
-      for (const part of parts) {
-        const kind = unsupportedYamlConstruct(part);
-        if (kind) kinds.add(kind);
-      }
-    }
-    return [...kinds];
-  }
-  let eventIndent = null;
-  const kinds = new Set();
-  for (let index = onIndex + 1; index < lines.length; index += 1) {
-    const line = stripYamlComment(lines[index]);
-    if (!line.trim()) continue;
-    const indent = line.match(/^\s*/)[0].length;
-    if (indent === 0) break;
-    if (eventIndent === null) eventIndent = indent;
-    if (indent !== eventIndent) continue;
-    const event = line.trim().replace(/^-\s*/, "");
-    const colon = topLevelColon(event);
-    const parts = colon === -1 ? [event] : [event.slice(0, colon), event.slice(colon + 1)];
-    for (const part of parts) {
-      const kind = unsupportedYamlConstruct(part);
-      if (kind) kinds.add(kind);
-    }
-  }
-  return [...kinds];
-}
-
-function unsupportedPermissionConstructs(lines, start, indent) {
-  const kinds = new Set();
-  const first = stripYamlComment(lines[start].slice(indent)).trim();
-  const separator = first.indexOf(":");
-  let value = separator === -1 ? "" : first.slice(separator + 1).trim();
-  if (value) {
-    let index = start + 1;
-    while (value.startsWith("{") && flowDepth(value) > 0 && index < lines.length) {
-      value += ` ${stripYamlComment(lines[index]).trim()}`;
-      index += 1;
-    }
-    if (value.startsWith("{")) {
-      if (flowDepth(value) !== 0 || !value.endsWith("}")) kinds.add("malformed flow collection");
-      else {
-        for (const item of splitFlowItems(value.slice(1, -1))) {
-          const colon = topLevelColon(item);
-          const parts = colon === -1 ? [item] : [item.slice(0, colon), item.slice(colon + 1)];
-          for (const part of parts) {
-            const kind = unsupportedYamlConstruct(part);
-            if (kind) kinds.add(kind);
-          }
-        }
-      }
-    } else {
-      const kind = unsupportedYamlConstruct(value);
-      if (kind) kinds.add(kind);
-    }
-    return [...kinds];
-  }
-  let entryIndent = null;
-  for (let index = start + 1; index < lines.length; index += 1) {
-    const line = stripYamlComment(lines[index]);
-    if (!line.trim()) continue;
-    const currentIndent = line.match(/^\s*/)[0].length;
-    if (currentIndent <= indent) break;
-    if (entryIndent === null) entryIndent = currentIndent;
-    if (currentIndent !== entryIndent) continue;
-    const entry = line.trim();
-    const colon = topLevelColon(entry);
-    const parts = colon === -1 ? [entry] : [entry.slice(0, colon), entry.slice(colon + 1)];
-    for (const part of parts) {
-      const kind = unsupportedYamlConstruct(part);
-      if (kind) kinds.add(kind);
-    }
-  }
-  return [...kinds];
-}
-
-function permissionBlockWrites(lines, start, indent) {
-  const first = stripYamlComment(lines[start].slice(indent)).trim();
-  const separator = first.indexOf(":");
-  let value = separator === -1 ? "" : first.slice(separator + 1).trim();
-  if (value.startsWith("{")) {
-    let index = start + 1;
-    while (flowDepth(value) > 0 && index < lines.length) {
-      value += ` ${stripYamlComment(lines[index]).trim()}`;
-      index += 1;
-    }
-    if (value.endsWith("}")) {
-      return splitFlowItems(value.slice(1, -1)).some((item) => {
-        const colon = topLevelColon(item);
-        if (colon === -1) return /^[&*!]/.test(item.trim());
-        const key = yamlScalar(item.slice(0, colon));
-        const level = yamlScalar(item.slice(colon + 1));
-        return key === "<<" || level === "write" || /^[&*!]/.test(level);
-      });
-    }
-  }
-  const scalar = yamlScalar(value);
-  if (new Set(["write-all", "write"]).has(scalar) || /^[&*!]/.test(scalar)) return true;
-  for (let index = start + 1; index < lines.length; index += 1) {
-    const line = stripYamlComment(lines[index]);
-    if (!line.trim() || line.trimStart().startsWith("#")) continue;
-    const currentIndent = line.match(/^\s*/)[0].length;
-    if (currentIndent <= indent) break;
-    const colon = line.indexOf(":");
-    if (colon === -1) {
-      if (/^[&*!]/.test(line.trim())) return true;
-      continue;
-    }
-    const key = yamlScalar(line.slice(0, colon));
-    const level = yamlScalar(line.slice(colon + 1));
-    if (key === "<<" || level === "write" || /^[&*!]/.test(level)) return true;
-  }
-  return false;
-}
-
-function dispatchOnlyJob(jobLines) {
-  const ifIndex = jobLines.findIndex((line) => /^\s{4}if\s*:/.test(line));
-  if (ifIndex === -1) return false;
-  const first = jobLines[ifIndex].replace(/^\s{4}if\s*:\s*/, "").trim();
-  const parts = first && !new Set(["|", ">", "|-", ">-"]).has(first) ? [first] : [];
-  for (let index = ifIndex + 1; index < jobLines.length; index += 1) {
-    const line = jobLines[index];
-    if (!line.trim()) continue;
-    const indent = line.match(/^\s*/)[0].length;
-    if (indent <= 4) break;
-    parts.push(line.trim());
-  }
-  const condition = parts.join(" ").replace(/^\$\{\{\s*/, "").replace(/\s*\}\}$/, "").trim();
+function dispatchOnlyJob(job) {
+  const conditionNode = mapPair(job, "if")?.value;
+  if (!isScalar(conditionNode) || typeof conditionNode.value !== "string") return false;
+  if (conditionNode.anchor || conditionNode.tag) return false;
+  const condition = conditionNode.value.replace(/^\$\{\{\s*/, "").replace(/\s*\}\}$/, "").trim();
   if (condition.includes("||") || condition.includes("?")) return false;
   return condition.split(/\s*&&\s*/).some((part) =>
     /^\(*\s*github\.event_name\s*==\s*["']workflow_dispatch["']\s*\)*$/.test(part)
   );
 }
 
+function directUnsupportedConstructs(node, { blockScalar = false, mergeKey = false } = {}) {
+  const kinds = new Set();
+  if (!node) return kinds;
+  if (isAlias(node)) kinds.add("alias");
+  if (node.anchor) kinds.add("anchor");
+  if (node.tag) kinds.add("tag");
+  if (blockScalar && isScalar(node) && new Set(["BLOCK_FOLDED", "BLOCK_LITERAL"]).has(node.type)) {
+    kinds.add("block scalar");
+  }
+  if (mergeKey && isMap(node) && node.items.some((pair) => isScalar(pair.key) && pair.key.value === "<<")) {
+    kinds.add("merge key");
+  }
+  return kinds;
+}
+
+function validateMappingKeys(map, scope, failures, path) {
+  if (!isMap(map)) return;
+  for (const pair of map.items) {
+    const kinds = directUnsupportedConstructs(pair.key, { blockScalar: true });
+    if (isScalar(pair.key) && pair.key.value === "<<") kinds.add("merge key");
+    for (const kind of kinds) {
+      failures.push(`Workflow ${scope} key uses unsupported YAML ${kind}: ${path}`);
+    }
+    if (!isScalar(pair.key) || typeof pair.key.value !== "string") {
+      failures.push(`Workflow ${scope} keys must be undecorated string scalars: ${path}`);
+    }
+  }
+}
+
+function validateActionReference(node, failures, path) {
+  for (const kind of directUnsupportedConstructs(node, { blockScalar: true })) {
+    failures.push(`Workflow uses value uses unsupported YAML ${kind}: ${path}`);
+  }
+  if (!isScalar(node) || typeof node.value !== "string") {
+    failures.push(`Workflow uses value must be a scalar action reference: ${path}`);
+    return;
+  }
+  const action = node.value;
+  if (action.startsWith("./")) return;
+  if (action.startsWith("docker://")) {
+    if (!/^docker:\/\/[^@\s]+@sha256:[a-f0-9]{64}$/.test(action)) {
+      failures.push(`Docker action is not pinned to an immutable SHA-256 digest in ${path}: ${action}`);
+    }
+    return;
+  }
+  const ref = action.slice(action.lastIndexOf("@") + 1);
+  if (!/^[a-f0-9]{40}$/.test(ref)) {
+    failures.push(`GitHub Action is not pinned to a full commit SHA in ${path}: ${action}`);
+  }
+}
+
 export function validateWorkflowText(path, text) {
   const failures = [];
-  if (/\bpull_request_target\b/.test(text)) {
-    failures.push(`High-risk pull_request_target trigger in ${path}`);
+  const document = parseDocument(text, {
+    keepSourceTokens: true,
+    prettyErrors: false,
+    strict: true,
+    uniqueKeys: true
+  });
+  for (const error of document.errors) {
+    failures.push(`Invalid workflow YAML (${error.code}): ${path}: ${error.message}`);
   }
-  if (!/^permissions:\s*(?:\n|$)/m.test(text)) {
-    failures.push(`Workflow must declare top-level permissions: ${path}`);
+  for (const warning of document.warnings) {
+    failures.push(`Unsupported workflow YAML (${warning.code}): ${path}: ${warning.message}`);
   }
-  if (/^permissions:\s*["']?write-all["']?\s*$/m.test(text)) {
-    failures.push(`Workflow may not use write-all permissions: ${path}`);
-  }
-  for (const kind of unsupportedTriggerConstructs(text)) {
-    failures.push(`Workflow trigger uses unsupported YAML ${kind}: ${path}`);
-  }
-  const lines = text.split("\n");
-  const permissionBlocks = lines
-    .map((line, index) => ({ index, indent: line.match(/^\s*/)[0].length }))
-    .filter(({ index, indent }) => (indent === 0 || indent === 4) && /^\s*permissions\s*:/.test(lines[index]));
-  for (const { index, indent } of permissionBlocks) {
-    const scope = indent === 0 ? "top-level permissions" : "job permissions";
-    for (const kind of unsupportedPermissionConstructs(lines, index, indent)) {
-      failures.push(`Workflow ${scope} use unsupported YAML ${kind}: ${path}`);
+  const root = document.contents;
+  if (!isMap(root)) {
+    failures.push(`Workflow document root must be a mapping: ${path}`);
+  } else if (document.errors.length === 0) {
+    validateMappingKeys(root, "root mapping", failures, path);
+    const onPair = mapPair(root, "on");
+    const events = onPair ? workflowEvents(onPair.value, failures, path) : new Set();
+    if (!onPair) failures.push(`Workflow must declare triggers: ${path}`);
+    if (events.has("pull_request_target")) {
+      failures.push(`High-risk pull_request_target trigger in ${path}`);
     }
-  }
-  if (hasPullRequestTrigger(text)) {
-    const topPermissions = lines.findIndex((line) => /^permissions\s*:/.test(line));
-    if (topPermissions !== -1 && permissionBlockWrites(lines, topPermissions, 0)) {
-      failures.push(`Pull-request workflow may not grant top-level write permissions: ${path}`);
-    }
-    const jobsIndex = lines.findIndex((line) => /^jobs:\s*$/.test(line));
-    if (jobsIndex !== -1) {
-      for (let start = jobsIndex + 1; start < lines.length;) {
-        if (!/^\s{2}[A-Za-z0-9_-]+:\s*$/.test(lines[start])) {
-          start += 1;
-          continue;
-        }
-        let end = start + 1;
-        while (end < lines.length && !/^\s{2}[A-Za-z0-9_-]+:\s*$/.test(lines[end])) end += 1;
-        const jobLines = lines.slice(start, end);
-        const permissionsIndex = jobLines.findIndex((line) => /^\s{4}permissions\s*:/.test(line));
-        if (
-          permissionsIndex !== -1 &&
-          permissionBlockWrites(jobLines, permissionsIndex, 4) &&
-          !dispatchOnlyJob(jobLines)
-        ) {
-          const job = lines[start].trim().slice(0, -1);
-          failures.push(`Pull-request job ${job} may not grant write permissions: ${path}`);
-        }
-        start = end;
+    const pullRequest = events.has("pull_request");
+    const topPermissions = mapPair(root, "permissions");
+    if (!topPermissions) {
+      failures.push(`Workflow must declare top-level permissions: ${path}`);
+    } else {
+      const writes = permissionWrites(topPermissions.value, "top-level permissions", failures, path);
+      if (isScalar(topPermissions.value) && topPermissions.value.value === "write-all") {
+        failures.push(`Workflow may not use write-all permissions: ${path}`);
+      }
+      if (pullRequest && writes) {
+        failures.push(`Pull-request workflow may not grant top-level write permissions: ${path}`);
       }
     }
-  }
-  for (const match of text.matchAll(/^\s*-?\s*uses:\s*["']?([^\s"']+)["']?\s*(?:#.*)?$/gm)) {
-    const action = match[1];
-    if (action.startsWith("./") || action.startsWith("docker://")) continue;
-    const ref = action.slice(action.lastIndexOf("@") + 1);
-    if (!/^[a-f0-9]{40}$/.test(ref)) {
-      failures.push(`GitHub Action is not pinned to a full commit SHA in ${path}: ${action}`);
+    const jobs = mapPair(root, "jobs")?.value;
+    if (jobs !== undefined && !isMap(jobs)) {
+      failures.push(`Workflow jobs must be a mapping: ${path}`);
+    } else if (isMap(jobs)) {
+      for (const kind of unsupportedJobTreeConstructs(jobs)) {
+        failures.push(`Workflow jobs use unsupported YAML ${kind}: ${path}`);
+      }
+      validateMappingKeys(jobs, "jobs mapping", failures, path);
+      for (const jobPair of jobs.items) {
+        const jobName = isScalar(jobPair.key) && typeof jobPair.key.value === "string"
+          ? jobPair.key.value
+          : "<invalid>";
+        if (!isMap(jobPair.value)) {
+          failures.push(`Workflow job ${jobName} must be a mapping: ${path}`);
+          continue;
+        }
+        validateMappingKeys(jobPair.value, `job ${jobName} mapping`, failures, path);
+        const reusableWorkflow = mapPair(jobPair.value, "uses");
+        if (reusableWorkflow) validateActionReference(reusableWorkflow.value, failures, path);
+        const steps = mapPair(jobPair.value, "steps")?.value;
+        if (steps !== undefined && !isSeq(steps)) {
+          failures.push(`Workflow job ${jobName} steps must be a sequence: ${path}`);
+        } else if (isSeq(steps)) {
+          for (const step of steps.items) {
+            for (const kind of directUnsupportedConstructs(step, { mergeKey: true })) {
+              failures.push(`Workflow job ${jobName} step uses unsupported YAML ${kind}: ${path}`);
+            }
+            if (!isMap(step)) {
+              failures.push(`Workflow job ${jobName} step must be a mapping: ${path}`);
+              continue;
+            }
+            validateMappingKeys(step, `job ${jobName} step mapping`, failures, path);
+            const uses = mapPair(step, "uses");
+            if (uses) validateActionReference(uses.value, failures, path);
+          }
+        }
+        const jobPermissions = mapPair(jobPair.value, "permissions");
+        if (!jobPermissions) continue;
+        const writes = permissionWrites(jobPermissions.value, `job ${jobName} permissions`, failures, path);
+        if (pullRequest && writes && !dispatchOnlyJob(jobPair.value)) {
+          failures.push(`Pull-request job ${jobName} may not grant write permissions: ${path}`);
+        }
+      }
     }
   }
   return failures;

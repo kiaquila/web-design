@@ -41,10 +41,18 @@ function fixture(paths = [".web-design/managed-files.json"]) {
   mkdirSync(join(source, ".web-design"), { recursive: true });
   mkdirSync(join(target, ".web-design"), { recursive: true });
   const ownership = setInstalledOwnership(target, paths);
+  const installedFiles = { ".web-design/managed-files.json": hash(ownership) };
+  for (const path of paths) {
+    if (path === ".web-design/managed-files.json") continue;
+    const value = `installed ${path}\n`;
+    write(target, path, value);
+    installedFiles[path] = hash(value);
+  }
   write(target, ".web-design/project.json", JSON.stringify({ governance: { source: "kiaquila/web-design" } }));
   write(target, ".web-design/lock.json", JSON.stringify({
+    sourceCommit: "0".repeat(40),
     profile: "no-deploy",
-    files: { ".web-design/managed-files.json": hash(ownership) }
+    files: installedFiles
   }));
   write(target, "product.txt", "project-owned\n");
   return { parent, source, target };
@@ -94,7 +102,7 @@ test("plans and applies only allowlisted files", async () => {
       conflicts: [],
       changes: [
         { path: ".web-design/managed-files.json", action: "same" },
-        { path: "docs/standards.md", action: "create" }
+        { path: "docs/standards.md", action: "update" }
       ],
       ownershipAdditions: [],
       ownershipRemovals: []
@@ -180,6 +188,61 @@ test("ownership acceptance does not restore a deleted managed file", async () =>
     assert.equal(existsSync(join(target, "managed.txt")), false);
     assert.equal(existsSync(join(target, "scripts/new-policy.mjs")), false);
     assert.equal(readFileSync(join(target, ".web-design/lock.json"), "utf8"), oldLock);
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test("plan and apply reject tampered installed ownership and lock state", async () => {
+  const paths = [".web-design/managed-files.json", "managed.txt"];
+  for (const command of ["plan", "apply"]) {
+    const { parent, source, target } = fixture(paths);
+    try {
+      release(source, "1.1.0", { "managed.txt": "v2\n" }, paths);
+      const lockPath = join(target, ".web-design/lock.json");
+      const lock = JSON.parse(readFileSync(lockPath, "utf8"));
+      delete lock.files["managed.txt"];
+      writeFileSync(lockPath, JSON.stringify(lock));
+      rmSync(join(target, "managed.txt"));
+      setInstalledOwnership(target, [".web-design/managed-files.json"]);
+
+      const result = await syncProject({
+        command,
+        targetRoot: target,
+        sourceRoot: source,
+        sourceRef: "local",
+        version: "1.1.0",
+        acceptOwnershipChange: true
+      });
+      assert.ok(result.conflicts.includes(".web-design/managed-files.json"));
+      assert.equal(existsSync(join(target, "managed.txt")), false);
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
+    }
+  }
+});
+
+test("an explicit empty bootstrap may create only reviewed ownership additions", async () => {
+  const { parent, source, target } = fixture();
+  try {
+    setInstalledOwnership(target, []);
+    write(target, ".web-design/lock.json", JSON.stringify({
+      sourceCommit: null,
+      profile: "no-deploy",
+      files: {}
+    }));
+    release(source, "1.0.0", { "managed.txt": "v1\n" });
+
+    await assert.rejects(
+      applyLocal(target, source, "1.0.0"),
+      /Ownership changes require explicit review/
+    );
+    const result = await applyLocal(target, source, "1.0.0", { acceptOwnershipChange: true });
+    assert.ok(result.changes.some((item) =>
+      item.path === ".web-design/managed-files.json" && item.action === "update"
+    ));
+    assert.ok(result.changes.some((item) => item.path === "managed.txt" && item.action === "create"));
+    assert.equal(readFileSync(join(target, "managed.txt"), "utf8"), "v1\n");
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }
@@ -322,14 +385,14 @@ test("rejects normalized aliases, backslashes, and nested git metadata paths", a
 
 test("rejects a symlinked destination parent before writing", async () => {
   const paths = [".web-design/managed-files.json", "docs/standard.md"];
-  const { parent, source, target } = fixture(paths);
+  const { parent, source, target } = fixture();
   try {
     release(source, "1.0.0", { "docs/standard.md": "safe\n" }, paths);
     const outside = join(parent, "outside");
     mkdirSync(outside);
     symlinkSync(outside, join(target, "docs"));
     await assert.rejects(
-      applyLocal(target, source, "1.0.0"),
+      applyLocal(target, source, "1.0.0", { acceptOwnershipChange: true }),
       /Symlink component is not allowed/
     );
     assert.equal(existsSync(join(outside, "standard.md")), false);
@@ -340,7 +403,7 @@ test("rejects a symlinked destination parent before writing", async () => {
 
 test("rejects a symlinked source parent before reading managed bytes", async () => {
   const paths = [".web-design/managed-files.json", "docs/standard.md"];
-  const { parent, source, target } = fixture(paths);
+  const { parent, source, target } = fixture();
   try {
     const outside = join(parent, "outside-source");
     mkdirSync(outside);
@@ -356,7 +419,7 @@ test("rejects a symlinked source parent before reading managed bytes", async () 
       ]
     }));
     await assert.rejects(
-      applyLocal(target, source, "1.0.0"),
+      applyLocal(target, source, "1.0.0", { acceptOwnershipChange: true }),
       /Symlink component is not allowed/
     );
   } finally {
