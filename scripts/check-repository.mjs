@@ -94,7 +94,20 @@ const PERSONAL_PATH_PATTERNS = [
 // discarded, and command substitution, redirection, and expansion can reach
 // around the rule entirely. Anything that needs them belongs in a script file
 // the project runs, where the code is reviewed rather than quoted.
-const KNOWN_NO_OP_COMMAND = /^(?:true(?:\s+.*)?|:(?:\s+.*)?|exit\s+0|echo(?:\s+.*)?|printf(?:\s+.*)?)$/;
+// Listing the no-ops was the same losing game one level down: `true`, then
+// `:`, then `/bin/true`, then `sleep 0`. A shell has an unbounded supply of
+// commands that exit zero without touching the product, so the check names the
+// small class that can run a project's own code instead — a package manager, a
+// language runtime, a build driver, or a shell handed a script file (with
+// `-c` refused as a nested shell above). Anything else belongs behind a script
+// the project runs, where the code is reviewed rather than quoted.
+const PRODUCT_CHECK_EXECUTABLE = new Set([
+  "npm", "npx", "pnpm", "pnpx", "yarn", "bun", "bunx",
+  "node", "deno", "python", "python3", "ruby", "php", "java", "swift",
+  "go", "cargo", "dotnet", "make", "mvn", "gradle", "./gradlew", "gradlew",
+  "pytest", "tox", "rake", "bundle", "composer", "poetry", "uv", "pipenv",
+  "bash", "sh", "zsh"
+]);
 const SHELL_CONTROL_CHARACTERS = /[;|&`<>(){}$\\]/;
 // `! npm test` succeeds precisely when the product tests fail.
 const SHELL_NEGATION = /(?:^|[\s;&|(])!(?:\s|$)/;
@@ -294,8 +307,13 @@ export function validateProductCheckCommand(command) {
     }
     const words = commandWordsAfterAssignments(trimmed);
     if (!words.length) return "must execute a real product check";
-    const executable = [executableBasename(words[0]), ...words.slice(1)].join(" ");
-    if (KNOWN_NO_OP_COMMAND.test(executable)) return "must execute a real product check";
+    if (!PRODUCT_CHECK_EXECUTABLE.has(executableBasename(words[0]))) {
+      return "must execute a real product check";
+    }
+    // A shell is only a real check when it is handed a file to run.
+    if (/^(?:bash|sh|zsh)$/.test(executableBasename(words[0])) && words.length < 2) {
+      return "must execute a real product check";
+    }
   }
   return null;
 }
@@ -881,6 +899,71 @@ function stepAssemblesShellValue(step) {
   );
 }
 
+// `./cand''idate/evil` executes the tree without the scan ever seeing its
+// name: the empty quoted fragment splices one word out of two, and the same
+// trick works with an escape or a glob. Constraining assignments was only half
+// of it — every word has to be readable, so beside an untrusted checkout a
+// word must be a single whole fragment: unquoted, wholly single-quoted, or
+// wholly double-quoted, optionally behind a `NAME=` prefix whose value the
+// assignment rule already constrains. `[` and `]` stay available as the test
+// command.
+const WHOLE_WORD_FRAGMENT = [/^[^'"\\*?[\]]*$/, /^'[^']*'$/, /^"[^"\\]*"$/];
+
+function shellWords(text) {
+  const words = [];
+  let current = "";
+  let quote = null;
+  let started = false;
+  for (const character of text) {
+    if (quote) {
+      current += character;
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      current += character;
+      started = true;
+      continue;
+    }
+    if (/\s/.test(character)) {
+      if (started) words.push(current);
+      current = "";
+      started = false;
+      continue;
+    }
+    current += character;
+    started = true;
+  }
+  if (started) words.push(current);
+  return words;
+}
+
+function stepUsesUnreadableWord(step) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  return shellWords(joinShellContinuations(run.value)).some((word) => {
+    if (word === "[" || word === "]") return false;
+    const value = word.replace(/^[A-Za-z_][A-Za-z0-9_]*=/, "");
+    return !WHOLE_WORD_FRAGMENT.some((form) => form.test(value));
+  });
+}
+
+// `cp -R candidate staged && ./staged/evil` re-homes the proposed bytes under
+// a name the execution scan has never heard of. Following that copy would be
+// flow analysis; instead the tree may not be named in a write-capable job's
+// shell at all. With globs, substitution, indirection, and splices refused,
+// naming it outright is the only way left to designate it, so refusing that
+// leaves no path that can come to hold its bytes. A step that genuinely needs
+// the directory gets it from a managed script, which derives the path from
+// `$GITHUB_WORKSPACE` itself — `scripts/verify-baseline-source.mjs` is the
+// baseline's own instance of that.
+function stepNamesTreeInShell(step, directory) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  return valueNamesTree(joinShellContinuations(run.value), directory);
+}
+
 // `>> "${!name}"` resolves to whatever `name` spells, so scanning for the
 // literal `GITHUB_OUTPUT` reads a name the shell never has to write. Indirect
 // expansion, command substitution, arithmetic, and the modifier forms are all
@@ -1232,6 +1315,16 @@ export function validateWorkflowText(path, text) {
               if (stepUsesUnreadableExpansion(step)) {
                 failures.push(
                   `Write-capable job ${jobName} expands more than a whole variable alongside the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepUsesUnreadableWord(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} splices a shell word alongside the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepNamesTreeInShell(step, directory)) {
+                failures.push(
+                  `Write-capable job ${jobName} names the untrusted checkout ${directory} in its shell: ${path}`
                 );
               }
               if (stepUsesUnvouchedAction(step)) {

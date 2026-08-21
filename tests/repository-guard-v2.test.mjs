@@ -145,7 +145,11 @@ test("a product check may not be wrapped", () => {
 test("rejects commands that only report success", () => {
   const noOps = [
     "true", ":", "exit 0", "echo ok", "printf ok", "npm test && true", "echo ok && npm test",
-    "true ignored", ": ignored", "/bin/true ignored", "/usr/bin/true", "/bin/echo ok"
+    "true ignored", ": ignored", "/bin/true ignored", "/usr/bin/true", "/bin/echo ok",
+    // Nothing distinguishes these from the familiar no-ops except that an
+    // enumeration had not reached them yet.
+    "sleep 0", "sleep 0 && npm test", "test -e package.json", "[ -e package.json ]",
+    "cat package.json", "ls", "cd website"
   ];
   for (const run of noOps) {
     const invalid = structuredClone(config);
@@ -837,7 +841,7 @@ test("no environment value may name the untrusted tree", () => {
   assert.deepEqual(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      step('GH_TOKEN="$SOURCE_TOKEN" node scripts/check.mjs --proposed "$GITHUB_WORKSPACE/candidate"')
+      step('GH_TOKEN="$SOURCE_TOKEN" node scripts/check.mjs --workspace "$GITHUB_WORKSPACE"')
     ),
     []
   );
@@ -1098,18 +1102,39 @@ test("changing directory into an isolated checkout counts as executing from it",
   assert.deepEqual(elsewhere, []);
 });
 
-test("passing an isolated checkout to a trusted program is still allowed", () => {
-  const failures = validateWorkflowText(
-    ".github/workflows/example.yml",
-    "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          path: .proposed\n      - run: node scripts/check.mjs --root .proposed\n"
+test("a write-capable job may not name the isolated checkout in its shell", () => {
+  const step = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
+  for (const run of [
+    "node scripts/check.mjs --root candidate",
+    "cp -R candidate staged && node staged/run.mjs",
+    'tar -cf out.tar "candidate"'
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
+      /names the untrusted checkout candidate in its shell/,
+      run
+    );
+  }
+  for (const run of ["./cand''idate/evil", "cp -R cand* staged && node staged/run.mjs"]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
+      /splices a shell word alongside the untrusted checkout candidate/,
+      run
+    );
+  }
+  // A managed script derives the path from the workspace itself, which is how
+  // the baseline's own verification reaches its isolated tree.
+  assert.deepEqual(
+    validateWorkflowText(".github/workflows/example.yml", step("node scripts/verify-baseline-source.mjs")),
+    []
   );
-  assert.deepEqual(failures, []);
 });
 
 test("keeps an untrusted checkout isolated under its own path", () => {
   const failures = validateWorkflowText(
     ".github/workflows/example.yml",
-    "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          path: .proposed\n      - run: node scripts/check.mjs --root .proposed\n"
+    "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          path: .proposed\n      - run: node scripts/check.mjs --root \"$GITHUB_WORKSPACE\"\n"
   );
   assert.deepEqual(failures, []);
 });
