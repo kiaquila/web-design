@@ -643,11 +643,28 @@ function joinShellContinuations(text) {
   return text.replace(/\\\r?\n[ \t]*/g, " ");
 }
 
+function namesActorControlledRef(text) {
+  return ACTOR_CONTROLLED_REF_INPUT.some((pattern) => pattern.test(joinShellContinuations(text)));
+}
+
+// `env: CANDIDATE_REF: ${{ github.event.comment.body }}` puts the ref in the
+// shell's environment, where a scan of the `run` text sees only `$CANDIDATE_REF`.
+// Environment values are read at every level for the same inputs.
+function environmentNamesActorControlledRef(node) {
+  const env = mapPair(node, "env")?.value;
+  if (!isMap(env)) return false;
+  return env.items.some((pair) =>
+    isScalar(pair.value) &&
+    typeof pair.value.value === "string" &&
+    namesActorControlledRef(pair.value.value)
+  );
+}
+
 function stepNamesActorControlledRef(step) {
+  if (environmentNamesActorControlledRef(step)) return true;
   const run = mapPair(step, "run")?.value;
   if (!isScalar(run) || typeof run.value !== "string") return false;
-  const joined = joinShellContinuations(run.value);
-  return ACTOR_CONTROLLED_REF_INPUT.some((pattern) => pattern.test(joined));
+  return namesActorControlledRef(run.value);
 }
 
 function stepHasComputedWorkingDirectory(step) {
@@ -667,6 +684,12 @@ function changeDirectoryDestinations(text) {
     destinations.push(match[2].replace(/^["']|["']$/g, ""));
   }
   return destinations;
+}
+
+// `target=candidate; cd "$target"` resolves at run time. With an untrusted
+// checkout present there is no safe reading of a computed destination.
+function hasComputedChangeDirectory(text) {
+  return changeDirectoryDestinations(text).some((destination) => /[$`]/.test(destination));
 }
 
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
@@ -691,6 +714,7 @@ function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
   if (changeDirectoryDestinations(text).some((d) => pathEntersUntrustedTree(d, directory))) {
     return true;
   }
+  if (hasComputedChangeDirectory(text)) return true;
   const quoted = directory.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const interpreters = "node|bash|sh|zsh|dash|python3?|npx|deno|ruby|perl|go|make";
   return (
@@ -862,10 +886,12 @@ export function validateWorkflowText(path, text) {
           ? permissionWrites(jobPermissions.value, `job ${jobName} permissions`, failures, path)
           : topLevelWrites;
         if (writes && isSeq(steps)) {
+          const jobOrWorkflowEnvNamesActorControlledRef =
+            environmentNamesActorControlledRef(root) || environmentNamesActorControlledRef(jobPair.value);
           const isolated = [];
           for (const step of steps.items) {
             if (!isMap(step)) continue;
-            if (stepNamesActorControlledRef(step)) {
+            if (jobOrWorkflowEnvNamesActorControlledRef || stepNamesActorControlledRef(step)) {
               failures.push(
                 `Write-capable job ${jobName} names an actor-controlled ref in its shell: ${path}`
               );

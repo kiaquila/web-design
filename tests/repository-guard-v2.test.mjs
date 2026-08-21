@@ -752,6 +752,32 @@ test("a write-capable job may not name an actor-controlled ref in its shell", ()
   }
 });
 
+test("an actor-controlled ref reaching the shell through env is refused", () => {
+  const withEnv = (where) =>
+    `on: issue_comment\npermissions:\n  contents: write\n${where === "workflow" ? "env:\n  CANDIDATE_REF: ${{ github.event.comment.body }}\n" : ""}jobs:\n  a:\n    runs-on: ubuntu-latest\n${where === "job" ? "    env:\n      CANDIDATE_REF: ${{ github.event.comment.body }}\n" : ""}    steps:\n      - run: git fetch origin "$CANDIDATE_REF:candidate" && git switch candidate && npm ci\n${where === "step" ? "        env:\n          CANDIDATE_REF: ${{ github.event.comment.body }}\n" : ""}`;
+  for (const where of ["workflow", "job", "step"]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", withEnv(where)).join("\n"),
+      /names an actor-controlled ref in its shell/,
+      where
+    );
+  }
+  assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", withEnv("none")), []);
+});
+
+test("a computed cd destination fails closed beside an untrusted checkout", () => {
+  const step = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
+  for (const run of ['target=candidate; cd "$target" && npm ci', 'cd "${DIR}" && npm ci']) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
+      /executes code from the untrusted checkout candidate/,
+      run
+    );
+  }
+  assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", step("cd website && npm ci")), []);
+});
+
 test("git global options do not hide the subcommand", () => {
   const shellStep = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${run}\n`;
