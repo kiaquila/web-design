@@ -874,6 +874,38 @@ test("a computed environment value fails closed beside an untrusted checkout", (
   }
 });
 
+test("step outputs cannot launder the untrusted tree into the environment", () => {
+  const chain = (seedRun) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - id: seed\n        run: ${seedRun}\n      - env:\n          SEEDED: \${{ steps.seed.outputs.path }}\n        run: node run.mjs\n`;
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      chain('echo "path=$PWD/candidate" >> "$GITHUB_OUTPUT"')
+    ).join("\n"),
+    /writes the untrusted checkout candidate into its step outputs/
+  );
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      chain('y=cand && x="$y"idate && echo "path=$x" >> "$GITHUB_OUTPUT"')
+    ).join("\n"),
+    /assembles a shell value alongside the untrusted checkout candidate/
+  );
+  const heredoc =
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - id: seed\n        run: |\n          cat >> "$GITHUB_OUTPUT" <<EOF\n          path=$PWD/candidate\n          EOF\n      - env:\n          SEEDED: \${{ steps.seed.outputs.path }}\n        run: node run.mjs\n`;
+  assert.match(
+    validateWorkflowText(".github/workflows/example.yml", heredoc).join("\n"),
+    /writes the untrusted checkout candidate into its step outputs/
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      chain('conclusion=ok && echo "path=$conclusion" >> "$GITHUB_OUTPUT"')
+    ),
+    []
+  );
+});
+
 test("expression interpolation into the shell fails closed beside an untrusted checkout", () => {
   const step = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;

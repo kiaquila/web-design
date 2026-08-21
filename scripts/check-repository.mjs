@@ -778,6 +778,7 @@ function shellAssignmentValues(text) {
   const starts = /(?:^|[\s;&|(])[A-Za-z_][A-Za-z0-9_]*=/g;
   let match;
   while ((match = starts.exec(text)) !== null) {
+    const valueStart = starts.lastIndex;
     let index = starts.lastIndex;
     let quote = null;
     let value = "";
@@ -806,7 +807,7 @@ function shellAssignmentValues(text) {
       }
       index += 1;
     }
-    values.push(value);
+    values.push({ value, raw: text.slice(valueStart, index) });
     starts.lastIndex = index;
   }
   return values;
@@ -833,7 +834,44 @@ function stepSeedsEnvironmentWithTree(step, directory) {
   const run = mapPair(step, "run")?.value;
   if (!isScalar(run) || typeof run.value !== "string") return false;
   const text = joinShellContinuations(run.value);
-  return shellAssignmentValues(text).some((value) => valueNamesTree(value, directory));
+  return shellAssignmentValues(text).some(({ value }) => valueNamesTree(value, directory));
+}
+
+// `y=cand && x="$y"idate` assembles the tree name without ever writing it, so
+// beside an untrusted checkout a shell assignment may only be a literal or a
+// whole-value copy of one other variable: `code=$?` and
+// `GH_TOKEN="$SOURCE_TOKEN"` stay expressible, while concatenation, command
+// substitution, and arithmetic fail closed as assembly. With that in force no
+// shell variable can ever hold the tree name, which is what lets
+// `steps.X.outputs.Y` stay a trusted environment form. The raw text decides —
+// quote stripping would make `"$y"idate` look like the single variable
+// `$yidate`.
+const WHOLE_VALUE_EXPANSION = /^"?\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\}|[?$!#*@0-9])"?$/;
+
+function stepAssemblesShellValue(step) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  const text = joinShellContinuations(run.value);
+  return shellAssignmentValues(text).some(
+    ({ value, raw }) =>
+      /[$`]/.test(value) && !WHOLE_VALUE_EXPANSION.test(raw) && !/^'[^']*'$/.test(raw)
+  );
+}
+
+// The output file is how a trusted step hands values to `steps.X.outputs.Y`,
+// so a write that names the tree would launder the path through an allowed
+// expression form. With assembly refused above, a line that touches
+// `$GITHUB_OUTPUT` while naming the tree — or feeds it through a heredoc the
+// line scan cannot read — is the remaining route, and both fail closed.
+function stepWritesTreeIntoOutputs(step, directory) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  const text = joinShellContinuations(run.value);
+  if (!/\bGITHUB_OUTPUT\b/.test(text)) return false;
+  if (/<</.test(text)) return true;
+  return text
+    .split("\n")
+    .some((line) => /\bGITHUB_OUTPUT\b/.test(line) && valueNamesTree(line, directory));
 }
 
 // `PATH: ${{ format('{0}/{1}', github.workspace, 'candidate') }}` resolves to
@@ -1123,6 +1161,16 @@ export function validateWorkflowText(path, text) {
               if (environmentCarriesComputedValue(step)) {
                 failures.push(
                   `Write-capable job ${jobName} carries a computed environment value alongside the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepAssemblesShellValue(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} assembles a shell value alongside the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepWritesTreeIntoOutputs(step, directory)) {
+                failures.push(
+                  `Write-capable job ${jobName} writes the untrusted checkout ${directory} into its step outputs: ${path}`
                 );
               }
               if (stepInterpolatesExpression(step)) {
