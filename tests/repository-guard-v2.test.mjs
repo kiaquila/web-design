@@ -877,31 +877,26 @@ test("a computed environment value fails closed beside an untrusted checkout", (
 test("step outputs cannot launder the untrusted tree into the environment", () => {
   const chain = (seedRun) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - id: seed\n        run: ${seedRun}\n      - env:\n          SEEDED: \${{ steps.seed.outputs.path }}\n        run: node run.mjs\n`;
+  for (const seedRun of [
+    'echo "path=$PWD/candidate" >> "$GITHUB_OUTPUT"',
+    'printf \'path=%s/candidate\\n\' "$PWD" > result && cat result >> "$GITHUB_OUTPUT"',
+    'cat result >> "$GITHUB_OUTPUT"'
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", chain(seedRun)).join("\n"),
+      /touches the step environment files alongside the untrusted checkout candidate/,
+      seedRun
+    );
+  }
   assert.match(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      chain('echo "path=$PWD/candidate" >> "$GITHUB_OUTPUT"')
-    ).join("\n"),
-    /writes the untrusted checkout candidate into its step outputs/
-  );
-  assert.match(
-    validateWorkflowText(
-      ".github/workflows/example.yml",
-      chain('y=cand && x="$y"idate && echo "path=$x" >> "$GITHUB_OUTPUT"')
+      chain('y=cand && x="$y"idate && node run.mjs "$x"')
     ).join("\n"),
     /assembles a shell value alongside the untrusted checkout candidate/
   );
-  const heredoc =
-    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - id: seed\n        run: |\n          cat >> "$GITHUB_OUTPUT" <<EOF\n          path=$PWD/candidate\n          EOF\n      - env:\n          SEEDED: \${{ steps.seed.outputs.path }}\n        run: node run.mjs\n`;
-  assert.match(
-    validateWorkflowText(".github/workflows/example.yml", heredoc).join("\n"),
-    /writes the untrusted checkout candidate into its step outputs/
-  );
   assert.deepEqual(
-    validateWorkflowText(
-      ".github/workflows/example.yml",
-      chain('conclusion=ok && echo "path=$conclusion" >> "$GITHUB_OUTPUT"')
-    ),
+    validateWorkflowText(".github/workflows/example.yml", chain("node scripts/seed.mjs")),
     []
   );
 });
@@ -928,7 +923,12 @@ test("expression interpolation into the shell fails closed beside an untrusted c
 test("the step environment files are off the table beside an untrusted checkout", () => {
   const step = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
-  for (const run of ['echo "$PWD/candidate" >> "$GITHUB_PATH"', 'echo "X=1" >> "$GITHUB_ENV"']) {
+  for (const run of [
+    'echo "$PWD/candidate" >> "$GITHUB_PATH"',
+    'echo "X=1" >> "$GITHUB_ENV"',
+    'echo "conclusion=ok" >> "$GITHUB_OUTPUT"',
+    'echo "done=1" >> "$GITHUB_STATE"'
+  ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
       /touches the step environment files alongside the untrusted checkout candidate/,
@@ -938,7 +938,7 @@ test("the step environment files are off the table beside an untrusted checkout"
   assert.deepEqual(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      step('echo "conclusion=ok" >> "$GITHUB_OUTPUT"')
+      step('echo "report ready" > report.txt')
     ),
     []
   );
@@ -1124,7 +1124,7 @@ test("trusted YAML policy installs its pinned managed dependency without scripts
 
   const baseline = readFileSync(resolve(".github/workflows/baseline-source-verification.yml"), "utf8");
   assert.match(baseline, /run: npm ci --ignore-scripts --prefix \.web-design\/policy/);
-  assert.ok(baseline.indexOf("npm ci --ignore-scripts") < baseline.indexOf("node scripts/check-baseline-change.mjs"));
+  assert.ok(baseline.indexOf("npm ci --ignore-scripts") < baseline.indexOf("node scripts/verify-baseline-source.mjs"));
 
   const osv = readFileSync(resolve(".github/workflows/osv-scan.yml"), "utf8");
   assert.match(osv, /--recursive\s+\./);
@@ -1247,12 +1247,15 @@ test("CODEOWNERS protects every managed and release-control path", () => {
 
 test("trusted baseline verification is repository-identity and run-SHA bound", () => {
   const workflow = readFileSync(resolve(".github/workflows/baseline-source-verification.yml"), "utf8");
+  const script = readFileSync(resolve("scripts/verify-baseline-source.mjs"), "utf8");
   const codeowners = readFileSync(resolve(".github/CODEOWNERS"), "utf8");
-  assert.match(workflow, /GITHUB_REPOSITORY" != "kiaquila\/web-design"/);
-  assert.match(workflow, /RUN_HEAD_SHA" != "\$ASSOCIATED_HEAD_SHA"/);
+  assert.match(workflow, /run: node scripts\/verify-baseline-source\.mjs/);
+  assert.match(script, /GITHUB_REPOSITORY !== "kiaquila\/web-design"/);
+  assert.match(script, /\(RUN_HEAD_SHA \?\? ""\) !== \(ASSOCIATED_HEAD_SHA \?\? ""\)/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
   assert.match(workflow, /HEAD_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
   assert.match(codeowners, /^\/\.github\/ @kiaquila$/m);
+  assert.match(codeowners, /^\/scripts\/ @kiaquila$/m);
 });
 
 test("repository guard uses branch policy only for the template-v2 bootstrap", () => {

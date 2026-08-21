@@ -50,41 +50,11 @@ jobs:
           RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           SOURCE_TOKEN: ${{ secrets.WEB_DESIGN_READ_TOKEN || github.token }}
         shell: bash
-        run: |
-          set +e
-          conclusion=success
-          summary="Managed baseline is unchanged or matches its pinned source."
-          if [ "$RUN_HEAD_SHA" != "$ASSOCIATED_HEAD_SHA" ]; then
-            conclusion=failure
-            summary="Repository Guard SHA does not match the associated pull-request head."
-          elif [ "$GUARD_CONCLUSION" != "success" ]; then
-            conclusion=failure
-            summary="Repository Guard did not pass for this pull-request head."
-          else
-            if [ "$GITHUB_REPOSITORY" != "kiaquila/web-design" ]; then
-              GH_TOKEN="$SOURCE_TOKEN" node scripts/check-baseline-change.mjs \
-                --proposed "$GITHUB_WORKSPACE/.baseline-proposed" \
-                --trusted "$GITHUB_WORKSPACE" \
-                --base-sha "$BASE_SHA"
-              code=$?
-              if [ "$code" -ne 0 ]; then
-                conclusion=failure
-                summary="Proposed managed bytes do not match the pinned web-design source."
-              fi
-            else
-              node scripts/check-repository.mjs --root "$GITHUB_WORKSPACE/.baseline-proposed" && \
-                node scripts/check-managed-files.mjs "$GITHUB_WORKSPACE/.baseline-proposed"
-              code=$?
-              if [ "$code" -ne 0 ]; then
-                conclusion=failure
-                summary="Canonical source release manifest or managed hashes are invalid."
-              else
-                summary="Canonical source release manifest and managed hashes match."
-              fi
-            fi
-          fi
-          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
-          echo "summary=$summary" >> "$GITHUB_OUTPUT"
+        # This job holds write permissions beside the isolated untrusted
+        # checkout, so the guard refuses free-form shell that touches the step
+        # environment files. The managed, hash-locked script performs the
+        # repository-identity and run-SHA checks and writes the outputs itself.
+        run: node scripts/verify-baseline-source.mjs
 
       - name: Publish head-bound verification check
         env:

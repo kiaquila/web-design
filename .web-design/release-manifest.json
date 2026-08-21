@@ -12,7 +12,7 @@
     },
     {
       "path": ".github/workflows/baseline-source-verification.yml",
-      "sha256": "27226921933ee55613cb9e23eae0f5daf8ba2763060967af316d97fe59bfb82d"
+      "sha256": "fcc77d3cc38cbb538a700f02fcf56837f8888f11dd42ae46a98532256859fb30"
     },
     {
       "path": ".github/workflows/ci.yml",
@@ -44,7 +44,7 @@
     },
     {
       "path": ".web-design/managed-files.json",
-      "sha256": "cec64750dabba3dc10a8ecdaf7f45c3206e58bd933ee486a31ab039015619231"
+      "sha256": "fd81348bf99de1c0afa0222f76f5b4c17895f2e133e44ae3a5f5e9d76619f6cb"
     },
     {
       "path": ".web-design/policy/package-lock.json",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "4aa03095bd839ddfcd101336d12330635ab51ae9c3b3bc7148648239ca67ddb8"
+      "sha256": "80fee95dfb47fa6b609342ef4dcf1e1e438b803a6ab3df4f21c539b6d1d00306"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -167,6 +167,10 @@
       "sha256": "d566c2f201855f0431965d4f6c91277e23eb60cfc360f159df16db61e10a9342"
     },
     {
+      "path": "scripts/verify-baseline-source.mjs",
+      "sha256": "5b52f953e4069da25fafa3015bcd52d69531c833c46231dff7e4d595a0a476f6"
+    },
+    {
       "path": "tests/baseline-change.test.mjs",
       "sha256": "a5f8f23d4a4345513220725ef81394a11f55d46408604802817e2930c8e1136e"
     },
@@ -188,7 +192,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "053553c983a93a6d96b68b44051c615dd358540c78b81835e610aac0a1713797"
+      "sha256": "94d9b3aa29ffcdb3a8f3ad20056af689db69b8c5d869bdc719fe07f00e775abc"
     },
     {
       "path": "tests/sync-project.test.mjs",

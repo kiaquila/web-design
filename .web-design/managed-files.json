@@ -42,6 +42,7 @@
     "scripts/run-project-checks.mjs",
     "scripts/sync-project.mjs",
     "scripts/test-web-design.mjs",
+    "scripts/verify-baseline-source.mjs",
     "tests/baseline-change.test.mjs",
     "tests/bootstrap-project.test.mjs",
     "tests/codex-review-gate.test.mjs",

@@ -841,9 +841,7 @@ function stepSeedsEnvironmentWithTree(step, directory) {
 // beside an untrusted checkout a shell assignment may only be a literal or a
 // whole-value copy of one other variable: `code=$?` and
 // `GH_TOKEN="$SOURCE_TOKEN"` stay expressible, while concatenation, command
-// substitution, and arithmetic fail closed as assembly. With that in force no
-// shell variable can ever hold the tree name, which is what lets
-// `steps.X.outputs.Y` stay a trusted environment form. The raw text decides —
+// substitution, and arithmetic fail closed as assembly. The raw text decides —
 // quote stripping would make `"$y"idate` look like the single variable
 // `$yidate`.
 const WHOLE_VALUE_EXPANSION = /^"?\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\}|[?$!#*@0-9])"?$/;
@@ -856,22 +854,6 @@ function stepAssemblesShellValue(step) {
     ({ value, raw }) =>
       /[$`]/.test(value) && !WHOLE_VALUE_EXPANSION.test(raw) && !/^'[^']*'$/.test(raw)
   );
-}
-
-// The output file is how a trusted step hands values to `steps.X.outputs.Y`,
-// so a write that names the tree would launder the path through an allowed
-// expression form. With assembly refused above, a line that touches
-// `$GITHUB_OUTPUT` while naming the tree — or feeds it through a heredoc the
-// line scan cannot read — is the remaining route, and both fail closed.
-function stepWritesTreeIntoOutputs(step, directory) {
-  const run = mapPair(step, "run")?.value;
-  if (!isScalar(run) || typeof run.value !== "string") return false;
-  const text = joinShellContinuations(run.value);
-  if (!/\bGITHUB_OUTPUT\b/.test(text)) return false;
-  if (/<</.test(text)) return true;
-  return text
-    .split("\n")
-    .some((line) => /\bGITHUB_OUTPUT\b/.test(line) && valueNamesTree(line, directory));
 }
 
 // `PATH: ${{ format('{0}/{1}', github.workspace, 'candidate') }}` resolves to
@@ -926,10 +908,14 @@ function stepInterpolatesExpression(step) {
 
 // `echo "$PWD/candidate" >> "$GITHUB_PATH"` puts the checkout on every later
 // step's PATH, and `$GITHUB_ENV` persists arbitrary variables the same way.
-// What flows into those files cannot be read statically, so beside an
-// untrusted checkout they are off the table entirely; trusted results travel
-// through `$GITHUB_OUTPUT`.
-const STEP_ENVIRONMENT_FILE = /\bGITHUB_(?:ENV|PATH)\b/;
+// `$GITHUB_OUTPUT` feeds the allowlisted `steps.X.outputs.Y` form, and
+// staging through intermediate files — `printf '%s/candidate' "$PWD" > result`
+// then `cat result >> "$GITHUB_OUTPUT"` — defeats any line-local provenance
+// scan. What flows into these files cannot be read statically, so beside an
+// untrusted checkout all of them are off the table for free-form shell;
+// outputs in that configuration come only from SHA-pinned actions or managed,
+// hash-locked scripts, whose provenance is the lock rather than the scan.
+const STEP_ENVIRONMENT_FILE = /\bGITHUB_(?:ENV|PATH|OUTPUT|STATE)\b/;
 
 function stepTouchesEnvironmentFiles(step) {
   const run = mapPair(step, "run")?.value;
@@ -1166,11 +1152,6 @@ export function validateWorkflowText(path, text) {
               if (stepAssemblesShellValue(step)) {
                 failures.push(
                   `Write-capable job ${jobName} assembles a shell value alongside the untrusted checkout ${directory}: ${path}`
-                );
-              }
-              if (stepWritesTreeIntoOutputs(step, directory)) {
-                failures.push(
-                  `Write-capable job ${jobName} writes the untrusted checkout ${directory} into its step outputs: ${path}`
                 );
               }
               if (stepInterpolatesExpression(step)) {
