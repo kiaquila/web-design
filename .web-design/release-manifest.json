@@ -84,7 +84,7 @@
     },
     {
       "path": "docs/operations/github-setup.md",
-      "sha256": "f4ed0884ce637f9a405a5f52d568114852acefb81be9b0349ecd99204b66a32e"
+      "sha256": "f98e5e17901968eab7ea4c276fe977db9dfa71d9cd3e16f0d5d8833ad4a445f1"
     },
     {
       "path": "docs/operations/project-handoff.md",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "c7f7de6e21904ca9be39518a592bed9f9059221ea818ef02f6db7a97e6abb64d"
+      "sha256": "337cc2b96d883d79f409a086cde9a2ad3bd8184cf50b9dd2fedd60bb7a2196e5"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -188,7 +188,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "561b5c10811633845c7a3ed7dfcba330a72ef627b15620fd18bd0c5fef5cb4b5"
+      "sha256": "f5bfb25cb776aaf3d70a1dede8a855cc0efd8a8f347924e5af6f2f06810b95f5"
     },
     {
       "path": "tests/sync-project.test.mjs",

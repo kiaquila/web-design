@@ -128,6 +128,48 @@ function stripShellComments(command) {
   return stripped;
 }
 
+// `A || B` succeeds as soon as one branch succeeds, so a single always-true
+// branch anywhere in the chain makes the whole line pass without the product
+// check ever deciding the outcome.
+function shortCircuitBranches(line) {
+  const branches = [];
+  let current = "";
+  let quote = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (quote) {
+      if (character === "\\" && quote === '"') {
+        current += character + (line[index + 1] ?? "");
+        index += 1;
+        continue;
+      }
+      if (character === quote) quote = null;
+      current += character;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      current += character;
+      continue;
+    }
+    if (character === "|" && line[index + 1] === "|") {
+      branches.push(current);
+      current = "";
+      index += 1;
+      continue;
+    }
+    current += character;
+  }
+  branches.push(current);
+  return branches.map((branch) => branch.trim()).filter(Boolean);
+}
+
+function isNoOpCommandLine(line) {
+  const branches = shortCircuitBranches(line);
+  if (!branches.length) return true;
+  return branches.some((branch) => KNOWN_NO_OP_COMMAND.test(branch));
+}
+
 function parseRoot(argv = process.argv.slice(2)) {
   const index = argv.indexOf("--root");
   if (index === -1) return resolve(import.meta.dirname, "..");
@@ -196,7 +238,7 @@ export function validateProjectConfig(config, profiles = []) {
         .split("\n")
         .map((line) => line.trim().replace(/\s+/g, " "))
         .filter(Boolean);
-      if (!lines.length || lines.every((line) => KNOWN_NO_OP_COMMAND.test(line))) {
+      if (!lines.length || lines.every((line) => isNoOpCommandLine(line))) {
         failures.push(`commands.check[${index}].run must execute a real product check`);
       }
     }
@@ -350,6 +392,32 @@ const REF_SELECTABLE_EVENTS = new Set([
   "workflow_dispatch"
 ]);
 
+// A push filtered to the default branch runs the default branch's own copy of
+// the workflow, which is the reviewed, trusted context the security standard
+// allows write jobs to run from. Every managed workflow already writes the
+// default branch as `main`; a tag filter or a wider branch list is not trusted.
+const DEFAULT_BRANCH_REF_NAMES = new Set(["main"]);
+const PUSH_FILTER_KEYS_WITHOUT_REF_WIDENING = new Set(["paths", "paths-ignore"]);
+
+function pushRestrictedToDefaultBranch(node) {
+  if (!isMap(node)) return false;
+  const push = node.items.find((pair) => isScalar(pair.key) && pair.key.value === "push");
+  if (!push || !isMap(push.value)) return false;
+  let branches = null;
+  for (const pair of push.value.items) {
+    if (!isScalar(pair.key) || typeof pair.key.value !== "string") return false;
+    if (pair.key.value === "branches") {
+      branches = pair.value;
+      continue;
+    }
+    if (!PUSH_FILTER_KEYS_WITHOUT_REF_WIDENING.has(pair.key.value)) return false;
+  }
+  if (!isSeq(branches) || branches.items.length === 0) return false;
+  return branches.items.every(
+    (item) => isScalar(item) && DEFAULT_BRANCH_REF_NAMES.has(item.value)
+  );
+}
+
 function dispatchOnlyJob(job) {
   const conditionNode = mapPair(job, "if")?.value;
   if (!isScalar(conditionNode) || typeof conditionNode.value !== "string") return false;
@@ -442,7 +510,10 @@ export function validateWorkflowText(path, text) {
     if (events.has("pull_request_target")) {
       failures.push(`High-risk pull_request_target trigger in ${path}`);
     }
-    const refSelectable = [...events].some((event) => REF_SELECTABLE_EVENTS.has(event));
+    const trustedPush = pushRestrictedToDefaultBranch(onPair?.value);
+    const refSelectable = [...events].some((event) =>
+      event === "push" ? !trustedPush : REF_SELECTABLE_EVENTS.has(event)
+    );
     const topPermissions = mapPair(root, "permissions");
     if (!topPermissions) {
       failures.push(`Workflow must declare top-level permissions: ${path}`);
