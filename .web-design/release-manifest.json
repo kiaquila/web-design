@@ -112,7 +112,7 @@
     },
     {
       "path": "docs/standards/security.md",
-      "sha256": "05c681acebefb6e1d40bbaa782e11f60a6738fd424fccda75f149637c10c9f4d"
+      "sha256": "71557e30943a84715cd53ba8535514e6dc92809b8cfc3ab805b2db9810d40ef8"
     },
     {
       "path": "docs/standards/testing.md",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "3823b467d6141d40f26b616f662a61d8804562c5047b89fee6e1c9fa0d1c93db"
+      "sha256": "86de6c3cf71383f722f454169ee59f4a52d213cb26e6455c84c0bed8506f533f"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -188,7 +188,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "1ca96c79ceac262005b5580f9ed34763bd2a16619156ef17d6e33e83680a2046"
+      "sha256": "60dacbc37f2985a46366aa4949c418f5399894c5fe98e7651f23de712ca2fc83"
     },
     {
       "path": "tests/sync-project.test.mjs",

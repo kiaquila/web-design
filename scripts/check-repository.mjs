@@ -164,10 +164,41 @@ function shortCircuitBranches(line) {
   return branches.map((branch) => branch.trim()).filter(Boolean);
 }
 
+// A pipeline reports its last stage's status, so `npm test | true` and
+// `true | true` both succeed no matter what the earlier stages did.
+function finalPipelineStage(branch) {
+  let stage = "";
+  let quote = null;
+  for (let index = 0; index < branch.length; index += 1) {
+    const character = branch[index];
+    if (quote) {
+      if (character === "\\" && quote === '"') {
+        stage += character + (branch[index + 1] ?? "");
+        index += 1;
+        continue;
+      }
+      if (character === quote) quote = null;
+      stage += character;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      stage += character;
+      continue;
+    }
+    if (character === "|") {
+      stage = "";
+      continue;
+    }
+    stage += character;
+  }
+  return stage.trim();
+}
+
 function isNoOpCommandLine(line) {
   const branches = shortCircuitBranches(line);
   if (!branches.length) return true;
-  return branches.some((branch) => KNOWN_NO_OP_COMMAND.test(branch));
+  return branches.some((branch) => KNOWN_NO_OP_COMMAND.test(finalPipelineStage(branch)));
 }
 
 function parseRoot(argv = process.argv.slice(2)) {
@@ -418,6 +449,33 @@ function pushRestrictedToDefaultBranch(node) {
   );
 }
 
+// A trusted event still runs with whatever ref a checkout step asks for. If a
+// write-capable job checks proposed code out over the workspace, the next step
+// that builds or tests runs that code with the write token. Isolating the
+// checkout under its own `path` keeps it as data; `docs/standards/security.md`
+// carries the matching rule that such a tree is never executed.
+const UNTRUSTED_CHECKOUT_REF_PATTERNS = [
+  /github\.event\.pull_request\b/,
+  /github\.event\.workflow_run\.head_(?:sha|branch)\b/,
+  /github\.event\.issue\b/,
+  /github\.event\.client_payload\b/,
+  /github\.head_ref\b/,
+  /refs\/pull\//
+];
+
+function stepChecksOutUntrustedRefIntoWorkspace(step) {
+  const uses = mapPair(step, "uses");
+  if (!isScalar(uses?.value) || typeof uses.value.value !== "string") return false;
+  if (!/^actions\/checkout@/.test(uses.value.value)) return false;
+  const withNode = mapPair(step, "with")?.value;
+  if (!isMap(withNode)) return false;
+  const ref = mapPair(withNode, "ref")?.value;
+  if (!isScalar(ref) || typeof ref.value !== "string") return false;
+  if (!UNTRUSTED_CHECKOUT_REF_PATTERNS.some((pattern) => pattern.test(ref.value))) return false;
+  const path = mapPair(withNode, "path")?.value;
+  return !(isScalar(path) && typeof path.value === "string" && path.value.trim());
+}
+
 function dispatchOnlyJob(job) {
   const conditionNode = mapPair(job, "if")?.value;
   if (!isScalar(conditionNode) || typeof conditionNode.value !== "string") return false;
@@ -514,11 +572,13 @@ export function validateWorkflowText(path, text) {
     const refSelectable = [...events].some((event) =>
       event === "push" ? !trustedPush : REF_SELECTABLE_EVENTS.has(event)
     );
+    let topLevelWrites = false;
     const topPermissions = mapPair(root, "permissions");
     if (!topPermissions) {
       failures.push(`Workflow must declare top-level permissions: ${path}`);
     } else {
       const writes = permissionWrites(topPermissions.value, "top-level permissions", failures, path);
+      topLevelWrites = writes;
       if (isScalar(topPermissions.value) && topPermissions.value.value === "write-all") {
         failures.push(`Workflow may not use write-all permissions: ${path}`);
       }
@@ -569,8 +629,19 @@ export function validateWorkflowText(path, text) {
           }
         }
         const jobPermissions = mapPair(jobPair.value, "permissions");
+        const writes = jobPermissions
+          ? permissionWrites(jobPermissions.value, `job ${jobName} permissions`, failures, path)
+          : topLevelWrites;
+        if (writes && isSeq(steps)) {
+          for (const step of steps.items) {
+            if (isMap(step) && stepChecksOutUntrustedRefIntoWorkspace(step)) {
+              failures.push(
+                `Write-capable job ${jobName} checks an untrusted ref out over the workspace: ${path}`
+              );
+            }
+          }
+        }
         if (!jobPermissions) continue;
-        const writes = permissionWrites(jobPermissions.value, `job ${jobName} permissions`, failures, path);
         if (refSelectable && writes && !dispatchOnlyJob(jobPair.value)) {
           failures.push(
             `Ref-selectable job ${jobName} may not grant write permissions: ${path}`
