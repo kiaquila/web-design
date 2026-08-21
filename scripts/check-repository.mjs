@@ -195,6 +195,30 @@ function finalPipelineStage(branch) {
   return stage.trim();
 }
 
+function hasTopLevelPipeline(branch) {
+  let quote = null;
+  for (let index = 0; index < branch.length; index += 1) {
+    const character = branch[index];
+    if (quote) {
+      if (character === "\\" && quote === '"') index += 1;
+      else if (character === quote) quote = null;
+      continue;
+    }
+    if (character === "'" || character === '"') quote = character;
+    else if (character === "|") return true;
+  }
+  return false;
+}
+
+// `run-project-checks.mjs` runs the command through a shell without `pipefail`,
+// so a pipeline reports only its last stage. `npm test | tee build.log` is green
+// whatever the tests did. A check may still pipe if it turns `pipefail` on.
+function discardsPipelineFailure(line, command) {
+  if (/(?:^|[\s;&|])set\s+-o\s+pipefail\b/.test(command)) return false;
+  if (/(?:^|[\s;&|])set\s+-[a-z]*o[a-z]*\s/.test(command) && /pipefail/.test(command)) return false;
+  return shortCircuitBranches(line).some((branch) => hasTopLevelPipeline(branch));
+}
+
 function isNoOpCommandLine(line) {
   const branches = shortCircuitBranches(line);
   if (!branches.length) return true;
@@ -271,6 +295,10 @@ export function validateProjectConfig(config, profiles = []) {
         .filter(Boolean);
       if (!lines.length || lines.every((line) => isNoOpCommandLine(line))) {
         failures.push(`commands.check[${index}].run must execute a real product check`);
+      } else if (lines.some((line) => discardsPipelineFailure(line, check.run))) {
+        failures.push(
+          `commands.check[${index}].run must not discard an earlier pipeline stage's failure`
+        );
       }
     }
   }
@@ -451,16 +479,19 @@ function pushRestrictedToDefaultBranch(node) {
 
 // A trusted event still runs with whatever ref a checkout step asks for. If a
 // write-capable job checks proposed code out over the workspace, the next step
-// that builds or tests runs that code with the write token. Isolating the
-// checkout under its own `path` keeps it as data; `docs/standards/security.md`
-// carries the matching rule that such a tree is never executed.
-const UNTRUSTED_CHECKOUT_REF_PATTERNS = [
-  /github\.event\.pull_request\b/,
-  /github\.event\.workflow_run\.head_(?:sha|branch)\b/,
-  /github\.event\.issue\b/,
-  /github\.event\.client_payload\b/,
-  /github\.head_ref\b/,
-  /refs\/pull\//
+// that builds or tests runs that code with the write token. Blocklisting known
+// untrusted expressions is not enough — `github.event.comment.body` is supplied
+// by whoever commented — so only refs that are provably the trusted branch are
+// allowed. Anything else must be isolated under its own `path`, and
+// `docs/standards/security.md` carries the rule that such a tree is never
+// executed.
+const TRUSTED_CHECKOUT_REFS = [
+  /^\$\{\{\s*github\.event\.repository\.default_branch\s*\}\}$/,
+  /^\$\{\{\s*github\.sha\s*\}\}$/,
+  /^\$\{\{\s*github\.ref\s*\}\}$/,
+  /^\$\{\{\s*github\.ref_name\s*\}\}$/,
+  /^main$/,
+  /^refs\/heads\/main$/
 ];
 
 function stepChecksOutUntrustedRefIntoWorkspace(step) {
@@ -470,8 +501,10 @@ function stepChecksOutUntrustedRefIntoWorkspace(step) {
   const withNode = mapPair(step, "with")?.value;
   if (!isMap(withNode)) return false;
   const ref = mapPair(withNode, "ref")?.value;
-  if (!isScalar(ref) || typeof ref.value !== "string") return false;
-  if (!UNTRUSTED_CHECKOUT_REF_PATTERNS.some((pattern) => pattern.test(ref.value))) return false;
+  if (!ref) return false;
+  if (!isScalar(ref) || typeof ref.value !== "string") return true;
+  const requested = ref.value.trim();
+  if (TRUSTED_CHECKOUT_REFS.some((pattern) => pattern.test(requested))) return false;
   const path = mapPair(withNode, "path")?.value;
   return !(isScalar(path) && typeof path.value === "string" && path.value.trim());
 }

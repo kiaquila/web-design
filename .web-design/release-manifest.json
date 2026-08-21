@@ -28,7 +28,7 @@
     },
     {
       "path": ".github/workflows/codex-review.yml",
-      "sha256": "d8e27483a62df281eea58c7989d91c20f7847c30c1bfd517cf8e7cb3cd7edd3e"
+      "sha256": "6db11ea19b1eb1c6ab621636de4233bad5393ab96f3b42255dbe95102cd7dcd3"
     },
     {
       "path": ".github/workflows/osv-scan.yml",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "86de6c3cf71383f722f454169ee59f4a52d213cb26e6455c84c0bed8506f533f"
+      "sha256": "06ac3a8e24985e9a732bbf732457b7498706adc7fc73f353e6a85e68e235f1e6"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -188,7 +188,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "60dacbc37f2985a46366aa4949c418f5399894c5fe98e7651f23de712ca2fc83"
+      "sha256": "dc9c88f233cdb177f414567a7ec51d3ffa5bb7fcc7464debb791430a40d32f9a"
     },
     {
       "path": "tests/sync-project.test.mjs",

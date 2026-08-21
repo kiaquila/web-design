@@ -466,13 +466,30 @@ test("rejects an untrusted checkout over the workspace in a write-capable job", 
   for (const ref of [
     "${{ github.event.pull_request.head.sha }}",
     "refs/pull/${{ github.event.issue.number }}/head",
-    "${{ github.head_ref }}"
+    "${{ github.head_ref }}",
+    "${{ github.event.comment.body }}",
+    "${{ inputs.target_ref }}"
   ]) {
     const failures = validateWorkflowText(
       ".github/workflows/example.yml",
       `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@PIN\n        with:\n          ref: ${ref}\n      - run: npm ci\n`.replace("PIN", "3d3c42e5aac5ba805825da76410c181273ba90b1")
     );
     assert.match(failures.join("\n"), /checks an untrusted ref out over the workspace/, ref);
+  }
+});
+
+test("accepts only checkout refs that are provably the trusted branch", () => {
+  for (const ref of [
+    "${{ github.event.repository.default_branch }}",
+    "${{ github.sha }}",
+    "${{ github.ref }}",
+    "main"
+  ]) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${ref}\n`
+    );
+    assert.deepEqual(failures, [], ref);
   }
 });
 
@@ -504,12 +521,22 @@ test("rejects a pipeline whose last stage cannot fail", () => {
   }
 });
 
-test("keeps pipelines whose last stage still decides the outcome", () => {
-  for (const run of ["true | npm test", "echo a | grep b && npm test", "npm run build | tee build.log"]) {
-    const valid = structuredClone(config);
-    valid.commands.check = [{ name: "site", run }];
-    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
+test("rejects a pipeline that swallows an earlier stage's failure", () => {
+  for (const run of ["npm test | tee build.log", "npm run build | tee build.log"]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must not discard an earlier pipeline stage's failure"],
+      run
+    );
   }
+});
+
+test("allows a pipeline that turns pipefail on", () => {
+  const valid = structuredClone(config);
+  valid.commands.check = [{ name: "site", run: "set -o pipefail; npm test | tee build.log" }];
+  assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), []);
 });
 
 test("allows top-level write permissions on default-branch-only events", () => {

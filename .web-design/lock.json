@@ -3,7 +3,7 @@
   "version": "0.1.0-dev",
   "sourceCommit": null,
   "profile": "no-deploy",
-  "manifestSha256": "c92b33e288dfe4bf7cfde6ca0c3eae8eca8979b21331e1afbcefbe0fad343a90",
+  "manifestSha256": "3aba0bb9fe4e168c0ce73b629805f61dafcb698726c8082264258da48c3eb090",
   "files": {
     ".github/CODEOWNERS": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e",
     ".github/pull_request_template.md": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f",
@@ -11,7 +11,7 @@
     ".github/workflows/ci.yml": "04e915d37603aec7d5e36708e4d24e3a0bcfa2cb270ff7f33793c5eac40eab12",
     ".github/workflows/codex-review-request.yml": "dbe2ba19bec99553f5588f3060cef2f147d0299c42e09fb5aecac6c60cb77d70",
     ".github/workflows/codex-review-rerun.yml": "8b3e7bdf5fecfb157da0a57d3ebeaa86ff99f9b0fbe2af4ac66771737ee54bc0",
-    ".github/workflows/codex-review.yml": "d8e27483a62df281eea58c7989d91c20f7847c30c1bfd517cf8e7cb3cd7edd3e",
+    ".github/workflows/codex-review.yml": "6db11ea19b1eb1c6ab621636de4233bad5393ab96f3b42255dbe95102cd7dcd3",
     ".github/workflows/osv-scan.yml": "a14d1b91520601a22b36c057711a7e80c1f3827e585e9cd90f809e09e90d860d",
     ".github/workflows/repository-guard.yml": "686d5d927fc6d52f189ebd003333391e51cd7437b38b3475cbec347aa1b79735",
     ".github/workflows/web-design-update.yml": "45272efde45345acd6870a709d7528a14c33ff74855b3ef6386fd41aa6185b26",
@@ -37,7 +37,7 @@
     "scripts/bootstrap-project.mjs": "9e43b3f1942ebf950532da800810e747eb3e0b96515608fbcc5ce86fae3834ac",
     "scripts/check-baseline-change.mjs": "9a225d5b2367410952662e7eb427728c0abe96e7a4d5f89271c0a2cdbca53aa3",
     "scripts/check-managed-files.mjs": "25ebeb32c9fcde47345d617958382827e696f8dd38d78ade0379c228bf819bb4",
-    "scripts/check-repository.mjs": "86de6c3cf71383f722f454169ee59f4a52d213cb26e6455c84c0bed8506f533f",
+    "scripts/check-repository.mjs": "06ac3a8e24985e9a732bbf732457b7498706adc7fc73f353e6a85e68e235f1e6",
     "scripts/codex-review-gate.mjs": "e2b2dfd295b7b1773a10bf07f92c86868136104787a069606f0e45cab3f8f5cc",
     "scripts/codex-review-helpers.mjs": "ccc54e5bc89d66523451a3e467d107084e59068341546db03999ea2635266a5f",
     "scripts/codex-review-request.mjs": "4c5fd8dbd50728474a5008657d46e32cfa81861ccc181b6619b3f98dd29d1022",
@@ -51,7 +51,7 @@
     "tests/codex-review-gate.test.mjs": "1156864577f9a48b83ac57a0aef2e366c676b33949600fd130347a3360d52d5b",
     "tests/managed-files.test.mjs": "6b641ed06bcef07b741b06cfae7afc713a2aa22262ac04199ee0130e902c410d",
     "tests/profiles.test.mjs": "9e8f6931cc07d0b5e450bbf6737c4df2ee40f20659b5272206b00d2b146501b5",
-    "tests/repository-guard-v2.test.mjs": "60dacbc37f2985a46366aa4949c418f5399894c5fe98e7651f23de712ca2fc83",
+    "tests/repository-guard-v2.test.mjs": "dc9c88f233cdb177f414567a7ec51d3ffa5bb7fcc7464debb791430a40d32f9a",
     "tests/sync-project.test.mjs": "5b82be74206d67e540a3c552df3376f6b2a273b2ef3376e507d93ca11735a444"
   }
 }
