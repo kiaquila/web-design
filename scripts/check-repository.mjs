@@ -166,30 +166,218 @@ export function validateProjectConfig(config, profiles = []) {
   return failures;
 }
 
+function stripYamlComment(value) {
+  let quote = null;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (quote === '"' && char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (quote && char === quote) {
+      if (quote === "'" && value[index + 1] === "'") {
+        index += 1;
+        continue;
+      }
+      quote = null;
+      continue;
+    }
+    if (!quote && (char === '"' || char === "'")) {
+      quote = char;
+      continue;
+    }
+    if (!quote && char === "#" && (index === 0 || /\s/.test(value[index - 1]))) {
+      return value.slice(0, index).trimEnd();
+    }
+  }
+  return value;
+}
+
+function yamlScalar(value) {
+  const trimmed = value.trim();
+  if (
+    trimmed.length >= 2 &&
+    ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'")))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function flowDepth(value) {
+  let depth = 0;
+  let quote = null;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (quote === '"' && char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (quote && char === quote) {
+      if (quote === "'" && value[index + 1] === "'") {
+        index += 1;
+        continue;
+      }
+      quote = null;
+    } else if (!quote && (char === '"' || char === "'")) {
+      quote = char;
+    } else if (!quote && (char === "[" || char === "{")) {
+      depth += 1;
+    } else if (!quote && (char === "]" || char === "}")) {
+      depth -= 1;
+    }
+  }
+  return depth;
+}
+
+function splitFlowItems(value) {
+  const items = [];
+  let start = 0;
+  let depth = 0;
+  let quote = null;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (quote === '"' && char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (quote && char === quote) {
+      if (quote === "'" && value[index + 1] === "'") {
+        index += 1;
+        continue;
+      }
+      quote = null;
+    } else if (!quote && (char === '"' || char === "'")) {
+      quote = char;
+    } else if (!quote && (char === "[" || char === "{")) {
+      depth += 1;
+    } else if (!quote && (char === "]" || char === "}")) {
+      depth -= 1;
+    } else if (!quote && depth === 0 && char === ",") {
+      items.push(value.slice(start, index));
+      start = index + 1;
+    }
+  }
+  items.push(value.slice(start));
+  return items;
+}
+
+function topLevelColon(value) {
+  let depth = 0;
+  let quote = null;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (quote === '"' && char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (quote && char === quote) {
+      if (quote === "'" && value[index + 1] === "'") {
+        index += 1;
+        continue;
+      }
+      quote = null;
+    } else if (!quote && (char === '"' || char === "'")) {
+      quote = char;
+    } else if (!quote && (char === "[" || char === "{")) {
+      depth += 1;
+    } else if (!quote && (char === "]" || char === "}")) {
+      depth -= 1;
+    } else if (!quote && depth === 0 && char === ":") {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function flowHasPullRequest(value) {
+  const open = value[0];
+  const close = open === "[" ? "]" : "}";
+  if (!new Set(["[", "{"]).has(open) || !value.endsWith(close)) return false;
+  const items = splitFlowItems(value.slice(1, -1));
+  if (open === "[") {
+    return items.some((item) => {
+      const scalar = yamlScalar(item);
+      return scalar === "pull_request" || /^[&*!]/.test(scalar);
+    });
+  }
+  return items.some((item) => {
+    const colon = topLevelColon(item);
+    if (colon === -1) return /^[&*!]/.test(item.trim());
+    const key = yamlScalar(item.slice(0, colon));
+    return key === "pull_request" || key === "<<" || /^[&*!]/.test(key);
+  });
+}
+
 function hasPullRequestTrigger(text) {
-  if (/^on:\s*pull_request(?:\s*:)?\s*$/m.test(text)) return true;
-  if (/^on:\s*\[[^\]]*\bpull_request\b[^\]]*\]\s*$/m.test(text)) return true;
   const lines = text.split("\n");
-  const onIndex = lines.findIndex((line) => /^on:\s*$/.test(line));
+  const onIndex = lines.findIndex((line) => /^(?:on|["']on["'])\s*:(?:\s|$)/.test(line));
   if (onIndex === -1) return false;
+  const separator = lines[onIndex].indexOf(":");
+  let value = stripYamlComment(lines[onIndex].slice(separator + 1)).trim();
+  if (value) {
+    let index = onIndex + 1;
+    while ((value.startsWith("[") || value.startsWith("{")) && flowDepth(value) > 0 && index < lines.length) {
+      value += ` ${stripYamlComment(lines[index]).trim()}`;
+      index += 1;
+    }
+    if (value.startsWith("[") || value.startsWith("{")) return flowHasPullRequest(value);
+    const scalar = yamlScalar(value);
+    return scalar === "pull_request" || /^[&*!]/.test(scalar);
+  }
+  let eventIndent = null;
   for (let index = onIndex + 1; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (!line.trim() || line.trimStart().startsWith("#")) continue;
-    if (!/^\s/.test(line)) break;
-    if (/^\s+pull_request\s*:/.test(line)) return true;
+    const line = stripYamlComment(lines[index]);
+    if (!line.trim()) continue;
+    const indent = line.match(/^\s*/)[0].length;
+    if (indent === 0) break;
+    if (eventIndent === null) eventIndent = indent;
+    if (indent !== eventIndent) continue;
+    const event = line.trim().replace(/^-\s*/, "");
+    const colon = event.indexOf(":");
+    const scalar = colon === -1 ? event : event.slice(0, colon);
+    const eventName = yamlScalar(scalar);
+    if (eventName === "pull_request" || eventName === "<<" || /^[&*!]/.test(eventName)) return true;
   }
   return false;
 }
 
 function permissionBlockWrites(lines, start, indent) {
-  const first = lines[start].slice(indent).trim();
-  if (/^permissions:\s*["']?(?:write-all|write)["']?\s*$/.test(first)) return true;
+  const first = stripYamlComment(lines[start].slice(indent)).trim();
+  const separator = first.indexOf(":");
+  let value = separator === -1 ? "" : first.slice(separator + 1).trim();
+  if (value.startsWith("{")) {
+    let index = start + 1;
+    while (flowDepth(value) > 0 && index < lines.length) {
+      value += ` ${stripYamlComment(lines[index]).trim()}`;
+      index += 1;
+    }
+    if (value.endsWith("}")) {
+      return splitFlowItems(value.slice(1, -1)).some((item) => {
+        const colon = topLevelColon(item);
+        if (colon === -1) return /^[&*!]/.test(item.trim());
+        const key = yamlScalar(item.slice(0, colon));
+        const level = yamlScalar(item.slice(colon + 1));
+        return key === "<<" || level === "write" || /^[&*!]/.test(level);
+      });
+    }
+  }
+  const scalar = yamlScalar(value);
+  if (new Set(["write-all", "write"]).has(scalar) || /^[&*!]/.test(scalar)) return true;
   for (let index = start + 1; index < lines.length; index += 1) {
-    const line = lines[index];
+    const line = stripYamlComment(lines[index]);
     if (!line.trim() || line.trimStart().startsWith("#")) continue;
     const currentIndent = line.match(/^\s*/)[0].length;
     if (currentIndent <= indent) break;
-    if (/^\s*[a-z-]+:\s*["']?write["']?\s*(?:#.*)?$/.test(line)) return true;
+    const colon = line.indexOf(":");
+    if (colon === -1) {
+      if (/^[&*!]/.test(line.trim())) return true;
+      continue;
+    }
+    const key = yamlScalar(line.slice(0, colon));
+    const level = yamlScalar(line.slice(colon + 1));
+    if (key === "<<" || level === "write" || /^[&*!]/.test(level)) return true;
   }
   return false;
 }

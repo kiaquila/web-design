@@ -80,10 +80,68 @@ test("rejects pull-request workflows with top-level write permissions", () => {
   assert.match(failures.join("\n"), /top-level write permissions/);
 });
 
+test("recognizes pull requests in every supported workflow trigger shape", () => {
+  const triggers = [
+    "on: pull_request",
+    "on: [push, pull_request]",
+    "on: [push, 'pull_request']",
+    "on: { pull_request: {}, push: {} }",
+    "on : { pull_request: {}, push: {} }",
+    "'on': { 'pull_request': null, push: {} }",
+    "on: {\n  push: {},\n  pull_request: { branches: [main] }\n}",
+    "on:\n  push:\n  pull_request:\n    branches: [main]",
+    "on:\n  - push\n  - pull_request"
+  ];
+  for (const trigger of triggers) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `${trigger}\npermissions:\n  contents: write\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
+    );
+    assert.match(failures.join("\n"), /top-level write permissions/, trigger);
+  }
+});
+
+test("does not confuse a nested branch name with a pull-request trigger", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on:\n  push:\n    branches: [pull_request]\npermissions:\n  contents: write\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
+  );
+  assert.deepEqual(failures, []);
+});
+
+test("fails closed when a workflow trigger is supplied indirectly", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: *shared-events\npermissions:\n  contents: write\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
+  );
+  assert.match(failures.join("\n"), /top-level write permissions/);
+});
+
+test("rejects flow-style pull-request permission grants", () => {
+  for (const permissions of [
+    "permissions: { contents: write }",
+    "permissions: {\n  contents: write,\n  issues: read\n}"
+  ]) {
+    const failures = validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: { pull_request: {} }\n${permissions}\njobs:\n  test:\n    runs-on: ubuntu-latest\n`
+    );
+    assert.match(failures.join("\n"), /top-level write permissions/, permissions);
+  }
+});
+
 test("rejects pull-request jobs with write permissions", () => {
   const failures = validateWorkflowText(
     ".github/workflows/example.yml",
     "on: pull_request\npermissions:\n  contents: read\njobs:\n  test:\n    permissions:\n      issues: write\n    runs-on: ubuntu-latest\n"
+  );
+  assert.match(failures.join("\n"), /job test may not grant write permissions/);
+});
+
+test("rejects flow-style job permissions on pull requests", () => {
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on: pull_request\npermissions:\n  contents: read\njobs:\n  test:\n    permissions: { issues: write }\n    runs-on: ubuntu-latest\n"
   );
   assert.match(failures.join("\n"), /job test may not grant write permissions/);
 });
@@ -172,4 +230,13 @@ test("repository guard uses branch policy only for the template-v2 bootstrap", (
   assert.equal((workflow.match(/\.guard-trusted\/\.web-design\/project\.json/g) ?? []).length, 2);
   assert.match(workflow, /Template-v2 policy is not on the default branch yet/);
   assert.match(workflow, /Managed baseline policy is not on the default branch yet/);
+});
+
+test("GitHub setup records the plan-limited manual protection fallback", () => {
+  const setup = readFileSync(resolve("docs/operations/github-setup.md"), "utf8");
+  assert.match(setup, /when the repository plan supports it/i);
+  assert.match(setup, /exact full head SHA/);
+  assert.match(setup, /P0-P2/);
+  assert.match(setup, /120-second quiet\s+period/);
+  assert.match(setup, /Do not make a private repository public/);
 });

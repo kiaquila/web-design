@@ -3,7 +3,7 @@
   "version": "0.1.0-dev",
   "sourceCommit": null,
   "profile": "no-deploy",
-  "manifestSha256": "ab752ddbd27f325980312633f45d11cae311c105518a547f711490ab35a799a4",
+  "manifestSha256": "8a5c36e9f1444b7e46c9e0aec94b69fff063f9b258a8e091b3d101aaac3a4c26",
   "files": {
     ".github/CODEOWNERS": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e",
     ".github/pull_request_template.md": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f",
@@ -23,7 +23,7 @@
     ".web-design/profiles/static-vercel.json": "f658fc3d928b49872ab956a9a802419bc55c671e89f2ba9d35971fb533162004",
     "docs/operations/bootstrap.md": "dd8dba71ba95eedf95f6eac67bb3cc6ba2f26eefdc01cbd1a2abfc92ee455410",
     "docs/operations/cloudflare.md": "70d6ab3e6fc74164ab5b510918008f2d3794556293a62be07445a5af0093c9d3",
-    "docs/operations/github-setup.md": "70731c042b9549fa484c12ce5eb6a9b0e47d976cb8d1adf78e7ee4f6c4d5f5c7",
+    "docs/operations/github-setup.md": "f4ed0884ce637f9a405a5f52d568114852acefb81be9b0349ecd99204b66a32e",
     "docs/operations/project-handoff.md": "36d7fc1f52ab9ee5d4a81be55d799942ebb6971c327414c385f8f79b8e070414",
     "docs/operations/updates.md": "27ef0b519f2de4c905f1150e770e49bfe684ec2675fc434c7457891db3e26663",
     "docs/standards/content-and-design.md": "97026c6f26f7e78ce31a756fd8d7c5f37d684f5f7ef87de2f8774c26b7cfebe7",
@@ -35,7 +35,7 @@
     "scripts/bootstrap-project.mjs": "9e43b3f1942ebf950532da800810e747eb3e0b96515608fbcc5ce86fae3834ac",
     "scripts/check-baseline-change.mjs": "9a225d5b2367410952662e7eb427728c0abe96e7a4d5f89271c0a2cdbca53aa3",
     "scripts/check-managed-files.mjs": "25ebeb32c9fcde47345d617958382827e696f8dd38d78ade0379c228bf819bb4",
-    "scripts/check-repository.mjs": "5d55cb88808bbd66ce36dda7dc6befe01e22dff6129c98a5800aa7f8b02e600d",
+    "scripts/check-repository.mjs": "742a1999239fef5712103527ef7a8b90062579ac881bc6c64f84ae5ab498139c",
     "scripts/codex-review-gate.mjs": "e2b2dfd295b7b1773a10bf07f92c86868136104787a069606f0e45cab3f8f5cc",
     "scripts/codex-review-helpers.mjs": "ccc54e5bc89d66523451a3e467d107084e59068341546db03999ea2635266a5f",
     "scripts/codex-review-request.mjs": "4c5fd8dbd50728474a5008657d46e32cfa81861ccc181b6619b3f98dd29d1022",
@@ -49,7 +49,7 @@
     "tests/codex-review-gate.test.mjs": "1156864577f9a48b83ac57a0aef2e366c676b33949600fd130347a3360d52d5b",
     "tests/managed-files.test.mjs": "6b641ed06bcef07b741b06cfae7afc713a2aa22262ac04199ee0130e902c410d",
     "tests/profiles.test.mjs": "9e8f6931cc07d0b5e450bbf6737c4df2ee40f20659b5272206b00d2b146501b5",
-    "tests/repository-guard-v2.test.mjs": "c67922f3c3ce8dcfd612ad86fe59b3e76545a832f15c5a69e03a6f0eb42adb41",
+    "tests/repository-guard-v2.test.mjs": "ca6ad7232b711743a964c4ce9df25efe53cecffeb2d0d590df15c2b6e88f2cef",
     "tests/sync-project.test.mjs": "e3270eadf443247b72d0404d51cd40bd63e1bb02c5bb1144b42069f17f23ff83"
   }
 }
