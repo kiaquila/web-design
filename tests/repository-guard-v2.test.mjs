@@ -843,6 +843,56 @@ test("no environment value may name the untrusted tree", () => {
   );
 });
 
+test("a computed environment value fails closed beside an untrusted checkout", () => {
+  const jobEnv = (value) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    env:\n      SEEDED: ${value}\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: node run.mjs\n`;
+  for (const value of [
+    "${{ format('{0}/{1}', github.workspace, 'candidate') }}",
+    "${{ github.workspace }}",
+    "${{ github.event.comment.body }}"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", jobEnv(value)).join("\n"),
+      /carries a computed environment value alongside the untrusted checkout candidate/,
+      value
+    );
+  }
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      jobEnv("${{ steps.x.outcome == 'ok' && 'candidate' || 'other' }}")
+    ).join("\n"),
+    /seeds the environment with the untrusted checkout candidate/
+  );
+  for (const value of [
+    "${{ github.token }}",
+    "${{ secrets.READ_TOKEN || github.token }}",
+    "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+    "${{ steps.gate.outcome == 'success' && 'success' || 'failure' }}"
+  ]) {
+    assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", jobEnv(value)), [], value);
+  }
+});
+
+test("expression interpolation into the shell fails closed beside an untrusted checkout", () => {
+  const step = (run) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
+  for (const run of ["echo ${{ github.sha }}", "node run.mjs ${{ github.event.comment.body }}"]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
+      /interpolates an expression into its shell alongside the untrusted checkout candidate/,
+      run
+    );
+  }
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ${{ github.sha }}\n"
+    ),
+    []
+  );
+});
+
 test("the step environment files are off the table beside an untrusted checkout", () => {
   const step = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;

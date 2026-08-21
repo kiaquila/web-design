@@ -814,7 +814,7 @@ function shellAssignmentValues(text) {
 
 function valueNamesTree(value, directory) {
   const quoted = directory.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(?:^|[=:/\\s])${quoted}(?:[=:/\\s]|$)`).test(value);
+  return new RegExp(`(?:^|[=:/'"\\s])${quoted}(?:[=:/'"\\s]|$)`).test(value);
 }
 
 function environmentSeedsTree(node, directory) {
@@ -834,6 +834,56 @@ function stepSeedsEnvironmentWithTree(step, directory) {
   if (!isScalar(run) || typeof run.value !== "string") return false;
   const text = joinShellContinuations(run.value);
   return shellAssignmentValues(text).some((value) => valueNamesTree(value, directory));
+}
+
+// `PATH: ${{ format('{0}/{1}', github.workspace, 'candidate') }}` resolves to
+// the isolated checkout without the tree name surviving the boundary scan.
+// Expressions are a full language, so a scanner cannot read what one
+// assembles; beside an untrusted checkout an environment value may carry only
+// expression forms that provably cannot build a path — a token, a named
+// secret, a dispatch input, fixed run metadata, a trusted step's output, or a
+// step outcome selecting between short literals — and the raw value, quoted
+// literals included, still may not name the tree.
+const TRUSTED_ENVIRONMENT_EXPRESSION = [
+  /^github\.token$/,
+  /^secrets\.[A-Za-z0-9_]+(?:\s*\|\|\s*github\.token)?$/,
+  /^inputs\.[A-Za-z0-9_]+$/,
+  /^github\.(?:server_url|repository|run_id|sha)$/,
+  /^github\.event\.workflow_run\.(?:head_sha|conclusion|pull_requests\[0\]\.(?:base|head)\.sha)$/,
+  /^steps\.[A-Za-z0-9_-]+\.outputs\.[A-Za-z0-9_-]+$/,
+  /^steps\.[A-Za-z0-9_-]+\.outcome\s*==\s*'[A-Za-z0-9_-]+'\s*&&\s*'[A-Za-z0-9_-]+'\s*\|\|\s*'[A-Za-z0-9_-]+'$/
+];
+
+function computedEnvironmentValue(value) {
+  const chunks = value.match(/\$\{\{[^}]*\}\}|\$\{\{/g) ?? [];
+  return chunks.some((chunk) => {
+    // A chunk the scanner cannot close — nested braces, an unterminated
+    // expression — is unreadable, which is enough to refuse it.
+    if (!chunk.endsWith("}}")) return true;
+    const inner = chunk.slice(3, -2).trim();
+    return !TRUSTED_ENVIRONMENT_EXPRESSION.some((pattern) => pattern.test(inner));
+  });
+}
+
+function environmentCarriesComputedValue(node) {
+  const env = mapPair(node, "env")?.value;
+  if (!isMap(env)) return false;
+  return env.items.some(
+    (pair) =>
+      isScalar(pair.value) &&
+      typeof pair.value.value === "string" &&
+      computedEnvironmentValue(pair.value.value)
+  );
+}
+
+// Actions substitutes `${{ }}` into run text before the shell parses it, so
+// what the shell actually runs is not the text being scanned. Beside an
+// untrusted checkout a write-capable shell gets no interpolation at all —
+// values arrive through `env`, where the forms above keep them readable.
+function stepInterpolatesExpression(step) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  return run.value.includes("${{");
 }
 
 // `echo "$PWD/candidate" >> "$GITHUB_PATH"` puts the checkout on every later
@@ -1053,6 +1103,11 @@ export function validateWorkflowText(path, text) {
                 `Write-capable job ${jobName} seeds the environment with the untrusted checkout ${directory}: ${path}`
               );
             }
+            if (environmentCarriesComputedValue(root) || environmentCarriesComputedValue(jobPair.value)) {
+              failures.push(
+                `Write-capable job ${jobName} carries a computed environment value alongside the untrusted checkout ${directory}: ${path}`
+              );
+            }
             for (const step of steps.items) {
               if (!isMap(step)) continue;
               if (stepExecutesFromDirectory(step, directory, defaultsEnterTree)) {
@@ -1063,6 +1118,16 @@ export function validateWorkflowText(path, text) {
               if (stepSeedsEnvironmentWithTree(step, directory)) {
                 failures.push(
                   `Write-capable job ${jobName} seeds the environment with the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (environmentCarriesComputedValue(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} carries a computed environment value alongside the untrusted checkout ${directory}: ${path}`
+                );
+              }
+              if (stepInterpolatesExpression(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} interpolates an expression into its shell alongside the untrusted checkout ${directory}: ${path}`
                 );
               }
               if (stepTouchesEnvironmentFiles(step)) {
