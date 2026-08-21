@@ -143,7 +143,11 @@ test("a product check may not be wrapped", () => {
 });
 
 test("rejects commands that only report success", () => {
-  for (const run of ["true", ":", "exit 0", "echo ok", "printf ok", "npm test && true", "echo ok && npm test", "true ignored", ": ignored"]) {
+  const noOps = [
+    "true", ":", "exit 0", "echo ok", "printf ok", "npm test && true", "echo ok && npm test",
+    "true ignored", ": ignored", "/bin/true ignored", "/usr/bin/true", "/bin/echo ok"
+  ];
+  for (const run of noOps) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(
@@ -768,7 +772,7 @@ test("an actor-controlled ref reaching the shell through env is refused", () => 
 test("a computed cd destination fails closed beside an untrusted checkout", () => {
   const step = (run) =>
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: ${run}\n`;
-  for (const run of ['target=candidate; cd "$target" && npm ci', 'cd "${DIR}" && npm ci']) {
+  for (const run of ['target=candidate; cd "$target" && npm ci', 'cd "${DIR}" && npm ci', "cd can* && npm ci", "cd ca?didate && npm ci"]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
       /executes code from the untrusted checkout candidate/,

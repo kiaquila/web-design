@@ -214,10 +214,14 @@ function commandWordsAfterAssignments(segment) {
   return words.slice(index);
 }
 
+function executableBasename(word) {
+  return word.slice(word.lastIndexOf("/") + 1);
+}
+
 function wrapsTheProductCommand(command) {
   const first = commandWordsAfterAssignments(command)[0];
   if (!first) return false;
-  return COMMAND_WRAPPERS.has(first.slice(first.lastIndexOf("/") + 1));
+  return COMMAND_WRAPPERS.has(executableBasename(first));
 }
 
 // Single quotes suppress every expansion; double quotes do not, so a command
@@ -288,8 +292,9 @@ export function validateProductCheckCommand(command) {
     if (wrapsTheProductCommand(trimmed)) {
       return "must not wrap the product command; the first word decides the exit status";
     }
-    const executable = commandWordsAfterAssignments(trimmed).join(" ");
-    if (!executable) return "must execute a real product check";
+    const words = commandWordsAfterAssignments(trimmed);
+    if (!words.length) return "must execute a real product check";
+    const executable = [executableBasename(words[0]), ...words.slice(1)].join(" ");
     if (KNOWN_NO_OP_COMMAND.test(executable)) return "must execute a real product check";
   }
   return null;
@@ -693,7 +698,9 @@ function changeDirectoryDestinations(text) {
 // `target=candidate; cd "$target"` resolves at run time. With an untrusted
 // checkout present there is no safe reading of a computed destination.
 function hasComputedChangeDirectory(text) {
-  return changeDirectoryDestinations(text).some((destination) => /[$`]/.test(destination));
+  // `cd can*` expands to `candidate` when that is the matching entry, so glob
+  // metacharacters are as unresolvable here as a variable is.
+  return changeDirectoryDestinations(text).some((destination) => /[$`*?[\]]/.test(destination));
 }
 
 // `working-directory: ${{ 'candidate' }}` resolves at run time, so no static
