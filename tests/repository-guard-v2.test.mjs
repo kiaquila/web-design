@@ -545,7 +545,13 @@ test("rejects a check that hands shell text to another shell", () => {
     "bash -c 'npm test | true'",
     "/bin/sh -c 'npm test | true'",
     "bash -eu -c 'npm test | true'",
-    "eval 'npm test | true'"
+    "eval 'npm test | true'",
+    "env sh -c 'npm test | true'",
+    "command sh -c 'npm test | true'",
+    "xargs sh -c 'npm test | true'",
+    "timeout 60 sh -c 'npm test | true'",
+    "/usr/bin/env bash -c 'npm test | true'",
+    "npm test && eval 'true'"
   ];
   for (const run of nested) {
     const invalid = structuredClone(config);
@@ -559,7 +565,12 @@ test("rejects a check that hands shell text to another shell", () => {
 });
 
 test("keeps ordinary commands that merely mention a shell", () => {
-  for (const run of ["bash scripts/build.sh", "npm run x -- --shell -c", "node --test tests/a.test.mjs"]) {
+  for (const run of [
+    "bash scripts/build.sh",
+    "npm run x -- --shell -c",
+    "node --test tests/a.test.mjs",
+    "npm run build -- --evaluate"
+  ]) {
     const valid = structuredClone(config);
     valid.commands.check = [{ name: "site", run }];
     assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);

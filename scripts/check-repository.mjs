@@ -227,8 +227,12 @@ function discardsPipelineFailure(line) {
 // parsing one nesting level at a time, a product check may not hand text to
 // another shell at all. Anything that needs shell logic belongs in a script
 // file the project runs, where the code is reviewable instead of quoted.
-const NESTED_SHELL_COMMAND = /(?:^|[;&|(]\s*)\s*(?:[\w./-]*\/)?(?:ba|z|da|k)?sh\s+(?:-[A-Za-z]+\s+)*-c(?:\s|$)/;
-const EVAL_COMMAND = /(?:^|[;&|(]\s*)\s*eval(?:\s|$)/;
+// Anchoring these to a command word was defeated by a wrapper: in
+// `env sh -c '...'` or `xargs sh -c '...'` the command word is the wrapper, and
+// the shell still runs. Position is not what makes this dangerous, so the whole
+// unquoted text is searched instead.
+const NESTED_SHELL_COMMAND = /(?:^|[\s;&|(])(?:[\w.\/-]*\/)?(?:ba|z|da|k)?sh\s+(?:-[A-Za-z]+\s+)*-c(?:\s|$)/;
+const EVAL_COMMAND = /(?:^|[\s;&|(])eval(?:\s|$)/;
 
 function withoutQuotedSpans(line) {
   let bare = "";
