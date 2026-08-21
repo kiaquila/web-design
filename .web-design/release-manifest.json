@@ -12,35 +12,35 @@
     },
     {
       "path": ".github/workflows/baseline-source-verification.yml",
-      "sha256": "a1ecfad0db68f9f4180de79f66f71dd167e96b556bf0c299bb620cbe57cb9d93"
+      "sha256": "2bd21ffbebe08555899c1a8d5a92871f1e8a6c990a23772e0b66654b69942c44"
     },
     {
       "path": ".github/workflows/ci.yml",
-      "sha256": "975f430f8ada6878132d03f60634ca9aa11df489dea7c0cfa99aa79a86705555"
+      "sha256": "04e915d37603aec7d5e36708e4d24e3a0bcfa2cb270ff7f33793c5eac40eab12"
     },
     {
       "path": ".github/workflows/codex-review-request.yml",
-      "sha256": "c85c2538c93c1af2ade53b739acbc0ee4f1849922294fb6ec30c3d5474b64cd6"
+      "sha256": "dbe2ba19bec99553f5588f3060cef2f147d0299c42e09fb5aecac6c60cb77d70"
     },
     {
       "path": ".github/workflows/codex-review-rerun.yml",
-      "sha256": "21ee494d3809e93c14812a98ec1508e90ecf367e0d148eaf3d6582bf4a6669c6"
+      "sha256": "8b3e7bdf5fecfb157da0a57d3ebeaa86ff99f9b0fbe2af4ac66771737ee54bc0"
     },
     {
       "path": ".github/workflows/codex-review.yml",
-      "sha256": "c0347f955853474d771300520c0e9b6b5e93507da1df891d522d2ff18cd29de5"
+      "sha256": "d8e27483a62df281eea58c7989d91c20f7847c30c1bfd517cf8e7cb3cd7edd3e"
     },
     {
       "path": ".github/workflows/osv-scan.yml",
-      "sha256": "1edebfbd331ff726c2e31aeb4edb1943ea78e1a75ddda4fdec3c395a753524ff"
+      "sha256": "a14d1b91520601a22b36c057711a7e80c1f3827e585e9cd90f809e09e90d860d"
     },
     {
       "path": ".github/workflows/repository-guard.yml",
-      "sha256": "f5e911e5ba0d56d16ac8f33b4d8ab7e1887d9b58c1090511df25ae7d41c9e764"
+      "sha256": "dc59c4a21671d40427647b3e81d8229d4c4b44eae8aa317c2665209485b639a6"
     },
     {
       "path": ".github/workflows/web-design-update.yml",
-      "sha256": "73f7cb30331cc3ac5d76a33582483cc5fea0b38f83c78f98ccaeba026649f702"
+      "sha256": "aee397c1a91b6129cd7438188d238432c7fcba9085db122800c298d0eeee9bcd"
     },
     {
       "path": ".web-design/managed-files.json",
