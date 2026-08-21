@@ -101,6 +101,22 @@ const PERSONAL_PATH_PATTERNS = [
 // language runtime, a build driver, or a shell handed a script file (with
 // `-c` refused as a nested shell above). Anything else belongs behind a script
 // the project runs, where the code is reviewed rather than quoted.
+// A target is a subcommand that runs the project's own code, or a file for the
+// tool to run. `--version` and `version` are neither, which is what separates
+// `npm --version` from `npm test`.
+const PRODUCT_CHECK_VERB = new Set([
+  "run", "test", "tests", "check", "checks", "ci", "install", "build", "lint",
+  "format", "fmt", "typecheck", "vet", "verify", "e2e", "audit", "coverage",
+  "bench", "exec", "start", "all"
+]);
+
+function isProductCheckTarget(word) {
+  const bare = word.replace(/^["']|["']$/g, "");
+  if (!bare || bare.startsWith("-")) return false;
+  if (PRODUCT_CHECK_VERB.has(bare)) return true;
+  return bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare);
+}
+
 const PRODUCT_CHECK_EXECUTABLE = new Set([
   "npm", "npx", "pnpm", "pnpx", "yarn", "bun", "bunx",
   "node", "deno", "python", "python3", "ruby", "php", "java", "swift",
@@ -310,8 +326,13 @@ export function validateProductCheckCommand(command) {
     if (!PRODUCT_CHECK_EXECUTABLE.has(executableBasename(words[0]))) {
       return "must execute a real product check";
     }
-    // A shell is only a real check when it is handed a file to run.
-    if (/^(?:bash|sh|zsh)$/.test(executableBasename(words[0])) && words.length < 2) {
+    // `npm --version` clears the executable allowlist and still runs no
+    // project code, and so do `node -v` and `go version`. The executable only
+    // says which tool runs; what it is pointed at is what makes the check
+    // real, so the command also has to carry a target — a subcommand that
+    // runs project code, or a file to run. An unusual verb is not a dead end:
+    // point the check at a script and the file itself is the target.
+    if (!words.slice(1).some(isProductCheckTarget)) {
       return "must execute a real product check";
     }
   }
@@ -900,14 +921,16 @@ function stepAssemblesShellValue(step) {
 }
 
 // `./cand''idate/evil` executes the tree without the scan ever seeing its
-// name: the empty quoted fragment splices one word out of two, and the same
-// trick works with an escape or a glob. Constraining assignments was only half
-// of it — every word has to be readable, so beside an untrusted checkout a
-// word must be a single whole fragment: unquoted, wholly single-quoted, or
-// wholly double-quoted, optionally behind a `NAME=` prefix whose value the
-// assignment rule already constrains. `[` and `]` stay available as the test
-// command.
-const WHOLE_WORD_FRAGMENT = [/^[^'"\\*?[\]]*$/, /^'[^']*'$/, /^"[^"\\]*"$/];
+// name: the empty quoted fragment splices one word out of two, and an escape,
+// a glob, or `./cand{i..i}date/evil` does the same. Naming the constructs that
+// expand has now missed globs once and braces twice, so an unquoted word is
+// read by allowlist instead — only characters that cannot expand, plus the
+// operator words a command list is built from. A quoted word is whole or it is
+// nothing, and a `NAME=` prefix is stripped first because the assignment rule
+// already constrains what follows it.
+const READABLE_UNQUOTED_WORD = /^[A-Za-z0-9._/=:,+@%^-]*$/;
+const SHELL_OPERATOR_WORD = new Set(["&&", "||", "|", ";", "&", ">", ">>", "<", "[", "]"]);
+const WHOLE_WORD_FRAGMENT = [READABLE_UNQUOTED_WORD, /^'[^']*'$/, /^"[^"\\]*"$/];
 
 function shellWords(text) {
   const words = [];
@@ -943,7 +966,7 @@ function stepUsesUnreadableWord(step) {
   const run = mapPair(step, "run")?.value;
   if (!isScalar(run) || typeof run.value !== "string") return false;
   return shellWords(joinShellContinuations(run.value)).some((word) => {
-    if (word === "[" || word === "]") return false;
+    if (SHELL_OPERATOR_WORD.has(word)) return false;
     const value = word.replace(/^[A-Za-z_][A-Za-z0-9_]*=/, "");
     return !WHOLE_WORD_FRAGMENT.some((form) => form.test(value));
   });

@@ -149,7 +149,11 @@ test("rejects commands that only report success", () => {
     // Nothing distinguishes these from the familiar no-ops except that an
     // enumeration had not reached them yet.
     "sleep 0", "sleep 0 && npm test", "test -e package.json", "[ -e package.json ]",
-    "cat package.json", "ls", "cd website"
+    "cat package.json", "ls", "cd website",
+    // An allowlisted executable still reports on itself rather than the
+    // product when nothing points it at project code.
+    "npm --version", "node --version", "node -v", "go version", "npm --prefix website",
+    "npm test && npm --version"
   ];
   for (const run of noOps) {
     const invalid = structuredClone(config);
@@ -1116,7 +1120,13 @@ test("a write-capable job may not name the isolated checkout in its shell", () =
       run
     );
   }
-  for (const run of ["./cand''idate/evil", "cp -R cand* staged && node staged/run.mjs"]) {
+  for (const run of [
+    "./cand''idate/evil",
+    "cp -R cand* staged && node staged/run.mjs",
+    "./cand{i..i}date/evil",
+    "~/candidate/evil",
+    "./cand\\idate/evil"
+  ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(run)).join("\n"),
       /splices a shell word alongside the untrusted checkout candidate/,
