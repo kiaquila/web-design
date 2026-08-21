@@ -3,7 +3,7 @@
   "version": "0.1.0-dev",
   "sourceCommit": null,
   "profile": "no-deploy",
-  "manifestSha256": "1733f7a17a55b80c99b6871fe5a8b46fad12fa4babcda6e0c072ac8e52c9a11a",
+  "manifestSha256": "dfdeabeb4e7c43dcaa6879fb9cb093eca35d0fda596d5b532093e4d4dd2eb90e",
   "files": {
     ".github/CODEOWNERS": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e",
     ".github/pull_request_template.md": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f",
@@ -51,7 +51,7 @@
     "tests/codex-review-gate.test.mjs": "1156864577f9a48b83ac57a0aef2e366c676b33949600fd130347a3360d52d5b",
     "tests/managed-files.test.mjs": "6b641ed06bcef07b741b06cfae7afc713a2aa22262ac04199ee0130e902c410d",
     "tests/profiles.test.mjs": "9e8f6931cc07d0b5e450bbf6737c4df2ee40f20659b5272206b00d2b146501b5",
-    "tests/repository-guard-v2.test.mjs": "3fc6461e84a3d79b22d01f47bb253bc0ff702b4c6fb0d77d330a4b9dd6245494",
+    "tests/repository-guard-v2.test.mjs": "02c73b316a53cab8e97376b8ddb05a681b6cb1aaff8dfc951863e5abcef86fce",
     "tests/sync-project.test.mjs": "5b82be74206d67e540a3c552df3376f6b2a273b2ef3376e507d93ca11735a444"
   }
 }

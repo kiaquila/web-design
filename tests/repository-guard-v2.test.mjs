@@ -409,34 +409,42 @@ test("cold source and existing-consumer preflight install only the managed polic
     }
 
     assert.equal(existsSync(join(cold, "node_modules")), false);
-
-    const preflight = spawnSync("npm", ["run", "preflight"], {
-      cwd: cold,
-      encoding: "utf8",
-      env: { ...process.env, WEB_DESIGN_COLD_CLONE_CHILD: "1" },
-      timeout: 60_000
-    });
-    assert.equal(preflight.status, 0, preflight.stderr || preflight.stdout);
-    assert.equal(existsSync(join(cold, ".web-design/policy/node_modules/yaml")), true);
-    assert.equal(existsSync(join(cold, "node_modules")), false);
-
     const consumerPackagePath = join(cold, "package.json");
-    const consumerPackage = JSON.parse(readFileSync(consumerPackagePath, "utf8"));
-    delete consumerPackage.scripts["policy:install"];
-    consumerPackage.scripts.preflight = "npm run check && npm test";
-    const consumerPackageBytes = `${JSON.stringify(consumerPackage, null, 2)}\n`;
-    writeFileSync(consumerPackagePath, consumerPackageBytes);
-
     const projectPath = join(cold, ".web-design/project.json");
     const project = JSON.parse(readFileSync(projectPath, "utf8"));
-    project.commands.check = [{ name: "baseline tests", run: "npm test" }];
-    project.governance.mode = "consumer";
-    writeFileSync(projectPath, `${JSON.stringify(project, null, 2)}\n`);
     const lockPath = join(cold, ".web-design/lock.json");
     const lock = JSON.parse(readFileSync(lockPath, "utf8"));
-    lock.sourceCommit = "a".repeat(40);
-    writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
-    rmSync(join(cold, ".web-design/policy/node_modules"), { recursive: true, force: true });
+    let consumerPackageBytes;
+
+    if (project.governance.mode === "source") {
+      const preflight = spawnSync("npm", ["run", "preflight"], {
+        cwd: cold,
+        encoding: "utf8",
+        env: { ...process.env, WEB_DESIGN_COLD_CLONE_CHILD: "1" },
+        timeout: 60_000
+      });
+      assert.equal(preflight.status, 0, preflight.stderr || preflight.stdout);
+      assert.equal(existsSync(join(cold, ".web-design/policy/node_modules/yaml")), true);
+      assert.equal(existsSync(join(cold, "node_modules")), false);
+
+      const consumerPackage = JSON.parse(readFileSync(consumerPackagePath, "utf8"));
+      delete consumerPackage.scripts["policy:install"];
+      consumerPackage.scripts.preflight = "npm run check && npm test";
+      consumerPackageBytes = `${JSON.stringify(consumerPackage, null, 2)}\n`;
+      writeFileSync(consumerPackagePath, consumerPackageBytes);
+
+      project.commands.check = [{ name: "baseline tests", run: "npm test" }];
+      project.governance.mode = "consumer";
+      writeFileSync(projectPath, `${JSON.stringify(project, null, 2)}\n`);
+      lock.sourceCommit = "a".repeat(40);
+      writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+      rmSync(join(cold, ".web-design/policy/node_modules"), { recursive: true, force: true });
+    } else {
+      assert.equal(project.governance.mode, "consumer");
+      assert.match(lock.sourceCommit, /^[a-f0-9]{40}$/);
+      consumerPackageBytes = readFileSync(consumerPackagePath, "utf8");
+      assert.equal(existsSync(join(cold, ".web-design/policy/node_modules")), false);
+    }
 
     const consumerInstall = spawnSync(
       "npm",
