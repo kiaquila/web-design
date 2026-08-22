@@ -131,10 +131,16 @@ const PRODUCT_CHECK_EXECUTABLE = new Set([
 ]);
 
 const PRODUCT_CHECK_VERB = new Set([
-  "run", "test", "tests", "check", "checks", "ci", "install", "build", "lint",
+  "run", "test", "tests", "check", "checks", "build", "lint",
   "format", "fmt", "typecheck", "vet", "verify", "e2e", "audit", "coverage",
   "bench", "exec", "start", "all"
 ]);
+// `npm install` and `npm ci` fetch dependencies and exit zero without running
+// a line of the product, so neither is a check. They are still how a check
+// gets something to run, though, so a command may contain them as long as
+// something in it is a real check: `npm ci --prefix website && npm run check
+// --prefix website` passes, `npm install` on its own does not.
+const DEPENDENCY_VERB = new Set(["ci", "install"]);
 // `npm run` lists the scripts and exits zero, so a dispatching verb is a
 // target only once the name follows it, and immediately: reading
 // `npm run --workspace website` as a dispatch would mean knowing which options
@@ -225,6 +231,14 @@ function runtimeOperandIndex(words) {
     return index;
   }
   return -1;
+}
+
+function preparesDependencies(executable, words) {
+  if (!SUBCOMMAND_CHECK.has(executable)) return false;
+  if (informsInsteadOfRunning(words, { versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable) })) {
+    return false;
+  }
+  return DEPENDENCY_VERB.has(bareWord(words[0]));
 }
 
 function runsProjectCode(executable, words) {
@@ -425,6 +439,7 @@ function withoutQuoteCharacters(segment) {
 }
 
 export function validateProductCheckCommand(command) {
+  let checks = 0;
   if (/[\n\r]/.test(command)) return "must be a single line";
   const segments = splitOutsideQuotes(command);
   if (segments === null) return "must not leave a quote unclosed";
@@ -459,10 +474,13 @@ export function validateProductCheckCommand(command) {
     // project code, and so do `node -v`, `go version`, and
     // `npm --prefix build --version`. The executable only says which tool
     // runs; what it is pointed at is what makes the check real.
-    if (!runsProjectCode(executable, words.slice(1))) {
+    const rest = words.slice(1);
+    if (!runsProjectCode(executable, rest) && !preparesDependencies(executable, rest)) {
       return "must execute a real product check";
     }
+    if (runsProjectCode(executable, rest)) checks += 1;
   }
+  if (!checks) return "must execute a real product check";
   return null;
 }
 
@@ -1441,6 +1459,23 @@ function isPlainQuotedContent(content) {
   return READABLE_UNQUOTED_WORD.test(rest);
 }
 
+// A program can also arrive through the door the shell is allowed to use:
+// `env: PROGRAM: 'import json,os;exec(...)'` with `run: python3 -c "$PROGRAM"`
+// hands the same source through a reference that reads as perfectly whole. So
+// a literal value declared for one of these jobs is held to what a quoted word
+// is held to — a path, a flag, a token — and a value carrying an expression is
+// the expression allowlist's business, as before.
+function valuesQuoteAProgram(node, key) {
+  const map = mapPair(node, key)?.value;
+  if (!isMap(map)) return false;
+  return map.items.some((pair) => {
+    if (!isScalar(pair.value) || typeof pair.value.value !== "string") return false;
+    const value = pair.value.value.trim();
+    if (!value || value.includes("${{")) return false;
+    return !isPlainQuotedContent(value);
+  });
+}
+
 function stepQuotesAProgram(step) {
   const text = stepShellText(step, { ignoreExpressions: true });
   if (text === null) return false;
@@ -1680,6 +1715,15 @@ export function validateWorkflowText(path, text) {
               `Write-capable job ${jobName} passes an actor-controlled ref to what it calls: ${path}`
             );
           }
+          if (
+            valuesQuoteAProgram(root, "env") ||
+            valuesQuoteAProgram(jobPair.value, "env") ||
+            valuesQuoteAProgram(jobPair.value, "with")
+          ) {
+            failures.push(
+              `Write-capable job ${jobName} quotes a program in its environment: ${path}`
+            );
+          }
           const declaredEnvironmentNames = [
             ...environmentNames(root),
             ...environmentNames(jobPair.value)
@@ -1742,6 +1786,11 @@ export function validateWorkflowText(path, text) {
               if (stepQuotesAProgram(step)) {
                 failures.push(
                   `Write-capable job ${jobName} quotes a program in its shell: ${path}`
+                );
+              }
+              if (valuesQuoteAProgram(step, "env") || valuesQuoteAProgram(step, "with")) {
+                failures.push(
+                  `Write-capable job ${jobName} quotes a program in its environment: ${path}`
                 );
               }
               if (stepMovesData(step)) {

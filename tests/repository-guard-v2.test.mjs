@@ -224,6 +224,8 @@ test("rejects commands that only report success", () => {
     // enumeration had not reached them yet.
     "sleep 0", "sleep 0 && npm test", "test -e package.json", "[ -e package.json ]",
     "cat package.json", "ls", "cd website",
+    // Fetching dependencies is how a check gets something to run, not a check.
+    "npm install", "npm ci", "npm ci --prefix website", "yarn install", "bundle install",
     // A slash is not a project: a runtime's operand has to be a path this
     // repository could hold.
     "node /dev/null", "bash /dev/null", "node ../outside/run.mjs", "node ~/run.mjs",
@@ -1150,7 +1152,9 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     ['      - run: cat vars | grep EVENT\n', /moves data through its shell/],
     // A program in another language, wearing quotes.
     ['      - run: python3 -c \'import os,json;exec(json.load(open(os.environ["X"]))["b"])\'\n', /quotes a program in its shell/],
-    ['      - run: node -e "require(process.env.X)"\n', /quotes a program in its shell/]
+    ['      - run: node -e "require(process.env.X)"\n', /quotes a program in its shell/],
+    // The same program handed through the door the shell is allowed to use.
+    ['      - env:\n          PROGRAM: \'import os;exec(os.environ["X"])\'\n        run: python3 -c "$PROGRAM"\n', /quotes a program in its environment/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
