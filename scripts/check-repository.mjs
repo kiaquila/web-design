@@ -198,8 +198,11 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     // -- --help` hands them to rustfmt, which prints help and exits zero.
     if (bare === "--" && stopAtSeparator) return false;
     // `--help=config` is the same request with its topic attached, so the
-    // value comes off before the word is read.
-    if (INFORMATIONAL_WORD.has(bare.replace(/=[\s\S]*$/, ""))) return true;
+    // value comes off before the word is read — but only from an option, since
+    // `make test version=1` is a variable assignment and its target is `test`.
+    if (INFORMATIONAL_WORD.has(bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare)) {
+      return true;
+    }
     if (versionIsShort && bare === "-v") return true;
   }
   return false;

@@ -56,6 +56,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     // Options may sit between the verb and the command for a tool that errors
     // without one, and a formatter asked for a verdict is a real check.
     "uv run --locked pytest",
+    "make test version=1",
     "bundle exec --keep-file-descriptors rspec",
     "cargo fmt --check",
     "npm run format -- --check",
