@@ -308,9 +308,13 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     // running them. The scanner cannot know which, and neither can a reviewer
     // reading the configuration — the same argument that refuses an
     // abbreviated long option. Only the verbose flag the tool classes already
-    // model is readable; everything else is spelled out. Past `--` the words
-    // belong to the script being run, and its own flags are its business.
-    if (!beyondSeparator && /^-[^-]/.test(bare) && !(bare === "-v" && !versionIsShort)) {
+    // model is readable. One letter is the whole rule: a spelled-out name
+    // behind a single dash says what it is, so Swift's `-Xswiftc` is left
+    // alone, and the guarded families read such names after stripping the
+    // dashes anyway. A cluster like `-nt` slips through — a real limit, and an
+    // odd thing to find in a configured check. Past `--` the words belong to
+    // the script being run, and its own flags are its business.
+    if (!beyondSeparator && /^-[^-]$/.test(bare) && !(bare === "-v" && !versionIsShort)) {
       return true;
     }
   }

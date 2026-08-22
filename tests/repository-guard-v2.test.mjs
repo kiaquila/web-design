@@ -206,6 +206,8 @@ test("the checks real projects configure stay expressible", () => {
     "npm run check --no-dry-run",
     // Past `--` the flags belong to the project's own script.
     "npm test -- -x",
+    // A spelled-out name behind one dash says what it is.
+    "swift test -Xswiftc -warnings-as-errors",
     "bash scripts/check.sh"
   ];
   for (const run of realistic) {
