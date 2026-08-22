@@ -211,6 +211,8 @@ test("the checks real projects configure stay expressible", () => {
     "npm test -- -x",
     // A spelled-out name behind one dash says what it is.
     "swift test -Xswiftc -warnings-as-errors",
+    // A name is a name once it is long enough to be one.
+    "go test -race ./...",
     "bash scripts/check.sh"
   ];
   for (const run of realistic) {
@@ -361,6 +363,9 @@ test("rejects commands that only report success", () => {
     // and pytest's worker count, `-t` marks Make targets done without running
     // them. Only the verbose flag the classes model is readable.
     "make test -n", "make test -t", "npm run check -s",
+    // A two-letter alias is as unreadable as one letter: `-fn` is Maven's
+    // `--fail-never`, which reports success on a failed build.
+    "mvn test -fn", "make test -nt",
     // Make's documented modes that skip the recipe, in their spelled forms.
     // The work runs and the verdict is thrown away — what `|| true` does one
     // layer up, and refused for the same reason.

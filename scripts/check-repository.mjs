@@ -297,13 +297,14 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     // running them. The scanner cannot know which, and neither can a reviewer
     // reading the configuration — the same argument that refuses an
     // abbreviated long option. Only the verbose flag the tool classes already
-    // model is readable. One letter is the whole rule: a spelled-out name
-    // behind a single dash says what it is, so Swift's `-Xswiftc` is left
-    // alone, and the guarded families read such names after stripping the
-    // dashes anyway. A cluster like `-nt` slips through — a real limit, and an
-    // odd thing to find in a configured check. Past `--` the words belong to
-    // the script being run, and its own flags are its business.
-    if (!beyondSeparator && /^-[^-]$/.test(bare) && !(bare === "-v" && !versionIsShort)) {
+    // model is readable. The rule was one letter and let `mvn test -fn`
+    // through — Maven's alias for `--fail-never`, which reports success on a
+    // failed build. A cluster and a two-letter alias are as unreadable as a
+    // single letter, and a name only starts being a name at some length: up
+    // to three characters behind one dash is an alias, so Swift's `-Xswiftc`
+    // and `-warnings-as-errors` are still left alone. Past `--` the words
+    // belong to the script being run, and its own flags are its business.
+    if (!beyondSeparator && /^-[^-]{1,3}$/.test(bare) && !(bare === "-v" && !versionIsShort)) {
       return true;
     }
   }
