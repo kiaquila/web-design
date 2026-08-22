@@ -244,33 +244,19 @@ function dispatchNameIndex(words, index, immediate) {
   return -1;
 }
 
-// Only the separated forms need naming: `--directory=website` carries its own
-// value, and an option that takes none is simply absent from the set.
-const VALUE_TAKING_OPTION = new Map([
-  ["uv", new Set([
-    "--directory", "--project", "--package", "--python", "-p", "--with",
-    "--with-requirements", "--with-editable", "--extra", "--group",
-    "--env-file", "--cache-dir", "--config-file", "--index", "--index-url",
-    "--extra-index-url", "--find-links", "--resolution", "--prerelease",
-    "--python-preference", "--refresh-package", "--no-binary-package"
-  ])],
-  ["poetry", new Set(["--directory", "-C", "--project", "-P"])],
-  ["pipenv", new Set(["--python"])],
-  ["bundle", new Set(["--gemfile"])]
-]);
-
-function dispatchedCommandIndex(executable, words) {
-  const valued = VALUE_TAKING_OPTION.get(executable) ?? new Set();
-  for (let position = 1; position < words.length; position += 1) {
-    const bare = bareWord(words[position]);
-    if (!bare) continue;
-    if (bare.startsWith("-")) {
-      if (valued.has(bare)) position += 1;
-      continue;
-    }
-    return position;
-  }
-  return -1;
+// A dispatched command has to be found, not guessed, and finding it past
+// options means knowing which of them take a value. A partial table leaks —
+// naming `--with` while missing its `-w` spelling put an option's value in the
+// command position and read `uv run --no-project -w pytest true` as a pytest
+// run — and a complete one means tracking sixty-odd options per tool across
+// versions. So no options sit between the verb and the command: `uv run
+// pytest` and `bundle exec rspec` are the readable forms, and an invocation
+// that needs flags becomes `uv run scripts/check.py`, where the flags live in
+// reviewed code instead of in a string this scanner has to parse.
+function dispatchedCommandIndex(words) {
+  const following = bareWord(words[1]);
+  if (!following || following.startsWith("-")) return -1;
+  return 1;
 }
 
 function commandPositionIsTarget(words, executable) {
@@ -283,15 +269,9 @@ function commandPositionIsTarget(words, executable) {
     // nothing at all — so the child is held to what any check is held to.
     const immediate = NAME_MUST_FOLLOW_VERB.has(executable);
     if (immediate) return dispatchNameIndex(words, 0, true) >= 0;
-    // Scanning for any check-shaped word read `uv run --no-project true
-    // pytest` as a pytest run, when pytest is only an argument handed to
-    // `true`. The dispatched command is the first word that is neither an
-    // option nor an option's value, so the options that take one are named
-    // below — a bounded, documented fact about four tools, unlike the open
-    // sets this file refuses to enumerate elsewhere. An option that is not
-    // named is read as taking no value, which puts its value in the command
-    // position and fails closed there.
-    const index = dispatchedCommandIndex(executable, words);
+    // The command follows the verb directly; see the note on
+    // `dispatchedCommandIndex` for why nothing may sit between them.
+    const index = dispatchedCommandIndex(words);
     if (index < 0) return false;
     const dispatched = bareWord(words[index]);
     if (isRepositoryFileWord(dispatched)) return true;

@@ -55,12 +55,9 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "uv run pytest",
     // Options may sit between the verb and the command for a tool that errors
     // without one, and a formatter asked for a verdict is a real check.
-    "uv run --locked pytest",
     "make test version=1",
     "uv run npm run check",
-    "uv run --directory website pytest",
     "uv run scripts/check.py",
-    "bundle exec --keep-file-descriptors rspec",
     "cargo fmt --check",
     "npm run format -- --check",
     "pytest",
@@ -249,6 +246,11 @@ test("rejects commands that only report success", () => {
     "cargo fmt --check -- --help=config", "npm test --version=1",
     // A dispatched command is read like any other check.
     "uv run --no-project true", "uv run echo ok", "bundle exec ls",
+    // Nothing sits between the verb and the command, so an option's value can
+    // never be read as one — the short spelling of a value-taking option was
+    // what leaked when the arity table was partial.
+    "uv run --locked pytest", "uv run --directory website pytest",
+    "uv run --no-project -w pytest true", "bundle exec --keep-file-descriptors rspec",
     // A check-shaped word that is only an argument to the dispatched command.
     "uv run --no-project true pytest", "bundle exec ls pytest",
     // A slash is not a project: a runtime's operand has to be a path this
