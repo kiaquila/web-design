@@ -1,7 +1,6 @@
-# CLAUDE.md — Web Design
+# CLAUDE.md — Web Project
 
 @AGENTS.md
 
-Before working below a project directory, also read that project's `README.md`
-and `AGENTS.md`. Treat the project file as additional context; repository-wide
-safety and completion rules remain in force.
+Use `AGENTS.md` as the instruction source of truth. Also read the project
+profile at `.web-design/project.json` and the task-relevant product documents.
