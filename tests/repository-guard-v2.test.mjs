@@ -211,8 +211,7 @@ test("the checks real projects configure stay expressible", () => {
     "npm test -- -x",
     // A spelled-out name behind one dash says what it is.
     "swift test -Xswiftc -warnings-as-errors",
-    // A name is a name once it is long enough to be one — three characters,
-    // where `-run` and `-race` live, while `-fn` and `-nt` are aliases.
+    // Go and Swift document single-dash names, so theirs are read as names.
     "go test -race ./...",
     "go test -run TestName ./...",
     "bash scripts/check.sh"
@@ -365,9 +364,10 @@ test("rejects commands that only report success", () => {
     // and pytest's worker count, `-t` marks Make targets done without running
     // them. Only the verbose flag the classes model is readable.
     "make test -n", "make test -t", "npm run check -s",
-    // A two-letter alias is as unreadable as one letter: `-fn` is Maven's
-    // `--fail-never`, which reports success on a failed build.
-    "mvn test -fn", "make test -nt",
+    // A single-dash word is readable only where the tool spells names that
+    // way: `-fn` is Maven's `--fail-never`, `-nis` a Make cluster hiding the
+    // dry run, and neither tool documents single-dash names.
+    "mvn test -fn", "make test -nt", "make test -nis", "npm run check -ws",
     // Make's documented modes that skip the recipe, in their spelled forms.
     // The work runs and the verdict is thrown away — what `|| true` does one
     // layer up, and refused for the same reason.

@@ -251,7 +251,11 @@ function matchesOption(name, flags) {
 // they land is not knowable from here, so the scan does not stop at the
 // separator at all — a check has no use for an informational flag on either
 // side of it.
-function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
+// Go documents `-run`, `-race`, `-count`; Swift documents `-Xswiftc`. Every
+// other tool in the classes above spells a name with two dashes.
+const SINGLE_DASH_NAME_TOOL = new Set(["go", "swift"]);
+
+function informsInsteadOfRunning(words, { versionIsShort = false, executable = "" } = {}) {
   let beyondSeparator = false;
   for (const word of words) {
     const bare = bareWord(word);
@@ -297,14 +301,19 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     // running them. The scanner cannot know which, and neither can a reviewer
     // reading the configuration — the same argument that refuses an
     // abbreviated long option. Only the verbose flag the tool classes already
-    // model is readable. One letter was too narrow — `mvn test -fn` is Maven's
-    // alias for `--fail-never` and reports success on a failed build — and
-    // three was too wide, since `go test -run TestName` spells its option out
-    // in three characters. Two is where aliases end and names begin: `-fn`,
-    // `-nt` and `-ws` are unreadable, while `-run`, `-race`, `-Xswiftc` and
-    // `-warnings-as-errors` say what they are. Past `--` the words belong to
-    // the script being run, and its own flags are its business.
-    if (!beyondSeparator && /^-[^-]{1,2}$/.test(bare) && !(bare === "-v" && !versionIsShort)) {
+    // model is readable. Length was the wrong question and took three tries to
+    // stop asking: `-fn` is Maven's alias for `--fail-never`, `-run` is Go's
+    // spelled-out option, `-nis` is a Make cluster hiding `-n`, and no cutoff
+    // separates them. What does separate them is convention — Go and Swift
+    // document single-dash names, and the other tools here spell names with
+    // `--` and use one dash for short flags and their clusters. So a
+    // single-dash word longer than a letter is readable only where that is the
+    // tool's own convention, and a cluster in Go or Swift is not a false
+    // success either: neither parses clusters, so the run fails. Past `--` the
+    // words belong to the script being run, and its flags are its business.
+    const shortOption = !beyondSeparator && /^-[^-]/.test(bare);
+    const spelledSingleDash = bare.length > 2 && SINGLE_DASH_NAME_TOOL.has(executable);
+    if (shortOption && !spelledSingleDash && !(bare === "-v" && !versionIsShort)) {
       return true;
     }
   }
@@ -399,7 +408,10 @@ function runtimeOperandIndex(words) {
 
 function preparesDependencies(executable, words) {
   if (!SUBCOMMAND_CHECK.has(executable)) return false;
-  if (informsInsteadOfRunning(words, { versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable) })) {
+  if (informsInsteadOfRunning(words, {
+    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable),
+    executable
+  })) {
     return false;
   }
   return DEPENDENCY_VERB.has(bareWord(words[0]));
@@ -409,7 +421,8 @@ function runsProjectCode(executable, words) {
   const isRuntime = RUNTIME_CHECK.has(executable);
   const operand = isRuntime ? runtimeOperandIndex(words) : -1;
   const informs = informsInsteadOfRunning(isRuntime ? words.slice(0, Math.max(operand, 0)) : words, {
-    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable)
+    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable),
+    executable
   });
   if (informs) return false;
   if (SELF_SUFFICIENT_CHECK.has(executable)) {
