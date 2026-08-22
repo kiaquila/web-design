@@ -174,7 +174,8 @@ const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
 // rare in a check command, and the exchange is deliberate.
 // Read after the same dash normalization the other families use, so how the
 // option was typed does not decide whether it is seen.
-const REPORTING_OPTION = /^(?:show|print|list)(?:-|$)|^dry-run$/;
+const REPORTING_NAME = ["show", "print", "list", "dry-run"];
+const REPORTING_OPTION = new RegExp(`^(?:${REPORTING_NAME.join("|")})(?:-|$)`);
 // Naming output is one way to not do the work; claiming it is already done is
 // another. GNU Make documents a closed set of modes that skip the recipe —
 // `--touch` marks targets made, `--question` only asks, `--just-print` and
@@ -634,10 +635,14 @@ export function validateProductCheckCommand(command) {
     const abbreviated = words.some((word) => {
       const bare = bareWord(word).replace(/=[\s\S]*$/, "");
       const base = bare.startsWith("--no-") ? `--${bare.slice(5)}` : bare;
+      // Every guarded family belongs in this list. A family wired into the
+      // refusal but not into this scan is refused when spelled out and
+      // accepted when abbreviated, which has happened twice.
       return (
         abbreviatesOption(bare, INFORMATIONAL_WORD) ||
         abbreviatesOption(base, ABSENCE_TOLERATING_FLAG) ||
-        abbreviatesOption(base, NON_EXECUTING_MODE)
+        abbreviatesOption(base, NON_EXECUTING_MODE) ||
+        abbreviatesOption(base, new Set(REPORTING_NAME))
       );
     });
     if (abbreviated) return "must spell out its options rather than abbreviate them";

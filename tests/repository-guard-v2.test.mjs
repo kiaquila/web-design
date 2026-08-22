@@ -103,7 +103,9 @@ test("an abbreviated option is refused rather than resolved", () => {
   // `--iwr` rather than to `--if-present`. So the check says what it means.
   for (const run of [
     "npm run check --if-p", "npm run check --no-if-p", "npm test --vers",
-    "npm run check -if-p", "make test --tou"
+    "npm run check -if-p", "make test --tou",
+    // A reporting mode abbreviates like anything else.
+    "make test --dry-r", "swift build --sho"
   ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
