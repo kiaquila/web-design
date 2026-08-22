@@ -191,8 +191,12 @@ function isFileWord(word) {
 // absolute paths, home-relative paths, drive letters, and anything climbing
 // out of the tree are not targets.
 function isRepositoryFileWord(word) {
+  // `python3 -c "'' # scripts/check.py"` hides a comment and a source string
+  // behind something path-shaped, so a file operand has to read as a plain
+  // path: literal path characters only, nothing quoted, spaced, or commented.
+  if (!/^[A-Za-z0-9._/-]+$/.test(word)) return false;
   if (!isFileWord(word)) return false;
-  if (word.startsWith("/") || word.startsWith("~") || /^[A-Za-z]:/.test(word)) return false;
+  if (word.startsWith("/")) return false;
   return normalizedRelativeSegments(word) !== null;
 }
 
@@ -1112,10 +1116,19 @@ function stepSeedsEnvironmentWithTree(step, directory) {
 const WHOLE_VALUE_EXPANSION = /^"?\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\}|[?$!#*@0-9])"?$/;
 const WHOLE_LITERAL_VALUE = [/^[^'"$`]*$/, /^'[^']*'$/, /^"[^"'$`]*"$/];
 
-function stepAssemblesShellValue(step) {
+// Actions substitutes `${{ }}` before the shell parses the line, so the shell
+// layer is read with the expressions removed — what they may contain is the
+// expression allowlist's business, not the word scanner's.
+function stepShellText(step, { ignoreExpressions = false } = {}) {
   const run = mapPair(step, "run")?.value;
-  if (!isScalar(run) || typeof run.value !== "string") return false;
+  if (!isScalar(run) || typeof run.value !== "string") return null;
   const text = joinShellContinuations(run.value);
+  return ignoreExpressions ? text.replace(/\$\{\{[^}]*\}\}/g, "") : text;
+}
+
+function stepAssemblesShellValue(step, options) {
+  const text = stepShellText(step, options);
+  if (text === null) return false;
   return shellAssignmentValues(text).some(
     ({ raw }) =>
       !WHOLE_VALUE_EXPANSION.test(raw) && !WHOLE_LITERAL_VALUE.some((form) => form.test(raw))
@@ -1164,10 +1177,10 @@ function shellWords(text) {
   return words;
 }
 
-function stepUsesUnreadableWord(step) {
-  const run = mapPair(step, "run")?.value;
-  if (!isScalar(run) || typeof run.value !== "string") return false;
-  return shellWords(joinShellContinuations(run.value)).some((word) => {
+function stepUsesUnreadableWord(step, options) {
+  const text = stepShellText(step, options);
+  if (text === null) return false;
+  return shellWords(text).some((word) => {
     if (SHELL_OPERATOR_WORD.has(word)) return false;
     const value = word.replace(/^[A-Za-z_][A-Za-z0-9_]*=/, "");
     return !WHOLE_WORD_FRAGMENT.some((form) => form.test(value));
@@ -1198,10 +1211,9 @@ function stepNamesTreeInShell(step, directory) {
 // environment-file scan sound: those files can then only be named outright.
 // Single-quoted spans cannot expand at all, so they are read as the literals
 // they are.
-function stepUsesUnreadableExpansion(step) {
-  const run = mapPair(step, "run")?.value;
-  if (!isScalar(run) || typeof run.value !== "string") return false;
-  const text = joinShellContinuations(run.value);
+function stepUsesUnreadableExpansion(step, options) {
+  const text = stepShellText(step, options);
+  if (text === null) return false;
   let index = 0;
   let quote = null;
   while (index < text.length) {
@@ -1300,6 +1312,19 @@ function stepInterpolatesExpression(step) {
 // outputs in that configuration come only from SHA-pinned actions or managed,
 // hash-locked scripts, whose provenance is the lock rather than the scan.
 const STEP_ENVIRONMENT_FILE = /\bGITHUB_(?:ENV|PATH|OUTPUT|STATE)\b/;
+
+// `eval "$(jq -r .comment.body "$GITHUB_EVENT_PATH")"` carries no expression
+// at all: the payload arrives as a file. Moving payload reads into managed
+// scripts was the point of that file, so in a write-capable actor-triggered
+// job free-form shell may not name it — the script that needs the event reads
+// it, and its bytes are hash-locked.
+const EVENT_PAYLOAD_FILE = /\bGITHUB_EVENT_(?:PATH|NAME)\b/;
+
+function stepReadsEventPayload(step) {
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  return EVENT_PAYLOAD_FILE.test(run.value);
+}
 
 function stepTouchesEnvironmentFiles(step) {
   const run = mapPair(step, "run")?.value;
@@ -1516,6 +1541,24 @@ export function validateWorkflowText(path, text) {
               if (stepCarriesUnreadableExpression(step)) {
                 failures.push(
                   `Write-capable job ${jobName} carries an expression that cannot be read: ${path}`
+                );
+              }
+              // Reading the payload and running what comes back needs no
+              // expression, so the shell here is held to the same standard it
+              // is held to beside proposed code.
+              const shellOptions = { ignoreExpressions: true };
+              if (
+                stepUsesUnreadableExpansion(step, shellOptions) ||
+                stepUsesUnreadableWord(step, shellOptions) ||
+                stepAssemblesShellValue(step, shellOptions)
+              ) {
+                failures.push(
+                  `Write-capable job ${jobName} runs shell that cannot be read: ${path}`
+                );
+              }
+              if (stepReadsEventPayload(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} reads the event payload in its shell: ${path}`
                 );
               }
             }

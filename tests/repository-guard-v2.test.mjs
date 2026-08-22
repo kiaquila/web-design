@@ -97,6 +97,8 @@ test("an informational flag beats the verb in front of it", () => {
     "pytest --collect-only", "pytest --co", "pytest -v", "tox -e py311",
     // An interpreter option's value is not the file operand.
     "python3 -X pycache_prefix=foo/bar -V", "python3 -X importtime -V",
+    // A source string is not a file operand, however path-shaped it looks.
+    "python3 -c \"'' # scripts/check.py\"", "node -e \"0 // scripts/check.mjs\"",
     // A separated option value cannot be told from the operand, so an
     // interpreter option that takes one fails closed.
     "python3 -X importtime scripts/check.py"
@@ -1089,6 +1091,19 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
       /carries an expression that cannot be read/,
+      stepYaml
+    );
+  }
+  // The payload can also arrive with no expression at all.
+  for (const [stepYaml, expected] of [
+    ['      - run: eval "$(jq -r .comment.body \"$GITHUB_EVENT_PATH\")"\n', /runs shell that cannot be read/],
+    ['      - run: jq -r .comment.body "$GITHUB_EVENT_PATH" > payload\n', /reads the event payload in its shell/],
+    ['      - run: bash -c "$(cat payload)"\n', /runs shell that cannot be read/],
+    ['      - run: name=GITHUB_""EVENT_PATH\n', /runs shell that cannot be read/]
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
+      expected,
       stepYaml
     );
   }

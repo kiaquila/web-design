@@ -38,11 +38,15 @@ jobs:
           node-version: "22.18.0"
 
       - name: Rerun gate for trusted Codex evidence
+        # Written without `;` so every word stands on its own: this job is
+        # write-capable on an actor-triggered event, where the guard requires
+        # shell it can read word by word.
         run: |
-          if [ ! -f scripts/codex-review-rerun.mjs ]; then
+          if [ -f scripts/codex-review-rerun.mjs ]
+          then
+            node scripts/codex-review-rerun.mjs
+          else
             echo "Codex Review bootstrap is not installed on the default branch yet; the pull-request gate handles this installation PR."
-            exit 0
           fi
-          node scripts/codex-review-rerun.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
