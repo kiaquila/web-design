@@ -1112,7 +1112,12 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     ['      - env:\n          EVENT: D:\\a\\_temp\\_github_workflow\\event.json\n        run: node run.mjs\n', /reaches outside the workspace/],
     // The move can be the escape: the command then names a plain filename.
     ['      - working-directory: ../../_temp/_github_workflow\n        run: jq -r .comment.body event.json > payload\n', /reaches outside the workspace/],
-    ['      - working-directory: ${{ github.event.comment.body }}\n        run: node run.mjs\n', /carries an expression that cannot be read/]
+    ['      - working-directory: ${{ github.event.comment.body }}\n        run: node run.mjs\n', /carries an expression that cannot be read/],
+    // An operand prefix glued to the climb, and a bare climb with no
+    // separator at all.
+    ['      - run: dd if=../../_temp/_github_workflow/event.json of=event.json\n', /reaches outside the workspace/],
+    ['      - run: cp ../../_temp/_github_workflow/event.json event.json\n', /reaches outside the workspace/],
+    ['      - run: cd ..\n', /reaches outside the workspace/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),

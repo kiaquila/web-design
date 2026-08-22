@@ -1341,9 +1341,16 @@ const RUNNER_STATE_VARIABLE = /\b(?:RUNNER_TEMP|RUNNER_TOOL_CACHE|RUNNER_WORKSPA
 // Windows runner holds no forward slash at all, and a drive letter or a
 // leading separator is as absolute as `/`.
 function pathEscapesWorkspace(value) {
-  if (!/[\\/]/.test(value)) return false;
-  if (/^[\\/]/.test(value) || /^[A-Za-z]:/.test(value)) return true;
-  return normalizedRelativeSegments(value) === null;
+  // `dd if=../../_temp/...` glues an operand prefix to the first `..`, and
+  // cancelling one `..` against a later segment is how normalization was
+  // talked out of seeing the climb. Nothing here needs `..` at all, so the
+  // prefix comes off and any `..` segment is the answer on its own — no
+  // arithmetic to be fooled.
+  const bare = value.replace(/^[A-Za-z_][A-Za-z0-9_]*=/, "");
+  if (/^[\\/]/.test(bare) || /^[A-Za-z]:/.test(bare)) return true;
+  return bare
+    .split(/[\\/]+/)
+    .some((segment) => segment === ".." || segment.startsWith("..") || segment.endsWith(".."));
 }
 
 // A path that leaves the workspace does not have to sit in the shell text: an
