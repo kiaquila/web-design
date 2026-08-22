@@ -1885,8 +1885,10 @@ test("trusted baseline verification is repository-identity and run-SHA bound", (
   assert.match(script, /head_sha: runHeadSha/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
   assert.equal(/^\s+[A-Z_]+: \$\{\{ github\.event\./m.test(workflow), false);
-  assert.match(codeowners, /^\/\.github\/ @kiaquila$/m);
-  assert.match(codeowners, /^\/scripts\/ @kiaquila$/m);
+  // The owner is the repository's own, so the assertion is about coverage
+  // rather than identity: a consumer names itself here.
+  assert.match(codeowners, /^\/\.github\/ +@\S+$/m);
+  assert.match(codeowners, /^\/scripts\/ +@\S+$/m);
 });
 
 test("repository guard uses branch policy only for the template-v2 bootstrap", () => {

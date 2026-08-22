@@ -1,7 +1,6 @@
 {
   "schemaVersion": 1,
   "files": [
-    ".github/CODEOWNERS",
     ".github/pull_request_template.md",
     ".github/workflows/baseline-source-verification.yml",
     ".github/workflows/ci.yml",

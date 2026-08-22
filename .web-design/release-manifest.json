@@ -3,10 +3,6 @@
   "version": "0.1.0-dev",
   "files": [
     {
-      "path": ".github/CODEOWNERS",
-      "sha256": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e"
-    },
-    {
       "path": ".github/pull_request_template.md",
       "sha256": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f"
     },
@@ -44,7 +40,7 @@
     },
     {
       "path": ".web-design/managed-files.json",
-      "sha256": "fd81348bf99de1c0afa0222f76f5b4c17895f2e133e44ae3a5f5e9d76619f6cb"
+      "sha256": "10879cf74e635b8194f96dbd0a22b43014a4edaeaaac59fe4ab067c331dd203d"
     },
     {
       "path": ".web-design/policy/package-lock.json",
@@ -84,7 +80,7 @@
     },
     {
       "path": "docs/operations/github-setup.md",
-      "sha256": "5e8911225b976a299072d91f9dd46adbf7ed6a93e99a1bae2f1a9f984d4411b2"
+      "sha256": "6a26036908e6bb939d5e13e49fdc60e3490b2a9e45b461e74926332f9d29b0fe"
     },
     {
       "path": "docs/operations/project-handoff.md",
@@ -192,7 +188,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "34eeba6aba276570f3d63d58f96fd56c9b34c3e7b2c08d807036721de399886b"
+      "sha256": "cd80059164ce73c5fe0c6a55ff53ce6d1337490fc779e14c5126e2deee3fd1df"
     },
     {
       "path": "tests/sync-project.test.mjs",
