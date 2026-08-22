@@ -165,8 +165,11 @@ test("rejects commands that only report success", () => {
     "npm run --workspace website", "npm exec --yes",
     // `config` is the command; `test` is only a key it reads.
     "npm config get test", "npm config get run x", "npm view . scripts",
-    // A verb behind the tool's real command is not the command.
-    "npm run --workspace website test"
+    // A verb behind the tool's real command is not the command, and a verb
+    // that is only an option's value is not one either.
+    "npm run --workspace website test",
+    "npm --prefix test config get cache",
+    "npm --prefix build config list"
   ];
   for (const run of noOps) {
     const invalid = structuredClone(config);
@@ -979,6 +982,33 @@ test("an actor-triggered write job is constrained even without a checkout", () =
     validateWorkflowText(
       ".github/workflows/example.yml",
       "on:\n  push:\n    branches: [main]\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65\n"
+    ),
+    []
+  );
+});
+
+test("an expression that cannot be read fails closed in an actor-triggered write job", () => {
+  const step = (stepYaml) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n${stepYaml}`;
+  for (const stepYaml of [
+    "      - run: eval \"${{ github['event']['comment']['body'] }}\"\n",
+    "      - env:\n          BODY: ${{ github['event']['comment']['body'] }}\n        run: node run.mjs\n",
+    "      - run: node run.mjs ${{ fromJSON(github.event.comment.body).ref }}\n",
+    "      - run: node run.mjs ${{ format('{0}', github.event.comment.body) }}\n"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
+      /carries an expression that cannot be read/,
+      stepYaml
+    );
+  }
+  // The forms the baseline's own actor-triggered write jobs rely on.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      step(
+        "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.repository.default_branch }}\n      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n          SOURCE_TOKEN: ${{ secrets.READ_TOKEN || github.token }}\n        run: node scripts/request.mjs\n"
+      )
     ),
     []
   );

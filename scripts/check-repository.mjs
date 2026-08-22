@@ -141,16 +141,35 @@ function isProductCheckTarget(words, index) {
 // the target must be the value of the option before it, which is what
 // `npm --prefix website run check` looks like and what `npm config get test`
 // does not.
+function isOptionMaterial(words, position) {
+  const bare = bareWord(words[position]);
+  if (!bare || bare.startsWith("-")) return true;
+  return bareWord(words[position - 1] ?? "").startsWith("-");
+}
+
+// `npm --prefix test config get cache` reads configuration and exits zero:
+// `test` is only the value handed to `--prefix`, and `config` is the command.
+// Clearing the words ahead of the target was not enough, because a word that
+// sits behind an option can be a familiar verb by coincidence. What settles it
+// is the tail: a real check's target is followed by its own arguments and
+// nothing else, so every word after it must be an option, an option's value, a
+// file, or come after `--`. `config get cache` is none of those.
 function hasProductCheckTarget(words) {
-  for (let index = 0; index < words.length; index += 1) {
-    if (!isProductCheckTarget(words, index)) continue;
-    return words.slice(0, index).every((word, position) => {
-      const bare = bareWord(word);
-      if (!bare || bare.startsWith("-")) return true;
-      return bareWord(words[position - 1] ?? "").startsWith("-");
-    });
-  }
-  return false;
+  return words.some((word, index) => {
+    if (!isProductCheckTarget(words, index)) return false;
+    if (!words.slice(0, index).every((_, position) => isOptionMaterial(words, position))) {
+      return false;
+    }
+    const consumed = VERB_NEEDING_ARGUMENT.has(bareWord(word)) ? index + 2 : index + 1;
+    for (let position = consumed; position < words.length; position += 1) {
+      const bare = bareWord(words[position]);
+      if (bare === "--") return true;
+      if (isOptionMaterial(words, position)) continue;
+      if (bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare)) continue;
+      return false;
+    }
+    return true;
+  });
 }
 
 const PRODUCT_CHECK_EXECUTABLE = new Set([
@@ -855,6 +874,38 @@ function jobInputsCarryActorControlledRef(job) {
   });
 }
 
+// `github['event']['comment']['body']` indexes its way to the same commenter
+// text the dotted form reaches, and `fromJSON`, `format`, and the rest are a
+// language a pattern cannot chase. Matching payload syntax is the losing side
+// of this; in a write-capable actor-triggered job an expression is instead
+// read by the same allowlist used beside an untrusted checkout, wherever it
+// appears — `env`, `with`, or run text. A checkout's own inputs are exempt
+// because pointing one at proposed code under its own path is exactly what
+// isolation is; `untrustedCheckoutDirectory` governs that.
+function valuesCarryUnreadableExpression(node, key) {
+  const map = mapPair(node, key)?.value;
+  if (!isMap(map)) return false;
+  return map.items.some(
+    (pair) =>
+      isScalar(pair.value) &&
+      typeof pair.value.value === "string" &&
+      computedEnvironmentValue(pair.value.value)
+  );
+}
+
+function stepCarriesUnreadableExpression(step) {
+  if (valuesCarryUnreadableExpression(step, "env")) return true;
+  const uses = mapPair(step, "uses")?.value;
+  const isCheckout =
+    isScalar(uses) &&
+    typeof uses.value === "string" &&
+    /^actions\/checkout@/.test(uses.value.trim());
+  if (!isCheckout && valuesCarryUnreadableExpression(step, "with")) return true;
+  const run = mapPair(step, "run")?.value;
+  if (!isScalar(run) || typeof run.value !== "string") return false;
+  return computedEnvironmentValue(joinShellContinuations(run.value));
+}
+
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
   const uses = mapPair(step, "uses")?.value;
   if (isScalar(uses) && typeof uses.value === "string") {
@@ -1110,7 +1161,6 @@ const TRUSTED_ENVIRONMENT_EXPRESSION = [
   /^secrets\.[A-Za-z0-9_]+(?:\s*\|\|\s*github\.token)?$/,
   /^inputs\.[A-Za-z0-9_]+$/,
   /^github\.(?:server_url|repository|run_id|sha)$/,
-  /^github\.event\.workflow_run\.(?:head_sha|conclusion|pull_requests\[0\]\.(?:base|head)\.sha)$/,
   /^steps\.[A-Za-z0-9_-]+\.outputs\.[A-Za-z0-9_-]+$/,
   /^steps\.[A-Za-z0-9_-]+\.outcome\s*==\s*'[A-Za-z0-9_-]+'\s*&&\s*'[A-Za-z0-9_-]+'\s*\|\|\s*'[A-Za-z0-9_-]+'$/
 ];
@@ -1341,9 +1391,20 @@ export function validateWorkflowText(path, text) {
           // called workflow runs with this job's token. Its inputs are the
           // same actor-controlled surface a step's `env` is, and a published
           // workflow is third-party code holding the token.
-          if (jobInputsCarryActorControlledRef(jobPair.value)) {
+          if (
+            jobInputsCarryActorControlledRef(jobPair.value) ||
+            valuesCarryUnreadableExpression(jobPair.value, "with")
+          ) {
             failures.push(
               `Write-capable job ${jobName} passes an actor-controlled ref to what it calls: ${path}`
+            );
+          }
+          if (
+            valuesCarryUnreadableExpression(root, "env") ||
+            valuesCarryUnreadableExpression(jobPair.value, "env")
+          ) {
+            failures.push(
+              `Write-capable job ${jobName} carries an expression that cannot be read: ${path}`
             );
           }
           if (reusableWorkflow && usesUnvouchedReference(reusableWorkflow.value)) {
@@ -1353,9 +1414,15 @@ export function validateWorkflowText(path, text) {
           }
           if (isSeq(steps)) {
             for (const step of steps.items) {
-              if (isMap(step) && stepUsesUnvouchedAction(step)) {
+              if (!isMap(step)) continue;
+              if (stepUsesUnvouchedAction(step)) {
                 failures.push(
                   `Write-capable job ${jobName} uses an action that is not vouched for: ${path}`
+                );
+              }
+              if (stepCarriesUnreadableExpression(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} carries an expression that cannot be read: ${path}`
                 );
               }
             }
