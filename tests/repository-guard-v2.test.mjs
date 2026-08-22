@@ -53,7 +53,10 @@ test("accepts product checks whose exit status comes from a real command", () =>
     'npm test -- --grep "a|b"',
     "npm run build -- --tag '#1'",
     "bash scripts/build.sh",
-    "npm run x -- --shell -c"
+    "npm run x -- --shell -c",
+    // The script name follows the verb; flags fit after it.
+    "npm run check --silent",
+    "npm run --workspace website test"
   ];
   for (const run of accepted) {
     const valid = structuredClone(config);
@@ -155,7 +158,10 @@ test("rejects commands that only report success", () => {
     "npm --version", "node --version", "node -v", "go version", "npm --prefix website",
     "npm test && npm --version",
     // `npm run` lists the scripts and exits zero; the script name is the target.
-    "npm run", "npm run --silent", "npm exec", "npm --prefix website run"
+    "npm run", "npm run --silent", "npm exec", "npm --prefix website run",
+    // An option between the verb and the name swallows the name: this lists
+    // one workspace's scripts and exits zero.
+    "npm run --workspace website", "npm exec --yes"
   ];
   for (const run of noOps) {
     const invalid = structuredClone(config);

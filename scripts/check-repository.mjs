@@ -111,7 +111,11 @@ const PRODUCT_CHECK_VERB = new Set([
 ]);
 
 // `npm run` lists the scripts and exits zero, so a verb that dispatches to a
-// named script is a target only once the name is there.
+// named script is a target only once the name is there — and the name has to
+// follow the verb immediately. Reading `npm run --workspace website` as a
+// dispatch would mean knowing which options consume the next word, which is a
+// table per tool and per version; requiring `npm run <name>` needs no such
+// table, and flags still fit after the name.
 const VERB_NEEDING_ARGUMENT = new Set(["run", "exec"]);
 
 function bareWord(word) {
@@ -123,10 +127,8 @@ function hasProductCheckTarget(words) {
     const bare = bareWord(word);
     if (!bare || bare.startsWith("-")) return false;
     if (VERB_NEEDING_ARGUMENT.has(bare)) {
-      return words.slice(index + 1).some((next) => {
-        const following = bareWord(next);
-        return following && !following.startsWith("-");
-      });
+      const following = bareWord(words[index + 1] ?? "");
+      return Boolean(following) && !following.startsWith("-");
     }
     if (PRODUCT_CHECK_VERB.has(bare)) return true;
     return bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare);
