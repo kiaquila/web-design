@@ -97,6 +97,21 @@ test("the onboarding command the README teaches is a valid product check", () =>
   }
 });
 
+test("an abbreviated option is refused rather than resolved", () => {
+  // Whether an abbreviation is unambiguous is a question about the tool's
+  // whole option list, which this file cannot hold: npm expands `--i` to
+  // `--iwr` rather than to `--if-present`. So the check says what it means.
+  for (const run of ["npm run check --if-p", "npm run check --no-if-p", "npm test --vers"]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must spell out its options rather than abbreviate them"],
+      run
+    );
+  }
+});
+
 test("an informational flag beats the verb in front of it", () => {
   for (const run of [
     "npm test --version", "npm run check --help", "go test --version", "pytest --help",
@@ -254,8 +269,7 @@ test("rejects commands that only report success", () => {
     // is the question that kept producing findings.
     "npm run check --if-present=false", "npm run check --no-if-present",
     "npm run check --no-if-present false",
-    // npm expands an unambiguous abbreviation, so the scan reads it too.
-    "npm run check --if-p", "npm run check --no-if-p", "npm test --vers",
+
     // After a formatter verdict the trailing words reach the formatter rather
     // than the project.
     "cargo fmt --check -- --help", "cargo fmt --check -- --version",

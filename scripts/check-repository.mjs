@@ -205,15 +205,21 @@ const VERBOSE_SHORT_FLAG_TOOL = new Set([
 // for the interpreter's version; the caller passes only the words ahead of the
 // operand. A package runner is the other way round: the tool it dispatches to
 // reads `-h` the same way its runner would, so every word counts.
-// `npm run check --if-p` expands to `--if-present`, which an exact lookup
-// never sees, and the same abbreviation reaches `--version` as `--vers`. A
-// long option is therefore read as any flag it is an unambiguous start of —
-// the abbreviation is the tool's own reading of the word, so the scan uses it
-// too.
-function matchesOption(name, flags) {
-  if (flags.has(name)) return true;
+// `npm run check --if-p` expands to `--if-present` and an exact lookup never
+// sees it. Whether an abbreviation is unambiguous is a question about the
+// tool's whole option list — npm expands `--i` to `--iwr`, not to
+// `--if-present` — and that list is not something this file can hold. So an
+// abbreviation of a guarded flag is not resolved, it is refused, with a
+// message saying to spell the option out: an abbreviation the scanner cannot
+// read is one a reviewer has to guess at too.
+function abbreviatesOption(name, flags) {
+  if (flags.has(name)) return false;
   if (!name.startsWith("--") || name.length < 3) return false;
   return [...flags].some((flag) => flag.startsWith("--") && flag.startsWith(name));
+}
+
+function matchesOption(name, flags) {
+  return flags.has(name);
 }
 
 function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparator = true } = {}) {
@@ -570,6 +576,15 @@ export function validateProductCheckCommand(command) {
     }
     const words = commandWordsAfterAssignments(trimmed);
     if (!words.length) return "must execute a real product check";
+    const abbreviated = words.some((word) => {
+      const bare = bareWord(word).replace(/=[\s\S]*$/, "");
+      const base = bare.startsWith("--no-") ? `--${bare.slice(5)}` : bare;
+      return (
+        abbreviatesOption(bare, INFORMATIONAL_WORD) ||
+        abbreviatesOption(base, ABSENCE_TOLERATING_FLAG)
+      );
+    });
+    if (abbreviated) return "must spell out its options rather than abbreviate them";
     const executable = executableBasename(words[0]);
     if (!PRODUCT_CHECK_EXECUTABLE.has(executable)) {
       return "must execute a real product check";
