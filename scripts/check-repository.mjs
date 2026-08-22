@@ -113,24 +113,24 @@ const PERSONAL_PATH_PATTERNS = [
 const SELF_SUFFICIENT_CHECK = new Set([
   "pytest", "tox", "rspec", "jest", "vitest", "mocha", "phpunit"
 ]);
-// These read the project's own source and return a verdict on it. Unlike the
-// self-sufficient runners they need paths and flags to say what to read, so
-// options are not refused here — there is no mode in which they report success
-// without looking, short of the informational flags every class refuses.
-const ANALYSER_CHECK = new Set([
-  "eslint", "tsc", "biome", "stylelint", "ruff", "mypy", "flake8", "pylint",
-  "rubocop", "phpstan", "psalm", "shellcheck", "actionlint"
-]);
+// An analyser class lived here for one round: eslint, tsc and their kin, with
+// options allowed because they need paths to say what to read. `tsc
+// --showConfig` prints the configuration and exits zero, and naming the modes
+// that print instead of analysing is a list per tool and per version — the
+// same seam that took the option-arity table. A dependency's binary is code
+// this guard cannot read anyway, so the class is gone: an analyser runs as
+// `npm run lint`, a script the package defines, or as a script this repository
+// holds. Both are reviewed; neither has to be parsed.
 // These run the file they are handed, wherever it sits in the arguments.
 const RUNTIME_CHECK = new Set([
   "node", "deno", "bun", "python", "python3", "ruby", "php", "java", "swift",
   "bash", "sh", "zsh"
 ]);
 // These dispatch to a named tool, so the name is the command position.
-// `npx eslint .` names the tool it runs; `uv sync` does not run anything, it
-// updates an environment — so uv belongs with the subcommand tools, where
-// `uv run pytest` is the form that executes something.
-const PACKAGE_RUNNER_CHECK = new Set(["npx", "pnpx", "bunx"]);
+// `npx <tool>` reaches for a dependency's binary, which is code this guard
+// cannot read; with the analyser class gone there is nothing left for a runner
+// to dispatch to that is not already better written as `npm run <script>` or a
+// script in the tree. So npx and its kin are not check executables at all.
 // These take a subcommand that has to run project code.
 const SUBCOMMAND_CHECK = new Set([
   "npm", "pnpm", "yarn", "go", "cargo", "dotnet", "make", "mvn", "gradle",
@@ -138,9 +138,7 @@ const SUBCOMMAND_CHECK = new Set([
 ]);
 const PRODUCT_CHECK_EXECUTABLE = new Set([
   ...SELF_SUFFICIENT_CHECK,
-  ...ANALYSER_CHECK,
   ...RUNTIME_CHECK,
-  ...PACKAGE_RUNNER_CHECK,
   ...SUBCOMMAND_CHECK
 ]);
 
@@ -324,7 +322,6 @@ function runsProjectCode(executable, words) {
     stopAtSeparator: !VERDICT_VERB.has(bareWord(words[0]))
   });
   if (informs) return false;
-  if (ANALYSER_CHECK.has(executable)) return true;
   if (SELF_SUFFICIENT_CHECK.has(executable)) {
     // Options are the only way to neuter a tool that runs the suite by
     // itself — `--collect-only` gathers the tests and executes none of them —
@@ -335,16 +332,6 @@ function runsProjectCode(executable, words) {
   }
   if (isRuntime) {
     return operand >= 0 && isRepositoryFileWord(bareWord(words[operand]));
-  }
-  if (PACKAGE_RUNNER_CHECK.has(executable)) {
-    // `npx true` runs a dependency's no-op binary, so the tool a runner
-    // dispatches to is read like any other check rather than taken on its
-    // name alone.
-    const first = bareWord(words[0]);
-    if (!first || first.startsWith("-")) return false;
-    if (isRepositoryFileWord(first)) return true;
-    const child = executableBasename(first);
-    return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(1));
   }
   return commandPositionIsTarget(words, executable);
 }

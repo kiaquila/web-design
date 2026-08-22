@@ -51,16 +51,14 @@ test("accepts product checks whose exit status comes from a real command", () =>
     // same run as `npm --prefix website run check`, with the flag after it.
     "npm run check --prefix website",
     "npm ci --prefix website && npm run check --prefix website",
-    "npx eslint .",
     "uv run pytest",
     // Options may sit between the verb and the command for a tool that errors
     // without one, and a formatter asked for a verdict is a real check.
     "make test version=1",
     "uv run npm run check",
     "uv run scripts/check.py",
-    "npx eslint . --max-warnings 0",
-    "npx tsc --noEmit",
-    "npx scripts/check.mjs",
+    "npm run lint",
+    "node scripts/lint.mjs",
     "cargo fmt --check",
     "npm run format -- --check",
     "pytest",
@@ -250,7 +248,9 @@ test("rejects commands that only report success", () => {
     // A dispatched command is read like any other check.
     "uv run --no-project true", "uv run echo ok", "bundle exec ls",
     // A runner dispatches to a dependency's binary, which can be a no-op.
-    "npx true", "npx echo ok", "npx --yes true",
+    // A runner reaches for a dependency's binary, which the guard cannot
+    // read: an analyser runs as a package script or a script in the tree.
+    "npx true", "npx echo ok", "npx --yes true", "npx eslint .", "npx tsc --noEmit",
     // Nothing sits between the verb and the command, so an option's value can
     // never be read as one — the short spelling of a value-taking option was
     // what leaked when the arity table was partial.
