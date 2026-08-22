@@ -190,11 +190,13 @@ const VERBOSE_SHORT_FLAG_TOOL = new Set([
 // for the interpreter's version; the caller passes only the words ahead of the
 // operand. A package runner is the other way round: the tool it dispatches to
 // reads `-h` the same way its runner would, so every word counts.
-function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
+function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparator = true } = {}) {
   for (const word of words) {
     const bare = bareWord(word);
-    // Past `--` the words belong to the script being run, not to the tool.
-    if (bare === "--") return false;
+    // Past `--` the words usually belong to the script being run rather than
+    // to the tool — except after a formatter verdict, where `cargo fmt --check
+    // -- --help` hands them to rustfmt, which prints help and exits zero.
+    if (bare === "--" && stopAtSeparator) return false;
     if (INFORMATIONAL_WORD.has(bare)) return true;
     if (versionIsShort && bare === "-v") return true;
   }
@@ -274,7 +276,8 @@ function runsProjectCode(executable, words) {
   const isRuntime = RUNTIME_CHECK.has(executable);
   const operand = isRuntime ? runtimeOperandIndex(words) : -1;
   const informs = informsInsteadOfRunning(isRuntime ? words.slice(0, Math.max(operand, 0)) : words, {
-    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable)
+    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable),
+    stopAtSeparator: !VERDICT_VERB.has(bareWord(words[0]))
   });
   if (informs) return false;
   if (SELF_SUFFICIENT_CHECK.has(executable)) {

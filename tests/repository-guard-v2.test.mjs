@@ -239,6 +239,9 @@ test("rejects commands that only report success", () => {
     // npm lists its scripts and exits zero when the name is missing, so the
     // name still has to follow the verb there.
     "npm run --workspace website",
+    // After a formatter verdict the trailing words reach the formatter rather
+    // than the project.
+    "cargo fmt --check -- --help", "cargo fmt --check -- --version",
     // A slash is not a project: a runtime's operand has to be a path this
     // repository could hold.
     "node /dev/null", "bash /dev/null", "node ../outside/run.mjs", "node ~/run.mjs",
