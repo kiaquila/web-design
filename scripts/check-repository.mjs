@@ -254,6 +254,9 @@ function matchesOption(name, flags) {
 // Go documents `-run`, `-race`, `-count`; Swift documents `-Xswiftc`. Every
 // other tool in the classes above spells a name with two dashes.
 const SINGLE_DASH_NAME_TOOL = new Set(["go", "swift"]);
+// `swift test list` is a documented subcommand; `cargo test list` is a test
+// filter that happens to read the same way.
+const SUBCOMMAND_REPORTING_TOOL = new Set(["swift"]);
 
 function informsInsteadOfRunning(words, { versionIsShort = false, executable = "" } = {}) {
   let beyondSeparator = false;
@@ -386,12 +389,17 @@ function commandPositionIsTarget(words, executable) {
     return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(index + 1));
   }
   // `swift test list` lists the test methods and runs none of them: the same
-  // promise the reporting options make, worn as a subcommand. A dispatching
-  // verb is left alone, since the word after it names a package script this
-  // guard does not read.
-  if (PRODUCT_CHECK_VERB.has(first) && !VERB_NEEDING_ARGUMENT.has(first)) {
-    const following = bareWord(words[1] ?? "");
-    if (following && !following.startsWith("-") && REPORTING_OPTION.test(following)) return false;
+  // promise the reporting options make, worn as a subcommand. This is Swift's
+  // grammar and not a general one — `cargo test list` runs the tests whose
+  // name contains "list", so applying it everywhere refused a real check —
+  // and Swift puts its options before the subcommand, so the word is looked
+  // for rather than counted to.
+  if (SUBCOMMAND_REPORTING_TOOL.has(executable) && PRODUCT_CHECK_VERB.has(first)) {
+    const reporting = words.slice(1).some((word) => {
+      const bare = bareWord(word);
+      return bare && !bare.startsWith("-") && REPORTING_OPTION.test(bare);
+    });
+    if (reporting) return false;
   }
   if (VERDICT_VERB.has(first)) {
     return words.some((word) => VERDICT_FLAG.has(bareWord(word)));

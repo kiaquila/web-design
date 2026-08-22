@@ -214,6 +214,8 @@ test("the checks real projects configure stay expressible", () => {
     // Go and Swift document single-dash names, so theirs are read as names.
     "go test -race ./...",
     "go test -run TestName ./...",
+    // Cargo's operand is a test filter, not a subcommand, whatever it says.
+    "cargo test list",
     "bash scripts/check.sh"
   ];
   for (const run of realistic) {
@@ -376,6 +378,8 @@ test("rejects commands that only report success", () => {
     // A wrapper that replaces the test binary, and a reporting name worn as a
     // subcommand rather than a flag.
     "go test -exec /bin/true ./...", "swift test list",
+    // Swift puts its options before the subcommand.
+    "swift test --configuration debug list",
     "make test --touch", "make test --question", "make test --just-print",
     "make test --recon", "make test --what-if test", "make test --new-file x",
     "make test --assume-new x",
