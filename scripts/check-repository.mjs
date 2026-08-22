@@ -230,33 +230,29 @@ function matchesOption(name, flags) {
   return [...flags].some((flag) => flag.startsWith("--") && flag.slice(2) === long);
 }
 
-// Past `--` the words reach whatever is being run, and that can be another
-// tool with the same flags: `npm run check -- --help` hands `--help` to a
-// script that may be `node --test`, which prints help and exits zero. Where
-// they land is not knowable from here, so the scan does not stop at the
-// separator at all — a check has no use for an informational flag on either
-// side of it.
+// Past `--` the words reach whatever the named script runs, and that can be
+// another tool in these same classes: `npm run check -- --dry-run` hands
+// `--dry-run` to a `check` script that may be `make test`, and no recipe runs.
+// Which tool receives them is a fact about a package script this guard does
+// not read, so the region cannot be read either — scanning it for known-bad
+// names only moves the enumeration one tool along. The separator is refused
+// instead. Arguments a check needs belong in the script that is being run,
+// where they are reviewed; a runtime is unaffected, since the words after its
+// file operand reach a file in this repository.
 // `swift test list` is a documented subcommand; `cargo test list` is a test
 // filter that happens to read the same way.
 const SUBCOMMAND_REPORTING_TOOL = new Set(["swift"]);
 
 function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
-  let beyondSeparator = false;
   for (const word of words) {
     const bare = bareWord(word);
-    if (bare === "--") {
-      beyondSeparator = true;
-      continue;
-    }
+    if (bare === "--") return true;
     // `--help=config` is the same request with its topic attached, so the
     // value comes off before the word is read — but only from an option, since
     // `make test version=1` is a variable assignment and its target is `test`.
     const option = bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare;
     if (matchesOption(option, INFORMATIONAL_WORD)) return true;
     if (!option.startsWith("-")) continue;
-    // Past `--` the words belong to whatever is being run, and its options are
-    // its own business — `npm test -- -x` passes `-x` to the project's script.
-    if (beyondSeparator) continue;
     // `-v` is the one spelling the tools disagree about: `npm test -v` prints
     // npm's version and runs nothing, while `pytest -v` and `go test -v` are
     // real runs asking to be louder. The tool classes model that much, so it

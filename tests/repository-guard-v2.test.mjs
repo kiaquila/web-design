@@ -58,18 +58,12 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "uv run npm run check",
     "uv run scripts/check.py",
     "npm run lint",
-    // The flag turned off leaves the missing-script failure in place.
-
     "node scripts/lint.mjs",
     "cargo fmt --check",
-    "npm run format -- --check",
     "pytest",
     "pytest tests/unit",
     "node scripts/check.mjs",
-    'npm test -- --grep "a|b"',
-    "npm run build -- --tag '#1'",
     "bash scripts/build.sh",
-    "npm run x -- --shell -c",
     // The script name follows the verb; flags fit after it, and an option
     // before the verb may still take its own value.
     "npm run check --silent",
@@ -202,8 +196,6 @@ test("the checks real projects configure stay expressible", () => {
     "gradle test",
     "swift test",
     "dotnet test",
-    // Past `--` the flags belong to the project's own script.
-    "npm test -- -x",
     // Cargo's operand is a test filter, not a subcommand, whatever it says.
     "cargo test list",
     "bash scripts/check.sh"
@@ -248,7 +240,7 @@ test("rejects a check that inverts its exit status", () => {
       run
     );
   }
-  for (const run of ['npm test -- --grep "a!b"', "npm run lint!"]) {
+  for (const run of ['npm run lint "a!b"', "npm run lint!"]) {
     const valid = structuredClone(config);
     valid.commands.check = [{ name: "site", run }];
     assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
@@ -323,9 +315,15 @@ test("rejects commands that only report success", () => {
     "npm exec true", "npm exec eslint .",
     // npm's built-in `env` script prints the environment and exits zero.
     "npm run env", "pnpm run env",
-    // Past `--` the words reach whatever is being run, which can be another
-    // tool with the same flags.
+    // Past `--` the words reach whatever the named script runs, which can be
+    // another tool in these same classes — `npm run check -- --dry-run` hands
+    // the flag to a `check` script that may be `make test`. Which tool
+    // receives them is a fact about a script this guard does not read, so the
+    // separator is refused rather than scanned.
     "npm run check -- --help", "npm test -- --version",
+    "npm run check -- --dry-run", "npm test -- --if-present",
+    "npm test -- -x", 'npm test -- --grep "a|b"', "npm run format -- --check",
+    "npm run build -- --tag '#1'", "npm run x -- --shell -c",
     // A double negative turns it back on.
     "npm run check --no-if-present=false", "npm run check --no-if-present=true",
     // The flag is refused in every spelling, set either way: reading its value
@@ -474,13 +472,13 @@ test("quoting cannot disguise a no-op or smuggle an expansion", () => {
     assert.equal(validateProjectConfig(invalid, ["no-deploy"]).length, 1, run);
   }
   const expansion = structuredClone(config);
-  expansion.commands.check = [{ name: "site", run: 'npm test -- --grep "$(evil)"' }];
+  expansion.commands.check = [{ name: "site", run: 'npm run lint "$(evil)"' }];
   assert.deepEqual(
     validateProjectConfig(expansion, ["no-deploy"]),
     ["commands.check[0].run must not expand anything outside single quotes"]
   );
   const singleQuoted = structuredClone(config);
-  singleQuoted.commands.check = [{ name: "site", run: "npm test -- --grep '$(literal)'" }];
+  singleQuoted.commands.check = [{ name: "site", run: "npm run lint '$(literal)'" }];
   assert.deepEqual(validateProjectConfig(singleQuoted, ["no-deploy"]), []);
 });
 
