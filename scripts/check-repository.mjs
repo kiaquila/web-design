@@ -151,11 +151,16 @@ const INFORMATIONAL_WORD = new Set([
   "version", "--version", "-V", "help", "--help", "-h"
 ]);
 
-function informsInsteadOfRunning(words) {
+function informsInsteadOfRunning(words, { stopAtFile = false } = {}) {
   for (const word of words) {
     const bare = bareWord(word);
     // Past `--` the words belong to the script being run, not to the tool.
     if (bare === "--") return false;
+    // A runtime hands everything after its file operand to that file, so
+    // `python3 scripts/check.py -V` is the script's own flag, not a request
+    // for the interpreter's version. A package runner is the other way round:
+    // the tool it dispatches to reads `-h` the same way its runner would.
+    if (stopAtFile && isFileWord(bare)) return false;
     if (INFORMATIONAL_WORD.has(bare)) return true;
   }
   return false;
@@ -182,9 +187,10 @@ function commandPositionIsTarget(words) {
 }
 
 function runsProjectCode(executable, words) {
-  if (informsInsteadOfRunning(words)) return false;
+  const isRuntime = RUNTIME_CHECK.has(executable);
+  if (informsInsteadOfRunning(words, { stopAtFile: isRuntime })) return false;
   if (SELF_SUFFICIENT_CHECK.has(executable)) return true;
-  if (RUNTIME_CHECK.has(executable)) {
+  if (isRuntime) {
     return words.some((word) => isFileWord(bareWord(word)));
   }
   if (PACKAGE_RUNNER_CHECK.has(executable)) {

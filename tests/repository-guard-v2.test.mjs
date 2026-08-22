@@ -99,8 +99,26 @@ test("an informational flag beats the verb in front of it", () => {
       run
     );
   }
-  // Past `--` the words belong to the script, not to the tool.
-  for (const run of ["npm run check -- --help", "go test -v ./...", "pytest -v"]) {
+  // The interpreter's own informational flags still count, before the file.
+  for (const run of ["node -h scripts/check.mjs", "python3 --version scripts/check.py"]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must execute a real product check"],
+      run
+    );
+  }
+  // Past `--`, and past a runtime's file operand, the words belong to the
+  // script rather than the tool.
+  for (const run of [
+    "npm run check -- --help",
+    "go test -v ./...",
+    "pytest -v",
+    "python3 scripts/check.py -V",
+    "node scripts/check.mjs -h",
+    "bash scripts/build.sh --help"
+  ]) {
     const valid = structuredClone(config);
     valid.commands.check = [{ name: "site", run }];
     assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
