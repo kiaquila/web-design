@@ -57,6 +57,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     // without one, and a formatter asked for a verdict is a real check.
     "uv run --locked pytest",
     "make test version=1",
+    "uv run npm run check",
     "bundle exec --keep-file-descriptors rspec",
     "cargo fmt --check",
     "npm run format -- --check",
@@ -244,6 +245,8 @@ test("rejects commands that only report success", () => {
     // than the project.
     "cargo fmt --check -- --help", "cargo fmt --check -- --version",
     "cargo fmt --check -- --help=config", "npm test --version=1",
+    // A dispatched command is read like any other check.
+    "uv run --no-project true", "uv run echo ok", "bundle exec ls",
     // A slash is not a project: a runtime's operand has to be a path this
     // repository could hold.
     "node /dev/null", "bash /dev/null", "node ../outside/run.mjs", "node ~/run.mjs",

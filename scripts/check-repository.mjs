@@ -110,7 +110,9 @@ const PERSONAL_PATH_PATTERNS = [
 // `npm --prefix website run check`, so nothing is lost by insisting on it.
 
 // Running these exercises the project on their own.
-const SELF_SUFFICIENT_CHECK = new Set(["pytest", "tox"]);
+const SELF_SUFFICIENT_CHECK = new Set([
+  "pytest", "tox", "rspec", "jest", "vitest", "mocha", "phpunit"
+]);
 // These run the file they are handed, wherever it sits in the arguments.
 const RUNTIME_CHECK = new Set([
   "node", "deno", "bun", "python", "python3", "ruby", "php", "java", "swift",
@@ -232,21 +234,30 @@ function isRepositoryFileWord(word) {
   return normalizedRelativeSegments(word) !== null;
 }
 
-function dispatchesToName(words, index, immediate) {
+function dispatchNameIndex(words, index, immediate) {
   for (let position = index + 1; position < words.length; position += 1) {
     const following = bareWord(words[position]);
     if (!following) continue;
-    if (!following.startsWith("-")) return true;
-    if (immediate) return false;
+    if (!following.startsWith("-")) return position;
+    if (immediate) return -1;
   }
-  return false;
+  return -1;
 }
 
 function commandPositionIsTarget(words, executable) {
   const first = bareWord(words[0]);
   if (!first || first.startsWith("-")) return false;
   if (VERB_NEEDING_ARGUMENT.has(first)) {
-    return dispatchesToName(words, 0, NAME_MUST_FOLLOW_VERB.has(executable));
+    // `npm run check` dispatches to a script the package defines, which the
+    // guard cannot read and does not try to. `uv run pytest` dispatches to a
+    // command, and a command can be read — `uv run --no-project true` runs
+    // nothing at all — so the child is held to what any check is held to.
+    const immediate = NAME_MUST_FOLLOW_VERB.has(executable);
+    const index = dispatchNameIndex(words, 0, immediate);
+    if (index < 0) return false;
+    if (immediate) return true;
+    const child = executableBasename(bareWord(words[index]));
+    return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(index + 1));
   }
   if (VERDICT_VERB.has(first)) {
     return words.some((word) => VERDICT_FLAG.has(bareWord(word)));
