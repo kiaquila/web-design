@@ -308,6 +308,55 @@ test("removes a revoked managed file only when it is unchanged", async () => {
   }
 });
 
+test("a required file leaving the manifest is handed over, not taken away", async () => {
+  // `.github/CODEOWNERS` stopped being managed so a consumer could name an
+  // owner with rights in its own repository. Deleting it on upgrade would
+  // break the repository the file protects, and refusing the upgrade over the
+  // edit the setup guide asked for would strand the consumer who followed it.
+  const owners = ".github/CODEOWNERS";
+  for (const localEdit of [null, "/.github/ @someone-else\n"]) {
+    const initialPaths = [".web-design/managed-files.json", owners];
+    const { parent, source, target } = fixture(initialPaths);
+    try {
+      release(source, "1.0.0", { [owners]: "/.github/ @source-owner\n" }, initialPaths);
+      await applyLocal(target, source, "1.0.0");
+      if (localEdit) write(target, owners, localEdit);
+      release(source, "1.1.0", {}, [".web-design/managed-files.json"]);
+      const result = await applyLocal(target, source, "1.1.0", { acceptOwnershipChange: true });
+      assert.deepEqual(result.conflicts, [], String(localEdit));
+      assert.ok(result.changes.some((item) => item.path === owners && item.action === "release"));
+      assert.equal(existsSync(join(target, owners)), true);
+      assert.equal(
+        readFileSync(join(target, owners), "utf8"),
+        localEdit ?? "/.github/ @source-owner\n"
+      );
+      const lock = JSON.parse(readFileSync(join(target, ".web-design/lock.json")));
+      assert.equal(lock.files[owners], undefined);
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
+    }
+  }
+});
+
+test("drift in a required file still stops an update that is not releasing it", async () => {
+  // The deferral above is a deferral, not an exemption: a workflow edited
+  // locally is still drift, and the update stops for it.
+  const workflow = ".github/workflows/ci.yml";
+  const initialPaths = [".web-design/managed-files.json", workflow];
+  const { parent, source, target } = fixture(initialPaths);
+  try {
+    release(source, "1.0.0", { [workflow]: "on: push\n" }, initialPaths);
+    await applyLocal(target, source, "1.0.0");
+    write(target, workflow, "on: pull_request\n");
+    release(source, "1.1.0", { [workflow]: "on: push\n" }, initialPaths);
+    const result = await applyLocal(target, source, "1.1.0");
+    assert.deepEqual(result.conflicts, [workflow]);
+    assert.equal(readFileSync(join(target, workflow), "utf8"), "on: pull_request\n");
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
 test("refuses to remove a locally edited revoked file", async () => {
   const initialPaths = [".web-design/managed-files.json", "retired.txt"];
   const { parent, source, target } = fixture(initialPaths);

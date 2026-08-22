@@ -128,7 +128,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "cc2f5697ada94963df6de89ca21284242f206883f4a8e7dd14c0dd3e488146d4"
+      "sha256": "5eb1e312e24aba18c6c338b9dd18e31a51e48b5989c7365ab8e5cd5c1f35c2c9"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -156,7 +156,7 @@
     },
     {
       "path": "scripts/sync-project.mjs",
-      "sha256": "ea0f34fecc795f35fb01844311037e61f7c2ebb9b0b7de1d62726ebee02afe9a"
+      "sha256": "cf6c19ef429f6a4dd79c0961025be6ab853c1643ad860b4c00aed806ebdb79ea"
     },
     {
       "path": "scripts/test-web-design.mjs",
@@ -192,7 +192,7 @@
     },
     {
       "path": "tests/sync-project.test.mjs",
-      "sha256": "5b82be74206d67e540a3c552df3376f6b2a273b2ef3376e507d93ca11735a444"
+      "sha256": "4f207f39c6ab839b2846e7d78173c865c5fe848f17b213ffcd358f2433e49aa6"
     }
   ]
 }

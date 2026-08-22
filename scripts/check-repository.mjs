@@ -18,7 +18,10 @@ if (!yamlEntry.startsWith(`${policyNodeModules}${sep}`)) {
 }
 const { isAlias, isMap, isScalar, isSeq, parseDocument } = requirePolicyDependency(yamlEntry);
 
-const REQUIRED_ROOT_FILES = [
+// Exported so `sync-project.mjs` can tell a file the repository must have from
+// one it may lose: a required file that stops being managed is handed to the
+// project, not deleted from it.
+export const REQUIRED_ROOT_FILES = [
   ".gitignore",
   ".github/CODEOWNERS",
   ".web-design/project.json",
