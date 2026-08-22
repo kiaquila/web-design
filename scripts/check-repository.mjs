@@ -101,84 +101,83 @@ const PERSONAL_PATH_PATTERNS = [
 // language runtime, a build driver, or a shell handed a script file (with
 // `-c` refused as a nested shell above). Anything else belongs behind a script
 // the project runs, where the code is reviewed rather than quoted.
-// A target is a subcommand that runs the project's own code, or a file for the
-// tool to run. `--version` and `version` are neither, which is what separates
-// `npm --version` from `npm test`.
+// What makes a check real depends on the kind of tool, so the executables are
+// classified rather than pooled: `node --version` and `npm --version` fail for
+// different reasons, and `npm --prefix build --version` looked like a build
+// only because a pooled scan could not tell an option's value from a command.
+// Each kind states what it needs, and the tool's own command position is where
+// it has to be — `npm run check --prefix website` is the same run as
+// `npm --prefix website run check`, so nothing is lost by insisting on it.
+
+// Running these exercises the project on their own.
+const SELF_SUFFICIENT_CHECK = new Set(["pytest", "tox"]);
+// These run the file they are handed, wherever it sits in the arguments.
+const RUNTIME_CHECK = new Set([
+  "node", "deno", "bun", "python", "python3", "ruby", "php", "java", "swift",
+  "bash", "sh", "zsh"
+]);
+// These dispatch to a named tool, so the name is the command position.
+const PACKAGE_RUNNER_CHECK = new Set(["npx", "pnpx", "bunx", "uv"]);
+// These take a subcommand that has to run project code.
+const SUBCOMMAND_CHECK = new Set([
+  "npm", "pnpm", "yarn", "go", "cargo", "dotnet", "make", "mvn", "gradle",
+  "gradlew", "./gradlew", "rake", "bundle", "composer", "poetry", "pipenv"
+]);
+const PRODUCT_CHECK_EXECUTABLE = new Set([
+  ...SELF_SUFFICIENT_CHECK,
+  ...RUNTIME_CHECK,
+  ...PACKAGE_RUNNER_CHECK,
+  ...SUBCOMMAND_CHECK
+]);
+
 const PRODUCT_CHECK_VERB = new Set([
   "run", "test", "tests", "check", "checks", "ci", "install", "build", "lint",
   "format", "fmt", "typecheck", "vet", "verify", "e2e", "audit", "coverage",
   "bench", "exec", "start", "all"
 ]);
-
-// `npm run` lists the scripts and exits zero, so a verb that dispatches to a
-// named script is a target only once the name is there — and the name has to
-// follow the verb immediately. Reading `npm run --workspace website` as a
-// dispatch would mean knowing which options consume the next word, which is a
-// table per tool and per version; requiring `npm run <name>` needs no such
-// table, and flags still fit after the name.
+// `npm run` lists the scripts and exits zero, so a dispatching verb is a
+// target only once the name follows it, and immediately: reading
+// `npm run --workspace website` as a dispatch would mean knowing which options
+// consume the next word.
 const VERB_NEEDING_ARGUMENT = new Set(["run", "exec"]);
+const INFORMATIONAL_WORD = new Set([
+  "version", "--version", "-v", "-V", "help", "--help", "-h"
+]);
 
 function bareWord(word) {
-  return word.replace(/^["']|["']$/g, "");
+  return String(word ?? "").replace(/^["']|["']$/g, "");
 }
 
-function isProductCheckTarget(words, index) {
-  const bare = bareWord(words[index]);
-  if (!bare || bare.startsWith("-")) return false;
-  if (VERB_NEEDING_ARGUMENT.has(bare)) {
-    const following = bareWord(words[index + 1] ?? "");
-    return Boolean(following) && !following.startsWith("-");
+function isFileWord(word) {
+  return word.includes("/") || /\.[A-Za-z0-9]+$/.test(word);
+}
+
+function dispatchesToName(words, index) {
+  const following = bareWord(words[index + 1]);
+  return Boolean(following) && !following.startsWith("-");
+}
+
+function commandPositionIsTarget(words) {
+  const first = bareWord(words[0]);
+  if (!first || first.startsWith("-")) return false;
+  if (VERB_NEEDING_ARGUMENT.has(first)) return dispatchesToName(words, 0);
+  return PRODUCT_CHECK_VERB.has(first) || isFileWord(first);
+}
+
+function runsProjectCode(executable, words) {
+  if (SELF_SUFFICIENT_CHECK.has(executable)) {
+    return !words.some((word) => INFORMATIONAL_WORD.has(bareWord(word)));
   }
-  if (PRODUCT_CHECK_VERB.has(bare)) return true;
-  return bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare);
+  if (RUNTIME_CHECK.has(executable)) {
+    return words.some((word) => isFileWord(bareWord(word)));
+  }
+  if (PACKAGE_RUNNER_CHECK.has(executable)) {
+    const first = bareWord(words[0]);
+    return Boolean(first) && !first.startsWith("-") && !INFORMATIONAL_WORD.has(first);
+  }
+  return commandPositionIsTarget(words);
 }
 
-// `npm config get test` runs no project code: `config` is the command and
-// `test` is just a key to read. A familiar verb anywhere in the line is
-// therefore not enough — the target has to sit in the tool's command
-// position. Knowing exactly where that is would need a per-tool table, but it
-// does not have to be located, only cleared: every non-option word ahead of
-// the target must be the value of the option before it, which is what
-// `npm --prefix website run check` looks like and what `npm config get test`
-// does not.
-function isOptionMaterial(words, position) {
-  const bare = bareWord(words[position]);
-  if (!bare || bare.startsWith("-")) return true;
-  return bareWord(words[position - 1] ?? "").startsWith("-");
-}
-
-// `npm --prefix test config get cache` reads configuration and exits zero:
-// `test` is only the value handed to `--prefix`, and `config` is the command.
-// Clearing the words ahead of the target was not enough, because a word that
-// sits behind an option can be a familiar verb by coincidence. What settles it
-// is the tail: a real check's target is followed by its own arguments and
-// nothing else, so every word after it must be an option, an option's value, a
-// file, or come after `--`. `config get cache` is none of those.
-function hasProductCheckTarget(words) {
-  return words.some((word, index) => {
-    if (!isProductCheckTarget(words, index)) return false;
-    if (!words.slice(0, index).every((_, position) => isOptionMaterial(words, position))) {
-      return false;
-    }
-    const consumed = VERB_NEEDING_ARGUMENT.has(bareWord(word)) ? index + 2 : index + 1;
-    for (let position = consumed; position < words.length; position += 1) {
-      const bare = bareWord(words[position]);
-      if (bare === "--") return true;
-      if (isOptionMaterial(words, position)) continue;
-      if (bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare)) continue;
-      return false;
-    }
-    return true;
-  });
-}
-
-const PRODUCT_CHECK_EXECUTABLE = new Set([
-  "npm", "npx", "pnpm", "pnpx", "yarn", "bun", "bunx",
-  "node", "deno", "python", "python3", "ruby", "php", "java", "swift",
-  "go", "cargo", "dotnet", "make", "mvn", "gradle", "./gradlew", "gradlew",
-  "pytest", "tox", "rake", "bundle", "composer", "poetry", "uv", "pipenv",
-  "bash", "sh", "zsh"
-]);
 const SHELL_CONTROL_CHARACTERS = /[;|&`<>(){}$\\]/;
 // `! npm test` succeeds precisely when the product tests fail.
 const SHELL_NEGATION = /(?:^|[\s;&|(])!(?:\s|$)/;
@@ -378,16 +377,15 @@ export function validateProductCheckCommand(command) {
     }
     const words = commandWordsAfterAssignments(trimmed);
     if (!words.length) return "must execute a real product check";
-    if (!PRODUCT_CHECK_EXECUTABLE.has(executableBasename(words[0]))) {
+    const executable = executableBasename(words[0]);
+    if (!PRODUCT_CHECK_EXECUTABLE.has(executable)) {
       return "must execute a real product check";
     }
     // `npm --version` clears the executable allowlist and still runs no
-    // project code, and so do `node -v` and `go version`. The executable only
-    // says which tool runs; what it is pointed at is what makes the check
-    // real, so the command also has to carry a target — a subcommand that
-    // runs project code, or a file to run. An unusual verb is not a dead end:
-    // point the check at a script and the file itself is the target.
-    if (!hasProductCheckTarget(words.slice(1))) {
+    // project code, and so do `node -v`, `go version`, and
+    // `npm --prefix build --version`. The executable only says which tool
+    // runs; what it is pointed at is what makes the check real.
+    if (!runsProjectCode(executable, words.slice(1))) {
       return "must execute a real product check";
     }
   }
@@ -893,6 +891,28 @@ function valuesCarryUnreadableExpression(node, key) {
   );
 }
 
+// Only the two checkout inputs the checkout rules actually read are exempt.
+// `github-server-url: ${{ github.event.comment.body }}` sends the checkout and
+// its write-scoped token to a server the commenter picks, while `ref` and
+// `repository` stay innocent enough that the workspace is never classified as
+// untrusted — an exemption has to be per input, not per action.
+const GOVERNED_CHECKOUT_INPUTS = new Set(["ref", "repository"]);
+
+function checkoutInputsCarryUnreadableExpression(step) {
+  const inputs = mapPair(step, "with")?.value;
+  if (!isMap(inputs)) return false;
+  return inputs.items.some((pair) => {
+    if (!isScalar(pair.key) || !GOVERNED_CHECKOUT_INPUTS.has(String(pair.key.value))) {
+      return (
+        isScalar(pair.value) &&
+        typeof pair.value.value === "string" &&
+        computedEnvironmentValue(pair.value.value)
+      );
+    }
+    return false;
+  });
+}
+
 function stepCarriesUnreadableExpression(step) {
   if (valuesCarryUnreadableExpression(step, "env")) return true;
   const uses = mapPair(step, "uses")?.value;
@@ -900,6 +920,7 @@ function stepCarriesUnreadableExpression(step) {
     isScalar(uses) &&
     typeof uses.value === "string" &&
     /^actions\/checkout@/.test(uses.value.trim());
+  if (isCheckout && checkoutInputsCarryUnreadableExpression(step)) return true;
   if (!isCheckout && valuesCarryUnreadableExpression(step, "with")) return true;
   const run = mapPair(step, "run")?.value;
   if (!isScalar(run) || typeof run.value !== "string") return false;
@@ -1153,15 +1174,17 @@ function stepUsesUnreadableExpansion(step) {
 // Expressions are a full language, so a scanner cannot read what one
 // assembles; beside an untrusted checkout an environment value may carry only
 // expression forms that provably cannot build a path — a token, a named
-// secret, a dispatch input, fixed run metadata, a trusted step's output, or a
-// step outcome selecting between short literals — and the raw value, quoted
-// literals included, still may not name the tree.
+// secret, a dispatch input, fixed run metadata, or a step outcome selecting
+// between short literals — and the raw value, quoted literals included, still
+// may not name the tree. `steps.X.outputs.Y` is not among them: a producer
+// step can read `$GITHUB_EVENT_PATH` and write a comment body into
+// `$GITHUB_OUTPUT`, so an output carries whatever its producer put there.
+// `outcome` stays, because the runner writes it and it is one of four words.
 const TRUSTED_ENVIRONMENT_EXPRESSION = [
   /^github\.token$/,
   /^secrets\.[A-Za-z0-9_]+(?:\s*\|\|\s*github\.token)?$/,
   /^inputs\.[A-Za-z0-9_]+$/,
   /^github\.(?:server_url|repository|run_id|sha)$/,
-  /^steps\.[A-Za-z0-9_-]+\.outputs\.[A-Za-z0-9_-]+$/,
   /^steps\.[A-Za-z0-9_-]+\.outcome\s*==\s*'[A-Za-z0-9_-]+'\s*&&\s*'[A-Za-z0-9_-]+'\s*\|\|\s*'[A-Za-z0-9_-]+'$/
 ];
 

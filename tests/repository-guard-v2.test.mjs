@@ -47,8 +47,12 @@ test("requires at least one real product check in consumer mode", () => {
 
 test("accepts product checks whose exit status comes from a real command", () => {
   const accepted = [
-    "npm --prefix website run check",
-    "npm ci --prefix website && npm --prefix website run check",
+    // The tool's own command position: `npm run check --prefix website` is the
+    // same run as `npm --prefix website run check`, with the flag after it.
+    "npm run check --prefix website",
+    "npm ci --prefix website && npm run check --prefix website",
+    "npx eslint .",
+    "pytest",
     "node --test tests/a.test.mjs tests/b.test.mjs",
     'npm test -- --grep "a|b"',
     "npm run build -- --tag '#1'",
@@ -169,7 +173,10 @@ test("rejects commands that only report success", () => {
     // that is only an option's value is not one either.
     "npm run --workspace website test",
     "npm --prefix test config get cache",
-    "npm --prefix build config list"
+    "npm --prefix build config list",
+    // An option's value is not the command position, even when only options
+    // follow it.
+    "npm --prefix build --version", "npm --prefix test", "npx --version", "pytest --version"
   ];
   for (const run of noOps) {
     const invalid = structuredClone(config);
@@ -919,8 +926,18 @@ test("step outputs cannot launder the untrusted tree into the environment", () =
     ).join("\n"),
     /assembles a shell value alongside the untrusted checkout candidate/
   );
+  // Even a managed producer cannot hand the value on through an output: what
+  // an output holds is whatever its producer put there. A step that needs the
+  // value does the work itself.
+  assert.match(
+    validateWorkflowText(".github/workflows/example.yml", chain("node scripts/seed.mjs")).join("\n"),
+    /carries a computed environment value alongside the untrusted checkout candidate/
+  );
   assert.deepEqual(
-    validateWorkflowText(".github/workflows/example.yml", chain("node scripts/seed.mjs")),
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: \${{ github.event.pull_request.head.sha }}\n          path: candidate\n      - run: node scripts/verify.mjs\n`
+    ),
     []
   );
 });
@@ -992,6 +1009,12 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n${stepYaml}`;
   for (const stepYaml of [
     "      - run: eval \"${{ github['event']['comment']['body'] }}\"\n",
+    // A checkout input the checkout rules never read: this one sends the
+    // checkout and its write-scoped token to a server the commenter picks.
+    "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: main\n          github-server-url: ${{ github.event.comment.body }}\n",
+    // A producer can put the comment body in an output, so an output is not
+    // provably free of it.
+    "      - id: seed\n        run: node scripts/seed.mjs\n      - env:\n          BODY: ${{ steps.seed.outputs.body }}\n        run: eval \"$BODY\"\n",
     "      - env:\n          BODY: ${{ github['event']['comment']['body'] }}\n        run: node run.mjs\n",
     "      - run: node run.mjs ${{ fromJSON(github.event.comment.body).ref }}\n",
     "      - run: node run.mjs ${{ format('{0}', github.event.comment.body) }}\n"
