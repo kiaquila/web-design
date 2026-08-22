@@ -120,7 +120,7 @@
     },
     {
       "path": "scripts/check-baseline-change.mjs",
-      "sha256": "590e0bc3d6918c896414905338c2a0ebb93f2076387c1f82ef0307518b8ec1e6"
+      "sha256": "dad31b03727aa04dc7dde16136fd4b70acd21a59f936f5a52ec1b0c0212c1974"
     },
     {
       "path": "scripts/check-managed-files.mjs",
@@ -172,7 +172,7 @@
     },
     {
       "path": "tests/baseline-change.test.mjs",
-      "sha256": "01af8d1afcd1a16263ad957f8a6e6e7a0875be0b90431a3c5a871d3d567c547a"
+      "sha256": "a02a0997d27cf262310c5163584bd8fb3278a91b30b94251b1881528546bc814"
     },
     {
       "path": "tests/bootstrap-project.test.mjs",
