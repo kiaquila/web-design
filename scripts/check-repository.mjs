@@ -174,6 +174,16 @@ const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
 // rare in a check command, and the exchange is deliberate.
 // Read after the same dash normalization the other families use, so how the
 // option was typed does not decide whether it is seen.
+// `npm test || true` is refused at the shell level because the check's exit
+// status has to come from the work. These options do the same thing one layer
+// down: the tool runs, and then the verdict is discarded — `--ignore-errors`
+// swallows a failed recipe, `--fail-never` reports success whatever the build
+// did, `--exit-zero` says so in its name, and `--script-shell` replaces the
+// shell a script runs in, so `/bin/true` becomes the exit status. A negated
+// spelling asks for the strict behaviour and is left alone.
+const EXIT_STATUS_DETACHING = new Set([
+  "ignore-errors", "fail-never", "exit-zero", "script-shell"
+]);
 const REPORTING_NAME = ["show", "print", "list", "dry-run"];
 const REPORTING_OPTION = new RegExp(`^(?:${REPORTING_NAME.join("|")})(?:-|$)`);
 // Naming output is one way to not do the work; claiming it is already done is
@@ -279,6 +289,7 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     if (reportingName && !reportingName.startsWith("no-")) {
       if (REPORTING_OPTION.test(reportingName)) return true;
       if (NON_EXECUTING_MODE.has(reportingName)) return true;
+      if (EXIT_STATUS_DETACHING.has(reportingName)) return true;
     }
     if (versionIsShort && bare === "-v") return true;
     // A single letter means whatever its tool says it means: `-n` is Make's
@@ -642,7 +653,8 @@ export function validateProductCheckCommand(command) {
         abbreviatesOption(bare, INFORMATIONAL_WORD) ||
         abbreviatesOption(base, ABSENCE_TOLERATING_FLAG) ||
         abbreviatesOption(base, NON_EXECUTING_MODE) ||
-        abbreviatesOption(base, new Set(REPORTING_NAME))
+        abbreviatesOption(base, new Set(REPORTING_NAME)) ||
+        abbreviatesOption(base, EXIT_STATUS_DETACHING)
       );
     });
     if (abbreviated) return "must spell out its options rather than abbreviate them";

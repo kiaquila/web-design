@@ -105,7 +105,8 @@ test("an abbreviated option is refused rather than resolved", () => {
     "npm run check --if-p", "npm run check --no-if-p", "npm test --vers",
     "npm run check -if-p", "make test --tou",
     // A reporting mode abbreviates like anything else.
-    "make test --dry-r", "swift build --sho"
+    "make test --dry-r", "swift build --sho",
+    "make test --ignore-e", "npm test --script-sh=/bin/true"
   ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
@@ -361,6 +362,10 @@ test("rejects commands that only report success", () => {
     // them. Only the verbose flag the classes model is readable.
     "make test -n", "make test -t", "npm run check -s",
     // Make's documented modes that skip the recipe, in their spelled forms.
+    // The work runs and the verdict is thrown away — what `|| true` does one
+    // layer up, and refused for the same reason.
+    "npm test --script-shell=/bin/true", "make test --ignore-errors",
+    "mvn test --fail-never", "ruff check --exit-zero",
     "make test --touch", "make test --question", "make test --just-print",
     "make test --recon", "make test --what-if test", "make test --new-file x",
     "make test --assume-new x",
