@@ -214,7 +214,7 @@ test("a named option's value is read as the path it is", () => {
   for (const run of [
     "npm run check --prefix /tmp/noop-package",
     "npm run check --prefix=node_modules/noop-package",
-    "npm run check --prefix ../outside",
+    "npm run check --prefix ../outside", "npm run check --prefix packages/@scope/../../../etc",
     "npm run check --prefix node_modules/noop-package",
     "npm run check --prefix dist",
     // `--workspace` takes a name rather than a path, and a name is resolved by
@@ -236,8 +236,10 @@ test("a named option's value is read as the path it is", () => {
   for (const run of [
     "npm run check --prefix website", "npm run check --prefix=website",
     "npm run check --prefix apps/web",
-    // A workspace is reached by the spelling that is a path.
-    "npm run test --prefix packages/website"
+    // A workspace is reached by the spelling that is a path, and a scoped
+    // package sits at a path with an `@` in it.
+    "npm run test --prefix packages/website",
+    "npm run check --prefix packages/@scope/pkg"
   ]) {
     const valid = structuredClone(config);
     valid.commands.check = [{ name: "site", run }];

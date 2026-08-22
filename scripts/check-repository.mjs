@@ -264,9 +264,12 @@ function isRepositoryDirectoryWord(word) {
   // A path this guard could read: literal path characters only, nothing
   // quoted, spaced, or commented, and nothing climbing out of the tree. A word
   // that starts with a dash is an option rather than a path, whatever it
-  // spells — which is why only options taking a path are named at all.
+  // spells — which is why only options taking a path are named at all. `@` is
+  // a path character here: a scoped package sits at `packages/@scope/pkg`, and
+  // traversal out of the tree is caught by the segment normalization below
+  // rather than by the alphabet.
   if (word.startsWith("-")) return false;
-  if (!/^[A-Za-z0-9._/-]+$/.test(word)) return false;
+  if (!/^[@A-Za-z0-9._/-]+$/.test(word)) return false;
   const segments = normalizedRelativeSegments(word);
   if (segments === null) return false;
   return segments.every((segment) => !FORBIDDEN_SEGMENTS.has(segment));
