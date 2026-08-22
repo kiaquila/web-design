@@ -43,6 +43,10 @@ After the first green workflow run:
    to the repository. Until the branch rule is applied, treat push access to
    this repository as equivalent to write access through this workflow, and
    record that rather than claiming the condition enforces it.
+   The Codex Review dispatch job needs the same treatment: it declares
+   `environment: codex-review-dispatch` and holds `checks: write`, so restrict
+   that environment's deployment branches to the default branch too. A branch
+   copy of the workflow could otherwise mint a passing required check.
 8. Enable available dependency alerts, automated fixes, secret scanning, and
    push protection.
 9. Keep deployment secrets in environment-scoped stores and restrict production

@@ -239,13 +239,16 @@ function matchesOption(name, flags) {
   return [...flags].some((flag) => flag.startsWith("--") && flag.slice(2) === long);
 }
 
-function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparator = true } = {}) {
+// Past `--` the words reach whatever is being run, and that can be another
+// tool with the same flags: `npm run check -- --help` hands `--help` to a
+// script that may be `node --test`, which prints help and exits zero. Where
+// they land is not knowable from here, so the scan does not stop at the
+// separator at all — a check has no use for an informational flag on either
+// side of it.
+function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
   for (const word of words) {
     const bare = bareWord(word);
-    // Past `--` the words usually belong to the script being run rather than
-    // to the tool — except after a formatter verdict, where `cargo fmt --check
-    // -- --help` hands them to rustfmt, which prints help and exits zero.
-    if (bare === "--" && stopAtSeparator) return false;
+    if (bare === "--") continue;
     // `--help=config` is the same request with its topic attached, so the
     // value comes off before the word is read — but only from an option, since
     // `make test version=1` is a variable assignment and its target is `test`.
@@ -375,8 +378,7 @@ function runsProjectCode(executable, words) {
   const isRuntime = RUNTIME_CHECK.has(executable);
   const operand = isRuntime ? runtimeOperandIndex(words) : -1;
   const informs = informsInsteadOfRunning(isRuntime ? words.slice(0, Math.max(operand, 0)) : words, {
-    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable),
-    stopAtSeparator: !VERDICT_VERB.has(bareWord(words[0]))
+    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable)
   });
   if (informs) return false;
   if (SELF_SUFFICIENT_CHECK.has(executable)) {
@@ -1688,7 +1690,17 @@ function dispatchOnlyJob(job) {
   const defaultBranch = parts.some((part) =>
     /^\(*\s*github\.ref\s*==\s*format\(\s*["']refs\/heads\/\{0\}["']\s*,\s*github\.event\.repository\.default_branch\s*\)\s*\)*$/.test(part)
   );
-  return dispatchEvent && defaultBranch;
+  // The condition cannot enforce itself: a manual run picks a ref, GitHub
+  // loads that ref's copy of the workflow, and a branch copy can simply delete
+  // the `if`. What a branch cannot rewrite is an environment — GitHub decides
+  // which refs may deploy to one — so a write-capable dispatch job has to name
+  // one, with its deployment branches restricted to the default branch in the
+  // repository settings. `docs/operations/github-setup.md` carries that step.
+  const environment = mapPair(job, "environment")?.value;
+  const guarded =
+    (isScalar(environment) && typeof environment.value === "string" && environment.value.trim()) ||
+    (isMap(environment) && mapPair(environment, "name") !== undefined);
+  return dispatchEvent && defaultBranch && Boolean(guarded);
 }
 
 function directUnsupportedConstructs(node, { blockScalar = false, mergeKey = false } = {}) {

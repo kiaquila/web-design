@@ -153,7 +153,7 @@ test("an informational flag beats the verb in front of it", () => {
   // Past `--`, and past a runtime's file operand, the words belong to the
   // script rather than the tool.
   for (const run of [
-    "npm run check -- --help",
+
     "go test -v ./...",
     "python3 scripts/check.py -V",
     "node scripts/check.mjs -h",
@@ -269,6 +269,9 @@ test("rejects commands that only report success", () => {
     "npm run check --if-present=true", "npm run check --if-present=0",
     "npm run check --if-present=no", "npm run check --if-present=FALSE",
     "npm run check --if-present=garbage",
+    // Past `--` the words reach whatever is being run, which can be another
+    // tool with the same flags.
+    "npm run check -- --help", "npm test -- --version",
     // A double negative turns it back on.
     "npm run check --no-if-present=false", "npm run check --no-if-present=true",
     // The flag is refused in every spelling, set either way: reading its value
@@ -643,12 +646,27 @@ test("rejects flow-style job permissions on pull requests", () => {
   assert.match(failures.join("\n"), /job test may not grant write permissions/);
 });
 
-test("allows a write-capable job gated to manual dispatch on the default branch", () => {
-  const failures = validateWorkflowText(
-    ".github/workflows/example.yml",
-    "on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
+test("a manual write job needs an environment, not only its own condition", () => {
+  // A manual run picks a ref and GitHub loads that ref's copy of the file, so
+  // a branch could delete the condition before asking for the token. An
+  // environment is GitHub's to decide, and a branch cannot rewrite it.
+  const gated = (extra) =>
+    `on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: \${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n${extra}    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n`;
+  assert.match(
+    validateWorkflowText(".github/workflows/example.yml", gated("")).join("\n"),
+    /may not grant write permissions/
   );
-  assert.deepEqual(failures, []);
+  assert.deepEqual(
+    validateWorkflowText(".github/workflows/example.yml", gated("    environment: release\n")),
+    []
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      gated("    environment:\n      name: release\n")
+    ),
+    []
+  );
 });
 
 test("rejects a write-capable job gated only to the manual event", () => {
@@ -1568,7 +1586,7 @@ test("allows top-level write permissions on default-branch-only events", () => {
 test("a manual write job stays valid when it keeps the default-branch gate", () => {
   const failures = validateWorkflowText(
     ".github/workflows/example.yml",
-    "on: workflow_dispatch\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
+    "on: workflow_dispatch\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n    environment: release\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
   );
   assert.deepEqual(failures, []);
 });
