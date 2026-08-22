@@ -334,8 +334,13 @@ function commandPositionIsTarget(words, executable) {
     // guard cannot read and does not try to. `uv run pytest` dispatches to a
     // command, and a command can be read — `uv run --no-project true` runs
     // nothing at all — so the child is held to what any check is held to.
-    const immediate = NAME_MUST_FOLLOW_VERB.has(executable);
-    if (immediate) return dispatchNameIndex(words, 0, true) >= 0;
+    // Only `run` on these tools names a script the package defines, which the
+    // guard cannot read and does not try to. `npm exec true` names a command
+    // — a dependency's binary, and a no-op one here — so it is read like any
+    // other dispatched command.
+    if (first === "run" && NAME_MUST_FOLLOW_VERB.has(executable)) {
+      return dispatchNameIndex(words, 0, true) >= 0;
+    }
     // The command follows the verb directly; see the note on
     // `dispatchedCommandIndex` for why nothing may sit between them.
     const index = dispatchedCommandIndex(words);

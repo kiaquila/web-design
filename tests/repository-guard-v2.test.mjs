@@ -269,6 +269,8 @@ test("rejects commands that only report success", () => {
     "npm run check --if-present=true", "npm run check --if-present=0",
     "npm run check --if-present=no", "npm run check --if-present=FALSE",
     "npm run check --if-present=garbage",
+    // `exec` names a command rather than a script the package defines.
+    "npm exec true", "npm exec eslint .",
     // Past `--` the words reach whatever is being run, which can be another
     // tool with the same flags.
     "npm run check -- --help", "npm test -- --version",
