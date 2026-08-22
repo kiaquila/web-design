@@ -1393,6 +1393,43 @@ function directoryEscapesWorkspace(value) {
   return pathEscapesWorkspace(value) || normalizedRelativeSegments(value) === null;
 }
 
+// `printenv > vars && ... && read EVENT < path && jq ... "$EVENT"` rebuilds the
+// event path at run time without ever spelling it: `read` binds a name that no
+// assignment created. Chasing the builtins that can bind a name — `read`,
+// `mapfile`, `source`, and whatever comes next — is the losing side again, so
+// the rule is about references instead. A name may be used only if the
+// workflow put it there: declared in `env`, assigned earlier in this same
+// command by an assignment the assembly rule already vetted, or one of the
+// runner's own settled values. A name that merely exists is unknown, however
+// it came to exist.
+const SAFE_RUNNER_VARIABLE = new Set([
+  "CI", "PWD", "PATH", "GITHUB_WORKSPACE", "GITHUB_REPOSITORY", "GITHUB_SHA",
+  "GITHUB_REF", "GITHUB_REF_NAME", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT",
+  "GITHUB_SERVER_URL", "GITHUB_API_URL", "GITHUB_ACTOR", "RUNNER_OS", "RUNNER_ARCH"
+]);
+
+function environmentNames(node) {
+  const env = mapPair(node, "env")?.value;
+  if (!isMap(env)) return [];
+  return env.items
+    .filter((pair) => isScalar(pair.key) && typeof pair.key.value === "string")
+    .map((pair) => String(pair.key.value));
+}
+
+function stepNamesUnknownVariable(step, declared) {
+  const text = stepShellText(step, { ignoreExpressions: true });
+  if (text === null) return false;
+  const known = new Set([...declared, ...environmentNames(step)]);
+  for (const match of text.matchAll(/(?:^|[\s;&|(])([A-Za-z_][A-Za-z0-9_]*)=/g)) {
+    known.add(match[1]);
+  }
+  for (const match of text.matchAll(/\$(?:([A-Za-z_][A-Za-z0-9_]*)|\{([A-Za-z_][A-Za-z0-9_]*)\})/g)) {
+    const name = match[1] ?? match[2];
+    if (!known.has(name) && !SAFE_RUNNER_VARIABLE.has(name)) return true;
+  }
+  return false;
+}
+
 function stepReachesOutsideWorkspace(step) {
   if (directoryEscapesWorkspace(runDirectoryValue(step))) return true;
   if (valuesEscapeWorkspace(step, "env") || valuesEscapeWorkspace(step, "with")) return true;
@@ -1593,6 +1630,10 @@ export function validateWorkflowText(path, text) {
               `Write-capable job ${jobName} passes an actor-controlled ref to what it calls: ${path}`
             );
           }
+          const declaredEnvironmentNames = [
+            ...environmentNames(root),
+            ...environmentNames(jobPair.value)
+          ];
           if (
             valuesEscapeWorkspace(root, "env") ||
             valuesEscapeWorkspace(jobPair.value, "env") ||
@@ -1646,6 +1687,11 @@ export function validateWorkflowText(path, text) {
               if (stepReadsEventPayload(step)) {
                 failures.push(
                   `Write-capable job ${jobName} reads the event payload in its shell: ${path}`
+                );
+              }
+              if (stepNamesUnknownVariable(step, declaredEnvironmentNames)) {
+                failures.push(
+                  `Write-capable job ${jobName} uses a variable the workflow did not set: ${path}`
                 );
               }
               if (stepReachesOutsideWorkspace(step)) {

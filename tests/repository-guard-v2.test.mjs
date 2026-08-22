@@ -896,7 +896,18 @@ test("an actor-controlled ref reaching the shell through env is refused", () => 
       where
     );
   }
-  assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", withEnv("none")), []);
+  // With no actor expression in scope the same shell is fine — the name it
+  // uses has to be one the workflow set, which is the rule one layer down.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      withEnv("none").replace(
+        "    steps:\n",
+        "    env:\n      CANDIDATE_REF: main\n    steps:\n"
+      )
+    ),
+    []
+  );
 });
 
 test("a computed cd destination fails closed beside an untrusted checkout", () => {
@@ -937,7 +948,10 @@ test("no environment value may name the untrusted tree", () => {
   assert.deepEqual(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      step('GH_TOKEN="$SOURCE_TOKEN" node scripts/check.mjs --workspace "$GITHUB_WORKSPACE"')
+      step('GH_TOKEN="$SOURCE_TOKEN" node scripts/check.mjs --workspace "$GITHUB_WORKSPACE"').replace(
+        "      - run:",
+        "      - env:\n          SOURCE_TOKEN: ${{ secrets.READ_TOKEN }}\n        run:"
+      )
     ),
     []
   );
@@ -1120,7 +1134,10 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     ['      - run: cd ..\n', /reaches outside the workspace/],
     // A quote can sit between the operand prefix and the path.
     ['      - run: dd if="/tmp/_github_workflow/event.json" of=event.json\n', /reaches outside the workspace/],
-    ['      - run: dd if=\'../../_temp/_github_workflow/event.json\' of=event.json\n', /reaches outside the workspace/]
+    ['      - run: dd if=\'../../_temp/_github_workflow/event.json\' of=event.json\n', /reaches outside the workspace/],
+    // A name bound by `read` is not a name the workflow set.
+    ['      - run: printenv > vars && read EVENT < vars && jq -r .comment.body "$EVENT" > payload\n', /uses a variable the workflow did not set/],
+    ['      - run: node run.mjs "$SECRET_PATH"\n', /uses a variable the workflow did not set/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
@@ -1128,6 +1145,13 @@ test("an expression that cannot be read fails closed in an actor-triggered write
       stepYaml
     );
   }
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      step('      - env:\n          TARGET: website\n        run: code=0 && node run.mjs "$TARGET" "$GITHUB_WORKSPACE" "$code"\n')
+    ),
+    []
+  );
   // The forms the baseline's own actor-triggered write jobs rely on.
   assert.deepEqual(
     validateWorkflowText(
