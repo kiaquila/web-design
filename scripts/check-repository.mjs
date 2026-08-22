@@ -122,17 +122,35 @@ function bareWord(word) {
   return word.replace(/^["']|["']$/g, "");
 }
 
+function isProductCheckTarget(words, index) {
+  const bare = bareWord(words[index]);
+  if (!bare || bare.startsWith("-")) return false;
+  if (VERB_NEEDING_ARGUMENT.has(bare)) {
+    const following = bareWord(words[index + 1] ?? "");
+    return Boolean(following) && !following.startsWith("-");
+  }
+  if (PRODUCT_CHECK_VERB.has(bare)) return true;
+  return bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare);
+}
+
+// `npm config get test` runs no project code: `config` is the command and
+// `test` is just a key to read. A familiar verb anywhere in the line is
+// therefore not enough — the target has to sit in the tool's command
+// position. Knowing exactly where that is would need a per-tool table, but it
+// does not have to be located, only cleared: every non-option word ahead of
+// the target must be the value of the option before it, which is what
+// `npm --prefix website run check` looks like and what `npm config get test`
+// does not.
 function hasProductCheckTarget(words) {
-  return words.some((word, index) => {
-    const bare = bareWord(word);
-    if (!bare || bare.startsWith("-")) return false;
-    if (VERB_NEEDING_ARGUMENT.has(bare)) {
-      const following = bareWord(words[index + 1] ?? "");
-      return Boolean(following) && !following.startsWith("-");
-    }
-    if (PRODUCT_CHECK_VERB.has(bare)) return true;
-    return bare.includes("/") || /\.[A-Za-z0-9]+$/.test(bare);
-  });
+  for (let index = 0; index < words.length; index += 1) {
+    if (!isProductCheckTarget(words, index)) continue;
+    return words.slice(0, index).every((word, position) => {
+      const bare = bareWord(word);
+      if (!bare || bare.startsWith("-")) return true;
+      return bareWord(words[position - 1] ?? "").startsWith("-");
+    });
+  }
+  return false;
 }
 
 const PRODUCT_CHECK_EXECUTABLE = new Set([
@@ -574,6 +592,11 @@ const REF_SELECTABLE_EVENTS = new Set([
   "workflow_dispatch"
 ]);
 
+// The events whose payload the repository itself produces. A `push` qualifies
+// only when it is filtered to the default branch, which the caller checks;
+// `workflow_call` is absent because the caller decides what arrives.
+const REPOSITORY_CONTROLLED_EVENTS = new Set(["push", "workflow_dispatch", "schedule"]);
+
 // A push filtered to the default branch runs the default branch's own copy of
 // the workflow, which is the reviewed, trusted context the security standard
 // allows write jobs to run from. Every managed workflow already writes the
@@ -805,13 +828,31 @@ function stepHasComputedWorkingDirectory(step) {
 // into the tree is refused as execution, above.
 const TREE_ADJACENT_ACTION = /^actions\/(?:checkout|setup-node)@[0-9a-f]{40}$/;
 
-function stepUsesUnvouchedAction(step) {
-  const uses = mapPair(step, "uses")?.value;
-  if (!uses) return false;
+function usesUnvouchedReference(uses) {
   if (!isScalar(uses) || typeof uses.value !== "string") return true;
   const reference = uses.value.trim();
   if (reference.startsWith("./")) return false;
   return !TREE_ADJACENT_ACTION.test(reference);
+}
+
+function stepUsesUnvouchedAction(step) {
+  const uses = mapPair(step, "uses")?.value;
+  if (!uses) return false;
+  return usesUnvouchedReference(uses);
+}
+
+// A called workflow's `with:` inputs are the actor-controlled surface a step's
+// `env` is, and they arrive holding the caller's token.
+function jobInputsCarryActorControlledRef(job) {
+  const inputs = mapPair(job, "with")?.value;
+  if (!isMap(inputs)) return false;
+  return inputs.items.some((pair) => {
+    if (!isScalar(pair.value) || typeof pair.value.value !== "string") return false;
+    return (
+      ACTOR_CONTROLLED_REF_EXPRESSION.test(pair.value.value) ||
+      alwaysUntrustedInput(pair.value.value)
+    );
+  });
 }
 
 function stepExecutesFromDirectory(step, directory, jobDefaultsEnterTree) {
@@ -1219,6 +1260,17 @@ export function validateWorkflowText(path, text) {
     const refSelectable = [...events].some((event) =>
       event === "push" ? !trustedPush : REF_SELECTABLE_EVENTS.has(event)
     );
+    // A default-branch push, a manual dispatch, and a schedule carry only what
+    // the repository already holds. Every other event arrives with a payload
+    // someone outside the trust boundary shaped — a comment body, a run to
+    // inspect, a caller's inputs — so a write-capable job under one of those
+    // may reach only for the actions this baseline vouches for. A deploy job
+    // on a repository-controlled event keeps its own tooling.
+    const actorTriggered =
+      events.size === 0 ||
+      [...events].some((event) =>
+        event === "push" ? !trustedPush : !REPOSITORY_CONTROLLED_EVENTS.has(event)
+      );
     let topLevelWrites = false;
     const rootDefaults = mapPair(root, "defaults")?.value;
     const rootRunDefaults = isMap(rootDefaults) ? mapPair(rootDefaults, "run")?.value : undefined;
@@ -1284,6 +1336,31 @@ export function validateWorkflowText(path, text) {
         const writes = jobPermissions
           ? permissionWrites(jobPermissions.value, `job ${jobName} permissions`, failures, path)
           : topLevelWrites;
+        if (writes && actorTriggered) {
+          // A job that calls a reusable workflow has no steps to scan, and the
+          // called workflow runs with this job's token. Its inputs are the
+          // same actor-controlled surface a step's `env` is, and a published
+          // workflow is third-party code holding the token.
+          if (jobInputsCarryActorControlledRef(jobPair.value)) {
+            failures.push(
+              `Write-capable job ${jobName} passes an actor-controlled ref to what it calls: ${path}`
+            );
+          }
+          if (reusableWorkflow && usesUnvouchedReference(reusableWorkflow.value)) {
+            failures.push(
+              `Write-capable job ${jobName} calls a workflow that is not vouched for: ${path}`
+            );
+          }
+          if (isSeq(steps)) {
+            for (const step of steps.items) {
+              if (isMap(step) && stepUsesUnvouchedAction(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} uses an action that is not vouched for: ${path}`
+                );
+              }
+            }
+          }
+        }
         if (writes && isSeq(steps)) {
           const refExpressionInScope =
             environmentRefExpression(root) || environmentRefExpression(jobPair.value);

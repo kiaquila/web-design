@@ -54,9 +54,10 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "npm run build -- --tag '#1'",
     "bash scripts/build.sh",
     "npm run x -- --shell -c",
-    // The script name follows the verb; flags fit after it.
+    // The script name follows the verb; flags fit after it, and an option
+    // before the verb may still take its own value.
     "npm run check --silent",
-    "npm run --workspace website test"
+    "npm run test --workspace website"
   ];
   for (const run of accepted) {
     const valid = structuredClone(config);
@@ -161,7 +162,11 @@ test("rejects commands that only report success", () => {
     "npm run", "npm run --silent", "npm exec", "npm --prefix website run",
     // An option between the verb and the name swallows the name: this lists
     // one workspace's scripts and exits zero.
-    "npm run --workspace website", "npm exec --yes"
+    "npm run --workspace website", "npm exec --yes",
+    // `config` is the command; `test` is only a key it reads.
+    "npm config get test", "npm config get run x", "npm view . scripts",
+    // A verb behind the tool's real command is not the command.
+    "npm run --workspace website test"
   ];
   for (const run of noOps) {
     const invalid = structuredClone(config);
@@ -944,6 +949,64 @@ test("an environment-file name cannot be assembled or reached indirectly", () =>
     validateWorkflowText(
       ".github/workflows/example.yml",
       step('node run.mjs "$GITHUB_WORKSPACE" "${HOME}" \'$(pwd)\'')
+    ),
+    []
+  );
+});
+
+test("an actor-triggered write job is constrained even without a checkout", () => {
+  const workflow = (stepYaml) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n${stepYaml}`;
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      workflow(
+        "      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea\n        with:\n          github-token: ${{ github.token }}\n          script: eval(context.payload.comment.body)\n"
+      )
+    ).join("\n"),
+    /uses an action that is not vouched for/
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      workflow("      - uses: ./scripts/action\n      - run: node scripts/handle.mjs\n")
+    ),
+    []
+  );
+  // A repository-controlled event keeps its own tooling: the payload is the
+  // repository's own, so a deploy job may use its provider's action.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      "on:\n  push:\n    branches: [main]\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65\n"
+    ),
+    []
+  );
+});
+
+test("a write-capable job may not hand actor input to a workflow it calls", () => {
+  const called = (jobYaml) =>
+    `on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n${jobYaml}`;
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      called(
+        "    uses: ./.github/workflows/inner.yml\n    with:\n      ref: ${{ github.event.comment.body }}\n    secrets:\n      TOKEN: ${{ secrets.TOKEN }}\n"
+      )
+    ).join("\n"),
+    /passes an actor-controlled ref to what it calls/
+  );
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      called("    uses: octo/shared/.github/workflows/build.yml@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11\n")
+    ).join("\n"),
+    /calls a workflow that is not vouched for/
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      called("    uses: ./.github/workflows/inner.yml\n    with:\n      head_sha: ${{ inputs.head_sha }}\n")
     ),
     []
   );
