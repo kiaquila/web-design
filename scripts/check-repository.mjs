@@ -183,6 +183,14 @@ const INFORMATIONAL_WORD = new Set([
 const READABLE_OPTION = new Set([
   "--prefix", "--workspace", "--silent", "--check", "--check-only"
 ]);
+// Naming an option is not the same as reading it. `--prefix` and `--workspace`
+// point npm at a directory, and an unconstrained value points it out of the
+// product: `npm run check --prefix /tmp/noop-package` runs an unreviewed
+// package's always-green script, and `--prefix=node_modules/noop-package`
+// reaches a dependency without leaving the tree. So a named option's value is
+// read the way a product path is — relative, inside the repository, and clear
+// of the directories this guard already refuses to read.
+const OPTION_TAKING_PATH = new Set(["--prefix", "--workspace"]);
 // A name that describes output rather than work. It is read as a word now
 // rather than as an option — options are decided by the set above — and its
 // one use is Swift's reporting subcommands, below.
@@ -243,8 +251,18 @@ function matchesOption(name, flags) {
 // filter that happens to read the same way.
 const SUBCOMMAND_REPORTING_TOOL = new Set(["swift"]);
 
+function isRepositoryDirectoryWord(word) {
+  // A path this guard could read: literal path characters only, nothing
+  // quoted, spaced, or commented, and nothing climbing out of the tree.
+  if (!/^[A-Za-z0-9._/-]+$/.test(word)) return false;
+  const segments = normalizedRelativeSegments(word);
+  if (segments === null) return false;
+  return segments.every((segment) => !FORBIDDEN_SEGMENTS.has(segment));
+}
+
 function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
-  for (const word of words) {
+  for (let index = 0; index < words.length; index += 1) {
+    const word = words[index];
     const bare = bareWord(word);
     if (bare === "--") return true;
     // `--help=config` is the same request with its topic attached, so the
@@ -262,6 +280,14 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
       continue;
     }
     if (!READABLE_OPTION.has(option)) return true;
+    if (OPTION_TAKING_PATH.has(option)) {
+      // The value is attached to this word or is the next one; a named option
+      // with no value at all is npm's error, and this file's too.
+      const attached = bare.includes("=") ? bare.replace(/^[^=]*=/, "") : null;
+      const value = attached ?? bareWord(words[index + 1] ?? "");
+      if (!value || !isRepositoryDirectoryWord(value)) return true;
+      if (attached === null) index += 1;
+    }
   }
   return false;
 }

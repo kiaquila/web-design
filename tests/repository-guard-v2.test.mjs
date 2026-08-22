@@ -207,6 +207,38 @@ test("the checks real projects configure stay expressible", () => {
   }
 });
 
+test("a named option's value is read as the path it is", () => {
+  // Naming `--prefix` is not the same as reading it: an unconstrained value
+  // points npm at an unreviewed package whose script exits zero, without the
+  // command looking any different.
+  for (const run of [
+    "npm run check --prefix /tmp/noop-package",
+    "npm run check --prefix=node_modules/noop-package",
+    "npm run check --prefix ../outside",
+    "npm run check --prefix node_modules/noop-package",
+    "npm run check --prefix dist",
+    "npm run test --workspace node_modules/noop",
+    // A named option with no value at all is npm's error, and this file's too.
+    "npm run check --prefix"
+  ]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must execute a real product check"],
+      run
+    );
+  }
+  for (const run of [
+    "npm run check --prefix website", "npm run check --prefix=website",
+    "npm run check --prefix apps/web", "npm run test --workspace website"
+  ]) {
+    const valid = structuredClone(config);
+    valid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
+  }
+});
+
 test("rejects separators that let a failure be discarded", () => {
   const discarded = [
     "npm test; true",
