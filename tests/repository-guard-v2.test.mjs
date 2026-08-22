@@ -67,7 +67,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     // The script name follows the verb; flags fit after it, and an option
     // before the verb may still take its own value.
     "npm run check --silent",
-    "npm run test --workspace website"
+    "npm run test --prefix packages/website"
   ];
   for (const run of accepted) {
     const valid = structuredClone(config);
@@ -96,7 +96,7 @@ test("an abbreviated option is refused rather than resolved", () => {
   // whole option list, which this file cannot hold: npm expands `--i` to
   // `--iwr` rather than to `--if-present`. So the check says what it means.
   for (const run of [
-    "npm test --vers", "npm run check --pref website", "npm run check --wor website",
+    "npm test --vers", "npm run check --pref website", "cargo fmt --check-o",
     "cargo fmt --che", "npm run check --sil"
   ]) {
     const invalid = structuredClone(config);
@@ -217,11 +217,13 @@ test("a named option's value is read as the path it is", () => {
     "npm run check --prefix ../outside",
     "npm run check --prefix node_modules/noop-package",
     "npm run check --prefix dist",
-    "npm run test --workspace node_modules/noop",
+    // `--workspace` takes a name rather than a path, and a name is resolved by
+    // reading a manifest this guard does not open, so it is not named at all.
+    "npm run test --workspace website", "npm run test --workspace=website",
     // A named option with no value at all is npm's error, and this file's too,
     // and a value that starts with a dash is an option rather than a path.
     "npm run check --prefix", "npm run check --prefix --silent",
-    "npm run check --prefix -- --silent", "npm run test --workspace @scope/../../etc"
+    "npm run check --prefix -- --silent"
   ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
@@ -233,10 +235,9 @@ test("a named option's value is read as the path it is", () => {
   }
   for (const run of [
     "npm run check --prefix website", "npm run check --prefix=website",
-    "npm run check --prefix apps/web", "npm run test --workspace website",
-    // npm names a scoped workspace `@scope/name`, and a workspace resolves to
-    // a directory this repository declares.
-    "npm run test --workspace @scope/pkg"
+    "npm run check --prefix apps/web",
+    // A workspace is reached by the spelling that is a path.
+    "npm run test --prefix packages/website"
   ]) {
     const valid = structuredClone(config);
     valid.commands.check = [{ name: "site", run }];

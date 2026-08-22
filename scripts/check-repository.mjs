@@ -181,16 +181,25 @@ const INFORMATIONAL_WORD = new Set([
 // that were doing nothing wrong, and is taken deliberately: a refused check is
 // a red build, and a misread one is a green build that tested nothing.
 const READABLE_OPTION = new Set([
-  "--prefix", "--workspace", "--silent", "--check", "--check-only"
+  "--prefix", "--silent", "--check", "--check-only"
 ]);
-// Naming an option is not the same as reading it. `--prefix` and `--workspace`
-// point npm at a directory, and an unconstrained value points it out of the
-// product: `npm run check --prefix /tmp/noop-package` runs an unreviewed
-// package's always-green script, and `--prefix=node_modules/noop-package`
-// reaches a dependency without leaving the tree. So a named option's value is
-// read the way a product path is — relative, inside the repository, and clear
-// of the directories this guard already refuses to read.
-const OPTION_TAKING_PATH = new Set(["--prefix", "--workspace"]);
+// Naming an option is not the same as reading it. `--prefix` points npm at a
+// directory, and an unconstrained value points it out of the product: `npm run
+// check --prefix /tmp/noop-package` runs an unreviewed package's always-green
+// script, and `--prefix=node_modules/noop-package` reaches a dependency
+// without leaving the tree. So the value is read the way a product path is —
+// relative, inside the repository, and clear of the directories this guard
+// already refuses to read.
+//
+// `--workspace` was named here for one round and is not, because it takes a
+// name rather than a path. A name is resolved by reading the package manifest
+// this guard does not open, so `--workspace -foo` is a real check that looks
+// exactly like an option, and `--prefix --if-present` is an option that looks
+// exactly like a value. Neither reading is available without the arity rules
+// that defeated `dispatchTargetIndex`. A path has no such ambiguity — it never
+// starts with a dash — and `npm run test --prefix packages/website` reaches a
+// workspace by the readable spelling.
+const OPTION_TAKING_PATH = new Set(["--prefix"]);
 // A name that describes output rather than work. It is read as a word now
 // rather than as an option — options are decided by the set above — and its
 // one use is Swift's reporting subcommands, below.
@@ -253,12 +262,11 @@ const SUBCOMMAND_REPORTING_TOOL = new Set(["swift"]);
 
 function isRepositoryDirectoryWord(word) {
   // A path this guard could read: literal path characters only, nothing
-  // quoted, spaced, or commented, and nothing climbing out of the tree. `@` is
-  // here because npm names a scoped workspace `@scope/name`, and a workspace
-  // resolves to a directory this repository declares; a value that starts with
-  // a dash is an option rather than a path, whatever it spells.
+  // quoted, spaced, or commented, and nothing climbing out of the tree. A word
+  // that starts with a dash is an option rather than a path, whatever it
+  // spells — which is why only options taking a path are named at all.
   if (word.startsWith("-")) return false;
-  if (!/^[@A-Za-z0-9._/-]+$/.test(word)) return false;
+  if (!/^[A-Za-z0-9._/-]+$/.test(word)) return false;
   const segments = normalizedRelativeSegments(word);
   if (segments === null) return false;
   return segments.every((segment) => !FORBIDDEN_SEGMENTS.has(segment));
