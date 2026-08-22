@@ -218,8 +218,10 @@ test("a named option's value is read as the path it is", () => {
     "npm run check --prefix node_modules/noop-package",
     "npm run check --prefix dist",
     "npm run test --workspace node_modules/noop",
-    // A named option with no value at all is npm's error, and this file's too.
-    "npm run check --prefix"
+    // A named option with no value at all is npm's error, and this file's too,
+    // and a value that starts with a dash is an option rather than a path.
+    "npm run check --prefix", "npm run check --prefix --silent",
+    "npm run check --prefix -- --silent", "npm run test --workspace @scope/../../etc"
   ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
@@ -231,7 +233,10 @@ test("a named option's value is read as the path it is", () => {
   }
   for (const run of [
     "npm run check --prefix website", "npm run check --prefix=website",
-    "npm run check --prefix apps/web", "npm run test --workspace website"
+    "npm run check --prefix apps/web", "npm run test --workspace website",
+    // npm names a scoped workspace `@scope/name`, and a workspace resolves to
+    // a directory this repository declares.
+    "npm run test --workspace @scope/pkg"
   ]) {
     const valid = structuredClone(config);
     valid.commands.check = [{ name: "site", run }];

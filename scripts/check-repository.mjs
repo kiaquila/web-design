@@ -253,8 +253,12 @@ const SUBCOMMAND_REPORTING_TOOL = new Set(["swift"]);
 
 function isRepositoryDirectoryWord(word) {
   // A path this guard could read: literal path characters only, nothing
-  // quoted, spaced, or commented, and nothing climbing out of the tree.
-  if (!/^[A-Za-z0-9._/-]+$/.test(word)) return false;
+  // quoted, spaced, or commented, and nothing climbing out of the tree. `@` is
+  // here because npm names a scoped workspace `@scope/name`, and a workspace
+  // resolves to a directory this repository declares; a value that starts with
+  // a dash is an option rather than a path, whatever it spells.
+  if (word.startsWith("-")) return false;
+  if (!/^[@A-Za-z0-9._/-]+$/.test(word)) return false;
   const segments = normalizedRelativeSegments(word);
   if (segments === null) return false;
   return segments.every((segment) => !FORBIDDEN_SEGMENTS.has(segment));
