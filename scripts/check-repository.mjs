@@ -216,7 +216,8 @@ const REPORTING_OPTION = /^(?:show|print|list)(?:-|$)|^dry-run$/;
 // with no other signal. The set is the manual's, not a growing list of
 // spellings, and their one-letter aliases are refused by the rule below.
 const NON_EXECUTING_MODE = new Set([
-  "touch", "question", "just-print", "recon", "old-file", "assume-old"
+  "touch", "question", "just-print", "recon",
+  "old-file", "assume-old", "what-if", "new-file", "assume-new"
 ]);
 // `-v` is the one spelling the tools disagree about: `npm test -v` prints
 // npm's version and runs nothing, while `pytest -v` and `go test -v` are real
@@ -669,7 +670,8 @@ export function validateProductCheckCommand(command) {
       const base = bare.startsWith("--no-") ? `--${bare.slice(5)}` : bare;
       return (
         abbreviatesOption(bare, INFORMATIONAL_WORD) ||
-        abbreviatesOption(base, ABSENCE_TOLERATING_FLAG)
+        abbreviatesOption(base, ABSENCE_TOLERATING_FLAG) ||
+        abbreviatesOption(base, NON_EXECUTING_MODE)
       );
     });
     if (abbreviated) return "must spell out its options rather than abbreviate them";

@@ -103,7 +103,7 @@ test("an abbreviated option is refused rather than resolved", () => {
   // `--iwr` rather than to `--if-present`. So the check says what it means.
   for (const run of [
     "npm run check --if-p", "npm run check --no-if-p", "npm test --vers",
-    "npm run check -if-p"
+    "npm run check -if-p", "make test --tou"
   ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
@@ -360,7 +360,8 @@ test("rejects commands that only report success", () => {
     "make test -n", "make test -t", "npm run check -s",
     // Make's documented modes that skip the recipe, in their spelled forms.
     "make test --touch", "make test --question", "make test --just-print",
-    "make test --recon",
+    "make test --recon", "make test --what-if test", "make test --new-file x",
+    "make test --assume-new x",
 
     // A runner reaches for a dependency's binary, which the guard cannot
     // read: an analyser runs as a package script or a script in the tree.
