@@ -65,7 +65,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "npm run format -- --check",
     "pytest",
     "pytest tests/unit",
-    "node --test tests/a.test.mjs tests/b.test.mjs",
+    "node scripts/check.mjs",
     'npm test -- --grep "a|b"',
     "npm run build -- --tag '#1'",
     "bash scripts/build.sh",
@@ -141,7 +141,15 @@ test("an informational flag beats the verb in front of it", () => {
     );
   }
   // The interpreter's own informational flags still count, before the file.
-  for (const run of ["node -h scripts/check.mjs", "python3 --version scripts/check.py"]) {
+  for (const run of [
+    "node -h scripts/check.mjs",
+    "python3 --version scripts/check.py",
+    // A runtime's terminal modes are its own and there is no end of them, so
+    // the file comes first with nothing before it.
+    "python3 --help-env scripts/check.py",
+    "node --v8-options scripts/check.mjs",
+    "node --test tests/a.test.mjs"
+  ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(
@@ -176,7 +184,6 @@ test("the checks real projects configure stay expressible", () => {
     "npm run check",
     "npm run check --prefix website",
     "npm ci --prefix website && npm run check --prefix website",
-    "node --test tests/unit.test.mjs",
     "node scripts/check.mjs",
     "pytest",
     "pytest tests/unit",

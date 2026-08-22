@@ -3,7 +3,7 @@
   "version": "0.1.0-dev",
   "sourceCommit": null,
   "profile": "no-deploy",
-  "manifestSha256": "b8ffc929dac7a42e8d06bb80ae8765e072ed4bd08e7014b6bf4bf9ae318b36bd",
+  "manifestSha256": "64c813d7c86b86360106f55669a258f2f8ed96874f3e6513dc851883ef1ad47f",
   "files": {
     ".github/CODEOWNERS": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e",
     ".github/pull_request_template.md": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f",
@@ -37,7 +37,7 @@
     "scripts/bootstrap-project.mjs": "9e43b3f1942ebf950532da800810e747eb3e0b96515608fbcc5ce86fae3834ac",
     "scripts/check-baseline-change.mjs": "590e0bc3d6918c896414905338c2a0ebb93f2076387c1f82ef0307518b8ec1e6",
     "scripts/check-managed-files.mjs": "25ebeb32c9fcde47345d617958382827e696f8dd38d78ade0379c228bf819bb4",
-    "scripts/check-repository.mjs": "732873af772a1630abb55f1809b5295ca8a7717e502f95145724e6445670ce6b",
+    "scripts/check-repository.mjs": "84efe8c4a9b8e6669d607deea3f3dbb5dca4d4f7e6b68641e9a30b5d64428c3f",
     "scripts/codex-review-gate.mjs": "e2b2dfd295b7b1773a10bf07f92c86868136104787a069606f0e45cab3f8f5cc",
     "scripts/codex-review-helpers.mjs": "ccc54e5bc89d66523451a3e467d107084e59068341546db03999ea2635266a5f",
     "scripts/codex-review-request.mjs": "4c5fd8dbd50728474a5008657d46e32cfa81861ccc181b6619b3f98dd29d1022",
@@ -52,7 +52,7 @@
     "tests/codex-review-gate.test.mjs": "1156864577f9a48b83ac57a0aef2e366c676b33949600fd130347a3360d52d5b",
     "tests/managed-files.test.mjs": "6b641ed06bcef07b741b06cfae7afc713a2aa22262ac04199ee0130e902c410d",
     "tests/profiles.test.mjs": "9e8f6931cc07d0b5e450bbf6737c4df2ee40f20659b5272206b00d2b146501b5",
-    "tests/repository-guard-v2.test.mjs": "c2e1688051eee1aeef50b5ac68899804c3b3e7398793da770b93769989b83f92",
+    "tests/repository-guard-v2.test.mjs": "50dddafd63dd691288b79312e49d894f7a49ae1d14e0f82d286c0f429e347eac",
     "tests/sync-project.test.mjs": "5b82be74206d67e540a3c552df3376f6b2a273b2ef3376e507d93ca11735a444"
   }
 }

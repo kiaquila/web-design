@@ -413,7 +413,16 @@ function runsProjectCode(executable, words) {
     return words.every((word) => !bareWord(word).startsWith("-"));
   }
   if (isRuntime) {
-    return operand >= 0 && isRepositoryFileWord(bareWord(words[operand]));
+    // The file comes first, with nothing before it. Options ahead of a
+    // runtime's operand are how `java -X`, `python3 --help-env` and `node
+    // --v8-options` each printed something and exited zero while a path sat
+    // further along the line looking like the check; each arrived as its own
+    // finding, and every runtime has more of them. Nothing legitimate is lost
+    // that cannot be said another way: `node --test tests/a.mjs` becomes a
+    // package script or `node scripts/check.mjs`, which is how the template's
+    // own suite runs `node --test` already.
+    const first = bareWord(words[0]);
+    return Boolean(first) && !first.startsWith("-") && isRepositoryFileWord(first);
   }
   return commandPositionIsTarget(words, executable);
 }
