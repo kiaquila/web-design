@@ -242,6 +242,7 @@ test("rejects commands that only report success", () => {
     // After a formatter verdict the trailing words reach the formatter rather
     // than the project.
     "cargo fmt --check -- --help", "cargo fmt --check -- --version",
+    "cargo fmt --check -- --help=config", "npm test --version=1",
     // A slash is not a project: a runtime's operand has to be a path this
     // repository could hold.
     "node /dev/null", "bash /dev/null", "node ../outside/run.mjs", "node ~/run.mjs",

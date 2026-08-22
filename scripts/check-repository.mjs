@@ -197,7 +197,9 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     // to the tool — except after a formatter verdict, where `cargo fmt --check
     // -- --help` hands them to rustfmt, which prints help and exits zero.
     if (bare === "--" && stopAtSeparator) return false;
-    if (INFORMATIONAL_WORD.has(bare)) return true;
+    // `--help=config` is the same request with its topic attached, so the
+    // value comes off before the word is read.
+    if (INFORMATIONAL_WORD.has(bare.replace(/=[\s\S]*$/, ""))) return true;
     if (versionIsShort && bare === "-v") return true;
   }
   return false;
