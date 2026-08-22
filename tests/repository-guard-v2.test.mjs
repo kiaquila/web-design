@@ -58,6 +58,8 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "uv run --locked pytest",
     "make test version=1",
     "uv run npm run check",
+    "uv run --directory website pytest",
+    "uv run scripts/check.py",
     "bundle exec --keep-file-descriptors rspec",
     "cargo fmt --check",
     "npm run format -- --check",

@@ -253,11 +253,23 @@ function commandPositionIsTarget(words, executable) {
     // command, and a command can be read — `uv run --no-project true` runs
     // nothing at all — so the child is held to what any check is held to.
     const immediate = NAME_MUST_FOLLOW_VERB.has(executable);
-    const index = dispatchNameIndex(words, 0, immediate);
-    if (index < 0) return false;
-    if (immediate) return true;
-    const child = executableBasename(bareWord(words[index]));
-    return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(index + 1));
+    if (immediate) return dispatchNameIndex(words, 0, true) >= 0;
+    // Which of uv's options take a value is a table per tool and per version —
+    // `--locked` takes none, `--directory website` takes one — so the child is
+    // not guessed by position. Somewhere after the verb there has to be a word
+    // that is itself a real check, whether a command or a script this
+    // repository holds; an option's value never is one. The cost is that
+    // `uv run --with pytest true` reads as a pytest run, which is a command
+    // that does less than it says rather than one that hides what it does.
+    return words.slice(1).some((word, offset) => {
+      const bare = bareWord(word);
+      if (!bare || bare.startsWith("-")) return false;
+      if (isRepositoryFileWord(bare)) return true;
+      const child = executableBasename(bare);
+      return (
+        PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(offset + 2))
+      );
+    });
   }
   if (VERDICT_VERB.has(first)) {
     return words.some((word) => VERDICT_FLAG.has(bareWord(word)));
