@@ -291,8 +291,13 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     if (matchesOption(negated ? `--${option.slice(5)}` : option, ABSENCE_TOLERATING_FLAG)) {
       return true;
     }
-    const reportingName = longOptionName(option);
-    if (reportingName !== null && REPORTING_OPTION.test(reportingName)) return true;
+    // Dashes are spelling and come off; `no-` is meaning and stays. A negated
+    // reporting option asks for the work rather than the report, so
+    // `--no-dry-run` is a real check while `--dry-run` is not.
+    const reportingName = option.startsWith("-") ? option.replace(/^-+/, "") : "";
+    if (reportingName && !reportingName.startsWith("no-") && REPORTING_OPTION.test(reportingName)) {
+      return true;
+    }
     if (versionIsShort && bare === "-v") return true;
   }
   return false;
