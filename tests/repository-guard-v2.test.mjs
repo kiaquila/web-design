@@ -86,7 +86,11 @@ test("the onboarding command the README teaches is a valid product check", () =>
 });
 
 test("an informational flag beats the verb in front of it", () => {
-  for (const run of ["npm test --version", "npm run check --help", "go test --version", "pytest --help"]) {
+  for (const run of [
+    "npm test --version", "npm run check --help", "go test --version", "pytest --help",
+    // Short spellings every tool in these classes reads the same way.
+    "pytest -h", "pytest -V", "npm test -h", "tox -h"
+  ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(

@@ -140,13 +140,16 @@ const PRODUCT_CHECK_VERB = new Set([
 // `npm run --workspace website` as a dispatch would mean knowing which options
 // consume the next word.
 const VERB_NEEDING_ARGUMENT = new Set(["run", "exec"]);
-// `npm test --version` prints the version and exits zero: a global
-// informational flag wins over the subcommand in front of it, so these are
-// refused anywhere ahead of `--`, whatever the verb. Only the unambiguous
-// spellings are listed — `-v` is verbose to `pytest` and `go test`, and the
-// commands where it means version (`npm -v`, `node -v`) already fail for
-// having no target at all.
-const INFORMATIONAL_WORD = new Set(["version", "--version", "help", "--help"]);
+// `npm test --version` prints the version and exits zero, and `pytest -h`
+// prints usage and exits zero: an informational flag wins over whatever verb
+// precedes it, so these are refused anywhere ahead of `--`. `-h` and `-V` are
+// here because every tool in the classes above reads them as help and version;
+// `-v` is not, because `pytest -v` and `go test -v` are real runs asking to be
+// louder, and the tools that read `-v` as a version (`npm -v`, `node -v`)
+// already fail for having no target at all.
+const INFORMATIONAL_WORD = new Set([
+  "version", "--version", "-V", "help", "--help", "-h"
+]);
 
 function informsInsteadOfRunning(words) {
   for (const word of words) {
