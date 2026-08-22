@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { validateProjectConfig, validateWorkflowText } from "../scripts/check-repository.mjs";
+import { scanRepository, validateProjectConfig, validateWorkflowText } from "../scripts/check-repository.mjs";
 
 const config = {
   schemaVersion: 1,
@@ -165,6 +165,42 @@ test("an informational flag beats the verb in front of it", () => {
   }
 });
 
+test("the checks real projects configure stay expressible", () => {
+  // Every tightening of the check rules risks refusing a project that was
+  // doing nothing wrong, and several rounds of review did exactly that before
+  // the reversal was noticed. This is the shape of a consumer's real
+  // configuration, one line per ecosystem, kept here so a future rule has to
+  // answer for it.
+  const realistic = [
+    "npm test",
+    "npm run check",
+    "npm run check --prefix website",
+    "npm ci --prefix website && npm run check --prefix website",
+    "node --test tests/unit.test.mjs",
+    "node scripts/check.mjs",
+    "pytest",
+    "pytest tests/unit",
+    "uv run pytest",
+    "python3 scripts/check.py",
+    "go test ./...",
+    "go vet ./...",
+    "cargo test",
+    "cargo fmt --check",
+    "bundle exec rspec",
+    "make check",
+    "npm run lint",
+    "npm run build && npm test",
+    "composer test",
+    "mvn verify",
+    "bash scripts/check.sh"
+  ];
+  for (const run of realistic) {
+    const valid = structuredClone(config);
+    valid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
+  }
+});
+
 test("rejects separators that let a failure be discarded", () => {
   const discarded = [
     "npm test; true",
@@ -271,6 +307,8 @@ test("rejects commands that only report success", () => {
     "npm run check --if-present=garbage",
     // `exec` names a command rather than a script the package defines.
     "npm exec true", "npm exec eslint .",
+    // npm's built-in `env` script prints the environment and exits zero.
+    "npm run env", "pnpm run env",
     // Past `--` the words reach whatever is being run, which can be another
     // tool with the same flags.
     "npm run check -- --help", "npm test -- --version",
@@ -629,6 +667,44 @@ jobs:
   for (const workflow of workflows) {
     const failures = validateWorkflowText(".github/workflows/example.yml", workflow);
     assert.match(failures.join("\n"), /may not grant (?:top-level write permissions|write permissions)/, workflow);
+  }
+});
+
+test("a workflow the scan cannot read is refused, not skipped", () => {
+  // The size and binary caps keep a large asset from being read as text, and
+  // they used to skip the file outright — including a workflow, whose
+  // contents are the security boundary this guard exists to read. A workflow
+  // padded past the cap would otherwise pass every rule by never being read.
+  const root = mkdtempSync(join(tmpdir(), "web-design-unreadable-workflow-"));
+  try {
+    spawnSync("git", ["init", "--quiet"], { cwd: root });
+    mkdirSync(join(root, ".github/workflows"), { recursive: true });
+    const padding = `# ${"pad".repeat(40)}\n`.repeat(20000);
+    writeFileSync(
+      join(root, ".github/workflows/oversized.yml"),
+      `${padding}on: issue_comment\npermissions: write-all\njobs:\n  a:\n    runs-on: ubuntu-latest\n`
+    );
+    writeFileSync(join(root, ".github/workflows/binary.yml"), Buffer.from([0, 1, 2, 3, 0, 0]));
+    const { failures } = scanRepository(root);
+    assert.match(failures.join("\n"), /Workflow file is too large to validate/);
+    assert.match(failures.join("\n"), /Workflow file is not readable text/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("write-all is refused wherever it is asked for", () => {
+  // The refusal used to read only the top-level block, so a job could ask for
+  // what the workflow could not.
+  for (const workflow of [
+    "on:\n  push:\n    branches: [main]\npermissions: write-all\njobs:\n  a:\n    runs-on: ubuntu-latest\n",
+    "on:\n  push:\n    branches: [main]\npermissions:\n  contents: read\njobs:\n  a:\n    permissions: write-all\n    runs-on: ubuntu-latest\n"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", workflow).join("\n"),
+      /may not use write-all permissions/,
+      workflow
+    );
   }
 });
 

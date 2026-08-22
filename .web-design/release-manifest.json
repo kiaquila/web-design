@@ -112,7 +112,7 @@
     },
     {
       "path": "docs/standards/security.md",
-      "sha256": "71557e30943a84715cd53ba8535514e6dc92809b8cfc3ab805b2db9810d40ef8"
+      "sha256": "cca959d08e7aacc29821056d6830c7801093982adeab4a7644f5266e71a76660"
     },
     {
       "path": "docs/standards/testing.md",
@@ -124,7 +124,7 @@
     },
     {
       "path": "scripts/check-baseline-change.mjs",
-      "sha256": "9a225d5b2367410952662e7eb427728c0abe96e7a4d5f89271c0a2cdbca53aa3"
+      "sha256": "590e0bc3d6918c896414905338c2a0ebb93f2076387c1f82ef0307518b8ec1e6"
     },
     {
       "path": "scripts/check-managed-files.mjs",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "040fd45e93e4ad7a973220c5015ba9c0bd747ba4768412f11312db02e18a3144"
+      "sha256": "90b099768eac2c16e0df96641681371a9c95607fd9a0169b4d9f95e1d4a443a0"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -168,11 +168,11 @@
     },
     {
       "path": "scripts/verify-baseline-source.mjs",
-      "sha256": "7561bf90213d22f56e3626c798140dfc115903f36a349d0e106bf186e70e6619"
+      "sha256": "5220ec2cf6fe762b3f9e1bdc9308226e3740673e72ff6646d4e34757f87682f0"
     },
     {
       "path": "tests/baseline-change.test.mjs",
-      "sha256": "a5f8f23d4a4345513220725ef81394a11f55d46408604802817e2930c8e1136e"
+      "sha256": "01af8d1afcd1a16263ad957f8a6e6e7a0875be0b90431a3c5a871d3d567c547a"
     },
     {
       "path": "tests/bootstrap-project.test.mjs",
@@ -192,7 +192,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "f120082cc430bf891dda5334cba72bd31a16cfe56d8b854785f5bf0fb1b86080"
+      "sha256": "3b02ee05dfb0bdd81c38b563b4d93447e4153929048e371bc4cffdbb7c6ff6bd"
     },
     {
       "path": "tests/sync-project.test.mjs",

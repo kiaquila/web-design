@@ -16,6 +16,13 @@ function ownership(root) {
 }
 
 function diffPaths(root, baseSha) {
+  // An empty base makes `git diff ...HEAD` compare HEAD with itself: no paths
+  // changed, so every managed file reads as untouched and the comparison
+  // passes without comparing anything. A base that is not a commit is a
+  // payload this run cannot verify against.
+  if (!/^[a-f0-9]{40}$/i.test(String(baseSha ?? ""))) {
+    throw new Error("Pull-request base SHA must be a full 40-character commit SHA");
+  }
   const result = spawnSync("git", ["diff", "--name-only", `${baseSha}...HEAD`], {
     cwd: root,
     encoding: "utf8"

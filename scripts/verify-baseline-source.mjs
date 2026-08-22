@@ -56,6 +56,11 @@ if (!/^[a-f0-9]{40}$/i.test(runHeadSha) || runHeadSha !== associatedHeadSha) {
 } else if (guardConclusion !== "success") {
   conclusion = "failure";
   summary = "Repository Guard did not pass for this pull-request head.";
+} else if (GITHUB_REPOSITORY !== "kiaquila/web-design" && !/^[a-f0-9]{40}$/i.test(baseSha)) {
+  // Without a base commit there is nothing to compare the proposed managed
+  // bytes against, and an empty one reads as "nothing changed".
+  conclusion = "failure";
+  summary = "The workflow_run payload carries no pull-request base SHA to verify against.";
 } else if (GITHUB_REPOSITORY !== "kiaquila/web-design") {
   const matches = runNode(
     [

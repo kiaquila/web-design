@@ -158,11 +158,12 @@ const PRODUCT_CHECK_VERB = new Set([
 // So the verb is a target only with the flag that turns it into one.
 const VERDICT_VERB = new Set(["fmt", "format"]);
 const VERDICT_FLAG = new Set(["--check", "--check-only"]);
-// `npm run` with no script name lists the scripts and exits zero, so the name
-// has to follow immediately there. `uv run`, `bundle exec`, and their kin
-// error out instead, so options may sit between the verb and the command —
-// `uv run --locked pytest` is the documented shape.
-const NAME_MUST_FOLLOW_VERB = new Set(["npm", "pnpm", "yarn"]);
+// `npm run check` names a script the package defines. That script's contents
+// are not something this guard can read, and it does not try to — a name is
+// enough. Every other dispatching verb names a command instead, and a command
+// is read like any other check. Nothing may sit between a verb and what it
+// dispatches to, whichever kind it is; see `dispatchTargetIndex`.
+const SCRIPT_NAME_DISPATCH = new Set(["npm", "pnpm", "yarn"]);
 // `npm install` and `npm ci` fetch dependencies and exit zero without running
 // a line of the product, so neither is a check. They are still how a check
 // gets something to run, though, so a command may contain them as long as
@@ -301,16 +302,6 @@ function isRepositoryFileWord(word) {
   return normalizedRelativeSegments(word) !== null;
 }
 
-function dispatchNameIndex(words, index, immediate) {
-  for (let position = index + 1; position < words.length; position += 1) {
-    const following = bareWord(words[position]);
-    if (!following) continue;
-    if (!following.startsWith("-")) return position;
-    if (immediate) return -1;
-  }
-  return -1;
-}
-
 // A dispatched command has to be found, not guessed, and finding it past
 // options means knowing which of them take a value. A partial table leaks —
 // naming `--with` while missing its `-w` spelling put an option's value in the
@@ -320,7 +311,7 @@ function dispatchNameIndex(words, index, immediate) {
 // pytest` and `bundle exec rspec` are the readable forms, and an invocation
 // that needs flags becomes `uv run scripts/check.py`, where the flags live in
 // reviewed code instead of in a string this scanner has to parse.
-function dispatchedCommandIndex(words) {
+function dispatchTargetIndex(words) {
   const following = bareWord(words[1]);
   if (!following || following.startsWith("-")) return -1;
   return 1;
@@ -330,20 +321,22 @@ function commandPositionIsTarget(words, executable) {
   const first = bareWord(words[0]);
   if (!first || first.startsWith("-")) return false;
   if (VERB_NEEDING_ARGUMENT.has(first)) {
-    // `npm run check` dispatches to a script the package defines, which the
-    // guard cannot read and does not try to. `uv run pytest` dispatches to a
-    // command, and a command can be read — `uv run --no-project true` runs
-    // nothing at all — so the child is held to what any check is held to.
-    // Only `run` on these tools names a script the package defines, which the
-    // guard cannot read and does not try to. `npm exec true` names a command
-    // — a dependency's binary, and a no-op one here — so it is read like any
-    // other dispatched command.
-    if (first === "run" && NAME_MUST_FOLLOW_VERB.has(executable)) {
-      return dispatchNameIndex(words, 0, true) >= 0;
+    // `npm run check` names a script the package defines: unreadable from
+    // here, and a name is enough. Everything else names a command — `npm exec
+    // true` reaches a dependency's no-op binary — so it is read like any
+    // other check.
+    if (first === "run" && SCRIPT_NAME_DISPATCH.has(executable)) {
+      const index = dispatchTargetIndex(words);
+      if (index < 0) return false;
+      // `npm run env` prints the environment and exits zero unless the
+      // package happens to define a script by that name, and which it is
+      // cannot be read from here. A project that has one renames it; the name
+      // is unambiguous to npm and ambiguous to everyone reading the check.
+      return bareWord(words[index]) !== "env";
     }
     // The command follows the verb directly; see the note on
-    // `dispatchedCommandIndex` for why nothing may sit between them.
-    const index = dispatchedCommandIndex(words);
+    // `dispatchTargetIndex` for why nothing may sit between them.
+    const index = dispatchTargetIndex(words);
     if (index < 0) return false;
     const dispatched = bareWord(words[index]);
     if (isRepositoryFileWord(dispatched)) return true;
@@ -813,7 +806,12 @@ function permissionWrites(node, scope, failures, path) {
   }
   if (isScalar(node)) {
     if (!new Set(["read-all", "write-all"]).has(node.value)) {
-      failures.push(`Workflow ${scope} must be read-all, write-all, or a permission map: ${path}`);
+      failures.push(`Workflow ${scope} must be read-all or a permission map: ${path}`);
+    }
+    // `docs/standards/security.md` refuses write-all outright, and a job may
+    // ask for it as readily as a workflow can.
+    if (node.value === "write-all") {
+      failures.push(`Workflow ${scope} may not use write-all permissions: ${path}`);
     }
     return node.value === "write-all";
   }
@@ -1811,9 +1809,6 @@ export function validateWorkflowText(path, text) {
     } else {
       const writes = permissionWrites(topPermissions.value, "top-level permissions", failures, path);
       topLevelWrites = writes;
-      if (isScalar(topPermissions.value) && topPermissions.value.value === "write-all") {
-        failures.push(`Workflow may not use write-all permissions: ${path}`);
-      }
       if (refSelectable && writes) {
         failures.push(
           `Ref-selectable workflow may not grant top-level write permissions: ${path}`
@@ -2151,9 +2146,22 @@ export function scanRepository(root) {
       failures.push(`Symbolic links are not allowed: ${normalized}`);
       continue;
     }
-    if (!stat.isFile() || stat.size > 2_000_000) continue;
+    if (!stat.isFile()) continue;
+    // The size and binary caps exist so a large asset is not read as text, and
+    // they used to skip the file entirely — including a workflow, which is the
+    // one kind of file here whose contents are a security boundary. A workflow
+    // the scan cannot read is refused instead of waved through; nothing else
+    // changes.
+    const isWorkflow = /^\.github\/workflows\/[^/]+\.ya?ml$/.test(normalized);
+    if (stat.size > 2_000_000) {
+      if (isWorkflow) failures.push(`Workflow file is too large to validate: ${normalized}`);
+      continue;
+    }
     const buffer = readFileSync(absolute);
-    if (looksBinary(buffer)) continue;
+    if (looksBinary(buffer)) {
+      if (isWorkflow) failures.push(`Workflow file is not readable text: ${normalized}`);
+      continue;
+    }
     const text = buffer.toString("utf8");
     for (const [label, pattern] of SECRET_PATTERNS) {
       if (pattern.test(text)) failures.push(`Possible ${label} in ${normalized}`);
@@ -2161,9 +2169,7 @@ export function scanRepository(root) {
     if (PERSONAL_PATH_PATTERNS.some((pattern) => pattern.test(text))) {
       failures.push(`Personal absolute path in ${normalized}`);
     }
-    if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(normalized)) {
-      failures.push(...validateWorkflowText(normalized, text));
-    }
+    if (isWorkflow) failures.push(...validateWorkflowText(normalized, text));
   }
   return { failures, files, availableProfiles };
 }

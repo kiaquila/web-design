@@ -12,6 +12,39 @@ function write(root, path, value) {
   writeFileSync(join(root, path), value);
 }
 
+test("a base that is not a commit stops the comparison instead of passing it", async () => {
+  // `git diff ...HEAD` with an empty left side compares HEAD with itself, so
+  // every managed file reads as untouched and the comparison would pass
+  // without comparing anything. The workflow_run payload does not always
+  // carry a pull request, so this is a real shape rather than a hypothetical.
+  const parent = mkdtempSync(join(tmpdir(), "web-design-baseline-base-"));
+  const trusted = join(parent, "trusted");
+  const proposed = join(parent, "proposed");
+  try {
+    const ownership = `${JSON.stringify({ schemaVersion: 1, files: ["scripts/policy.mjs"] })}\n`;
+    const project = JSON.stringify({ governance: { source: "kiaquila/web-design", mode: "consumer" } });
+    for (const root of [trusted, proposed]) {
+      write(root, ".web-design/managed-files.json", ownership);
+      write(root, ".web-design/project.json", project);
+      write(root, "scripts/policy.mjs", "old\n");
+      write(root, ".web-design/lock.json", JSON.stringify({
+        profile: "no-deploy",
+        sourceCommit: "a".repeat(40),
+        files: { "scripts/policy.mjs": hash("old\n") }
+      }));
+    }
+    for (const baseSha of ["", "HEAD", "abc123", "a".repeat(39)]) {
+      await assert.rejects(
+        () => checkBaselineChange({ proposedRoot: proposed, trustedRoot: trusted, baseSha }),
+        /base SHA must be a full 40-character commit SHA/,
+        baseSha
+      );
+    }
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
 test("trusted validation accepts exact source bytes and rejects self-signed policy", async () => {
   const parent = mkdtempSync(join(tmpdir(), "web-design-baseline-check-"));
   const trusted = join(parent, "trusted");
