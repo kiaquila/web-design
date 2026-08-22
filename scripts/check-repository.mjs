@@ -1335,16 +1335,36 @@ function stepReadsEventPayload(step) {
 // above the root, and none of the variables that point at runner state.
 const RUNNER_STATE_VARIABLE = /\b(?:RUNNER_TEMP|RUNNER_TOOL_CACHE|RUNNER_WORKSPACE|HOME)\b/;
 
+// Both separators count: `D:\\a\\_temp\\_github_workflow\\event.json` on a
+// Windows runner holds no forward slash at all, and a drive letter or a
+// leading separator is as absolute as `/`.
+function pathEscapesWorkspace(value) {
+  if (!/[\\/]/.test(value)) return false;
+  if (/^[\\/]/.test(value) || /^[A-Za-z]:/.test(value)) return true;
+  return normalizedRelativeSegments(value) === null;
+}
+
+// A path that leaves the workspace does not have to sit in the shell text: an
+// `env` value can hold it and the shell then names only a variable. Literal
+// values are checked here; a value carrying an expression is the expression
+// allowlist's business, and nothing it admits builds a path.
+function valuesEscapeWorkspace(node, key) {
+  const map = mapPair(node, key)?.value;
+  if (!isMap(map)) return false;
+  return map.items.some((pair) => {
+    if (!isScalar(pair.value) || typeof pair.value.value !== "string") return false;
+    const value = pair.value.value.trim();
+    if (value.includes("${{")) return false;
+    return pathEscapesWorkspace(value);
+  });
+}
+
 function stepReachesOutsideWorkspace(step) {
+  if (valuesEscapeWorkspace(step, "env") || valuesEscapeWorkspace(step, "with")) return true;
   const text = stepShellText(step, { ignoreExpressions: true });
   if (text === null) return false;
   if (RUNNER_STATE_VARIABLE.test(text)) return true;
-  return shellWords(text).some((word) => {
-    const bare = word.replace(/^["']|["']$/g, "");
-    if (!bare.includes("/")) return false;
-    if (bare.startsWith("/")) return true;
-    return normalizedRelativeSegments(bare) === null;
-  });
+  return shellWords(text).some((word) => pathEscapesWorkspace(word.replace(/^["']|["']$/g, "")));
 }
 
 function stepTouchesEnvironmentFiles(step) {
@@ -1539,6 +1559,15 @@ export function validateWorkflowText(path, text) {
             );
           }
           if (
+            valuesEscapeWorkspace(root, "env") ||
+            valuesEscapeWorkspace(jobPair.value, "env") ||
+            valuesEscapeWorkspace(jobPair.value, "with")
+          ) {
+            failures.push(
+              `Write-capable job ${jobName} reaches outside the workspace: ${path}`
+            );
+          }
+          if (
             valuesCarryUnreadableExpression(root, "env") ||
             valuesCarryUnreadableExpression(jobPair.value, "env")
           ) {
@@ -1584,7 +1613,7 @@ export function validateWorkflowText(path, text) {
               }
               if (stepReachesOutsideWorkspace(step)) {
                 failures.push(
-                  `Write-capable job ${jobName} reaches outside the workspace in its shell: ${path}`
+                  `Write-capable job ${jobName} reaches outside the workspace: ${path}`
                 );
               }
             }

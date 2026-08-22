@@ -1102,9 +1102,14 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     ['      - run: name=GITHUB_""EVENT_PATH\n', /runs shell that cannot be read/],
     // The same payload reached by walking to it, or by a variable that maps
     // the walk.
-    ['      - run: jq -r .comment.body ../../_temp/_github_workflow/event.json > payload\n', /reaches outside the workspace in its shell/],
-    ['      - run: cat /tmp/_github_workflow/event.json > payload\n', /reaches outside the workspace in its shell/],
-    ['      - run: cat "$RUNNER_TEMP/_github_workflow/event.json" > payload\n', /reaches outside the workspace in its shell/]
+    ['      - run: jq -r .comment.body ../../_temp/_github_workflow/event.json > payload\n', /reaches outside the workspace/],
+    ['      - run: cat /tmp/_github_workflow/event.json > payload\n', /reaches outside the workspace/],
+    ['      - run: cat "$RUNNER_TEMP/_github_workflow/event.json" > payload\n', /reaches outside the workspace/],
+    // The escaping path can sit in `env` while the shell names a variable,
+    // and a Windows runner path holds no forward slash at all.
+    ['      - env:\n          EVENT: ../../_temp/_github_workflow/event.json\n        run: jq -r .comment.body "$EVENT" > payload\n', /reaches outside the workspace/],
+    ['      - run: type \'D:\\a\\_temp\\_github_workflow\\event.json\'\n', /reaches outside the workspace/],
+    ['      - env:\n          EVENT: D:\\a\\_temp\\_github_workflow\\event.json\n        run: node run.mjs\n', /reaches outside the workspace/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
