@@ -249,6 +249,8 @@ test("rejects commands that only report success", () => {
     "cargo fmt --check -- --help=config", "npm test --version=1",
     // A dispatched command is read like any other check.
     "uv run --no-project true", "uv run echo ok", "bundle exec ls",
+    // A check-shaped word that is only an argument to the dispatched command.
+    "uv run --no-project true pytest", "bundle exec ls pytest",
     // A slash is not a project: a runtime's operand has to be a path this
     // repository could hold.
     "node /dev/null", "bash /dev/null", "node ../outside/run.mjs", "node ~/run.mjs",

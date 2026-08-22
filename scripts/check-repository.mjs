@@ -244,6 +244,35 @@ function dispatchNameIndex(words, index, immediate) {
   return -1;
 }
 
+// Only the separated forms need naming: `--directory=website` carries its own
+// value, and an option that takes none is simply absent from the set.
+const VALUE_TAKING_OPTION = new Map([
+  ["uv", new Set([
+    "--directory", "--project", "--package", "--python", "-p", "--with",
+    "--with-requirements", "--with-editable", "--extra", "--group",
+    "--env-file", "--cache-dir", "--config-file", "--index", "--index-url",
+    "--extra-index-url", "--find-links", "--resolution", "--prerelease",
+    "--python-preference", "--refresh-package", "--no-binary-package"
+  ])],
+  ["poetry", new Set(["--directory", "-C", "--project", "-P"])],
+  ["pipenv", new Set(["--python"])],
+  ["bundle", new Set(["--gemfile"])]
+]);
+
+function dispatchedCommandIndex(executable, words) {
+  const valued = VALUE_TAKING_OPTION.get(executable) ?? new Set();
+  for (let position = 1; position < words.length; position += 1) {
+    const bare = bareWord(words[position]);
+    if (!bare) continue;
+    if (bare.startsWith("-")) {
+      if (valued.has(bare)) position += 1;
+      continue;
+    }
+    return position;
+  }
+  return -1;
+}
+
 function commandPositionIsTarget(words, executable) {
   const first = bareWord(words[0]);
   if (!first || first.startsWith("-")) return false;
@@ -254,22 +283,20 @@ function commandPositionIsTarget(words, executable) {
     // nothing at all — so the child is held to what any check is held to.
     const immediate = NAME_MUST_FOLLOW_VERB.has(executable);
     if (immediate) return dispatchNameIndex(words, 0, true) >= 0;
-    // Which of uv's options take a value is a table per tool and per version —
-    // `--locked` takes none, `--directory website` takes one — so the child is
-    // not guessed by position. Somewhere after the verb there has to be a word
-    // that is itself a real check, whether a command or a script this
-    // repository holds; an option's value never is one. The cost is that
-    // `uv run --with pytest true` reads as a pytest run, which is a command
-    // that does less than it says rather than one that hides what it does.
-    return words.slice(1).some((word, offset) => {
-      const bare = bareWord(word);
-      if (!bare || bare.startsWith("-")) return false;
-      if (isRepositoryFileWord(bare)) return true;
-      const child = executableBasename(bare);
-      return (
-        PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(offset + 2))
-      );
-    });
+    // Scanning for any check-shaped word read `uv run --no-project true
+    // pytest` as a pytest run, when pytest is only an argument handed to
+    // `true`. The dispatched command is the first word that is neither an
+    // option nor an option's value, so the options that take one are named
+    // below — a bounded, documented fact about four tools, unlike the open
+    // sets this file refuses to enumerate elsewhere. An option that is not
+    // named is read as taking no value, which puts its value in the command
+    // position and fails closed there.
+    const index = dispatchedCommandIndex(executable, words);
+    if (index < 0) return false;
+    const dispatched = bareWord(words[index]);
+    if (isRepositoryFileWord(dispatched)) return true;
+    const child = executableBasename(dispatched);
+    return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(index + 1));
   }
   if (VERDICT_VERB.has(first)) {
     return words.some((word) => VERDICT_FLAG.has(bareWord(word)));
