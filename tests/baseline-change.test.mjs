@@ -71,6 +71,19 @@ test("a handed-over file may stay, but not be rewritten on the way out", async (
       sourceRoot: source
     });
     assert.match(rewritten.join("\n"), /rewrite a handed-over file|project-owned files/);
+
+    // And an update may not introduce the file where the trusted branch has
+    // none: that would let it choose the owner while dropping the path from
+    // the lock.
+    write(proposed, owners, "/.github/ @chosen-by-the-update\n");
+    rmSync(join(trusted, owners));
+    const introduced = await checkBaselineChange({
+      proposedRoot: proposed,
+      trustedRoot: trusted,
+      changedPaths: [".web-design/managed-files.json", ".web-design/lock.json", owners],
+      sourceRoot: source
+    });
+    assert.match(introduced.join("\n"), /missing from the trusted branch|project-owned files/);
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }

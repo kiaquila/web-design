@@ -129,6 +129,12 @@ export async function checkBaselineChange({
         try {
           trustedBytes = readFileSync(resolve(trusted, path));
         } catch {
+          // Nothing to hand over: the trusted branch does not have this file,
+          // so accepting whatever the proposal supplies would let an update
+          // introduce one — a CODEOWNERS naming an owner of its choosing —
+          // while dropping it from the lock. Restoring it is a project-owned
+          // change, made deliberately and reviewed as itself.
+          failures.push(`Handed-over file is missing from the trusted branch: ${path}`);
           continue;
         }
         if (sha256(proposedBytes) !== sha256(trustedBytes)) {
