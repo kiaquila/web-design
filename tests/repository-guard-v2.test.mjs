@@ -89,7 +89,9 @@ test("an informational flag beats the verb in front of it", () => {
   for (const run of [
     "npm test --version", "npm run check --help", "go test --version", "pytest --help",
     // Short spellings every tool in these classes reads the same way.
-    "pytest -h", "pytest -V", "npm test -h", "tox -h"
+    "pytest -h", "pytest -V", "npm test -h", "tox -h",
+    // `-v` is npm's version but pytest's verbosity, so it is judged per tool.
+    "npm test -v", "npm run check -v", "make -v", "mvn -v"
   ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
@@ -213,6 +215,9 @@ test("rejects commands that only report success", () => {
     // enumeration had not reached them yet.
     "sleep 0", "sleep 0 && npm test", "test -e package.json", "[ -e package.json ]",
     "cat package.json", "ls", "cd website",
+    // A slash is not a project: a runtime's operand has to be a path this
+    // repository could hold.
+    "node /dev/null", "bash /dev/null", "node ../outside/run.mjs", "node ~/run.mjs",
     // An allowlisted executable still reports on itself rather than the
     // product when nothing points it at project code.
     "npm --version", "node --version", "node -v", "go version", "npm --prefix website",

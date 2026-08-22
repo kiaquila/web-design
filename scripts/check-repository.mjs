@@ -150,8 +150,17 @@ const VERB_NEEDING_ARGUMENT = new Set(["run", "exec"]);
 const INFORMATIONAL_WORD = new Set([
   "version", "--version", "-V", "help", "--help", "-h"
 ]);
+// `-v` is the one spelling the tools disagree about: `npm test -v` prints
+// npm's version and runs nothing, while `pytest -v` and `go test -v` are real
+// runs asking to be louder. Naming the tools that read it as verbose keeps a
+// tool added to the lists above failing closed until someone decides which it
+// is.
+const VERBOSE_SHORT_FLAG_TOOL = new Set([
+  "pytest", "tox", "go", "cargo", "rake", "dotnet", "composer", "python",
+  "python3", "java", "swift", "bash", "sh", "zsh"
+]);
 
-function informsInsteadOfRunning(words, { stopAtFile = false } = {}) {
+function informsInsteadOfRunning(words, { stopAtFile = false, versionIsShort = false } = {}) {
   for (const word of words) {
     const bare = bareWord(word);
     // Past `--` the words belong to the script being run, not to the tool.
@@ -162,6 +171,7 @@ function informsInsteadOfRunning(words, { stopAtFile = false } = {}) {
     // the tool it dispatches to reads `-h` the same way its runner would.
     if (stopAtFile && isFileWord(bare)) return false;
     if (INFORMATIONAL_WORD.has(bare)) return true;
+    if (versionIsShort && bare === "-v") return true;
   }
   return false;
 }
@@ -174,6 +184,16 @@ function isFileWord(word) {
   return word.includes("/") || /\.[A-Za-z0-9]+$/.test(word);
 }
 
+// `node /dev/null` exits zero having run nothing: a slash is not a project.
+// A runtime's operand has to be a path the repository could actually hold, so
+// absolute paths, home-relative paths, drive letters, and anything climbing
+// out of the tree are not targets.
+function isRepositoryFileWord(word) {
+  if (!isFileWord(word)) return false;
+  if (word.startsWith("/") || word.startsWith("~") || /^[A-Za-z]:/.test(word)) return false;
+  return normalizedRelativeSegments(word) !== null;
+}
+
 function dispatchesToName(words, index) {
   const following = bareWord(words[index + 1]);
   return Boolean(following) && !following.startsWith("-");
@@ -183,15 +203,19 @@ function commandPositionIsTarget(words) {
   const first = bareWord(words[0]);
   if (!first || first.startsWith("-")) return false;
   if (VERB_NEEDING_ARGUMENT.has(first)) return dispatchesToName(words, 0);
-  return PRODUCT_CHECK_VERB.has(first) || isFileWord(first);
+  return PRODUCT_CHECK_VERB.has(first) || isRepositoryFileWord(first);
 }
 
 function runsProjectCode(executable, words) {
   const isRuntime = RUNTIME_CHECK.has(executable);
-  if (informsInsteadOfRunning(words, { stopAtFile: isRuntime })) return false;
+  const informs = informsInsteadOfRunning(words, {
+    stopAtFile: isRuntime,
+    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable)
+  });
+  if (informs) return false;
   if (SELF_SUFFICIENT_CHECK.has(executable)) return true;
   if (isRuntime) {
-    return words.some((word) => isFileWord(bareWord(word)));
+    return words.some((word) => isRepositoryFileWord(bareWord(word)));
   }
   if (PACKAGE_RUNNER_CHECK.has(executable)) {
     const first = bareWord(words[0]);
