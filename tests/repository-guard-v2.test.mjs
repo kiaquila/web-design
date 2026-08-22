@@ -102,11 +102,8 @@ test("an abbreviated option is refused rather than resolved", () => {
   // whole option list, which this file cannot hold: npm expands `--i` to
   // `--iwr` rather than to `--if-present`. So the check says what it means.
   for (const run of [
-    "npm run check --if-p", "npm run check --no-if-p", "npm test --vers",
-    "npm run check -if-p", "make test --tou",
-    // A reporting mode abbreviates like anything else.
-    "make test --dry-r", "swift build --sho",
-    "make test --ignore-e", "npm test --script-sh=/bin/true"
+    "npm test --vers", "npm run check --pref website", "npm run check --wor website",
+    "cargo fmt --che", "npm run check --sil"
   ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
@@ -205,15 +202,8 @@ test("the checks real projects configure stay expressible", () => {
     "gradle test",
     "swift test",
     "dotnet test",
-    // A negated reporting option asks for the work, not the report.
-    "npm run check --no-dry-run",
     // Past `--` the flags belong to the project's own script.
     "npm test -- -x",
-    // A spelled-out name behind one dash says what it is.
-    "swift test -Xswiftc -warnings-as-errors",
-    // Go and Swift document single-dash names, so theirs are read as names.
-    "go test -race ./...",
-    "go test -run TestName ./...",
     // Cargo's operand is a test filter, not a subcommand, whatever it says.
     "cargo test list",
     "bash scripts/check.sh"
@@ -380,6 +370,13 @@ test("rejects commands that only report success", () => {
     "go test -exec /bin/true ./...", "swift test list",
     // Swift puts its options before the subcommand.
     "swift test --configuration debug list",
+    // Options are refused by not being named now, which reaches the siblings
+    // an enumeration had to be extended for one at a time.
+    "go test -toolexec /bin/true ./...", "go test -c ./...", "go test -o /dev/null ./...",
+    "go test -count=0 ./...", "go test --count=0 ./...", "cargo test --no-run",
+    "gradle test --exclude-task test", "swift test --skip-build",
+    "go test -race ./...", "go test -run TestName ./...",
+    "swift test -Xswiftc -warnings-as-errors", "make test -nis", "mvn -fn verify",
     "make test --touch", "make test --question", "make test --just-print",
     "make test --recon", "make test --what-if test", "make test --new-file x",
     "make test --assume-new x",

@@ -158,44 +158,36 @@ const VERB_NEEDING_ARGUMENT = new Set(["run", "exec"]);
 const INFORMATIONAL_WORD = new Set([
   "version", "--version", "-V", "help", "--help", "-h"
 ]);
-// A different way to exit zero without running: `npm run check --if-present`
-// succeeds when `check` is not in package.json at all, so a typo or a removed
-// script leaves the check green and silent. The flag says "tolerate the
-// absence of what I was asked to run", which is the opposite of what a
-// required check is for.
-const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
-// A third shape after the informational and absence-tolerating ones, and the
-// third finding of its kind: `swift build --show-bin-path` prints a path and
-// exits zero without compiling, as `tsc --showConfig` printed a configuration
-// before its class was dropped. What these share is not a spelling but a
-// promise — an option whose name describes output rather than work reports
-// instead of working. The shapes below catch that across tools. A flag that
-// genuinely does work while naming its output would be refused too; that is
-// rare in a check command, and the exchange is deliberate.
-// Read after the same dash normalization the other families use, so how the
-// option was typed does not decide whether it is seen.
-// `npm test || true` is refused at the shell level because the check's exit
-// status has to come from the work. These options do the same thing one layer
-// down: the tool runs, and then the verdict is discarded — `--ignore-errors`
-// swallows a failed recipe, `--fail-never` reports success whatever the build
-// did, `--exit-zero` says so in its name, and `--script-shell` replaces the
-// shell a script runs in, so `/bin/true` becomes the exit status. A negated
-// spelling asks for the strict behaviour and is left alone.
-const EXIT_STATUS_DETACHING = new Set([
-  "ignore-errors", "fail-never", "exit-zero", "script-shell", "exec"
+// Every family that used to sit here named a way to exit zero without doing
+// the work: `--if-present` tolerating a missing script, `--show-bin-path` and
+// `--dry-run` naming output instead of work, Make's `--touch` and `--question`
+// claiming the work already done, `--ignore-errors` and `--script-shell`
+// detaching the verdict, then their abbreviations, their negations, their
+// attached values, and their one-dash spellings. Each round closed the
+// spelling in front of it and the next tool had another: `go test -exec
+// /bin/true` swaps the test binary for a no-op, `-toolexec` does it one layer
+// down, `cargo test --no-run` builds the tests and runs none, `gradle test
+// --exclude-task test` drops the task, `go test -count=0` runs it zero times.
+// There is no end to that list, because it is every option of every tool, and
+// nothing in a name separates `--no-run` from `--prefix`.
+//
+// So the reading is inverted here, the way it already is for the other two
+// classes: a runtime takes its file first with nothing before it, a
+// self-sufficient tool takes no options at all, and a subcommand tool takes
+// only the options this file can name. The set below is small on purpose — it
+// says where in the repository the project lives, and asks a formatter for a
+// verdict. Anything else a check needs goes into a script the project runs,
+// where the flags are reviewed rather than parsed. The trade refuses commands
+// that were doing nothing wrong, and is taken deliberately: a refused check is
+// a red build, and a misread one is a green build that tested nothing.
+const READABLE_OPTION = new Set([
+  "--prefix", "--workspace", "--silent", "--check", "--check-only"
 ]);
+// A name that describes output rather than work. It is read as a word now
+// rather than as an option — options are decided by the set above — and its
+// one use is Swift's reporting subcommands, below.
 const REPORTING_NAME = ["show", "print", "list", "dry-run"];
-const REPORTING_OPTION = new RegExp(`^(?:${REPORTING_NAME.join("|")})(?:-|$)`);
-// Naming output is one way to not do the work; claiming it is already done is
-// another. GNU Make documents a closed set of modes that skip the recipe —
-// `--touch` marks targets made, `--question` only asks, `--just-print` and
-// `--recon` print — and make is the one tool here whose target is a bare verb
-// with no other signal. The set is the manual's, not a growing list of
-// spellings, and their one-letter aliases are refused by the rule below.
-const NON_EXECUTING_MODE = new Set([
-  "touch", "question", "just-print", "recon",
-  "old-file", "assume-old", "what-if", "new-file", "assume-new"
-]);
+const REPORTING_WORD = new RegExp(`^(?:${REPORTING_NAME.join("|")})(?:-|$)`);
 // `-v` is the one spelling the tools disagree about: `npm test -v` prints
 // npm's version and runs nothing, while `pytest -v` and `go test -v` are real
 // runs asking to be louder. Naming the tools that read it as verbose keeps a
@@ -211,16 +203,9 @@ const VERBOSE_SHORT_FLAG_TOOL = new Set([
 // for the interpreter's version; the caller passes only the words ahead of the
 // operand. A package runner is the other way round: the tool it dispatches to
 // reads `-h` the same way its runner would, so every word counts.
-// `npm run check --if-p` expands to `--if-present` and an exact lookup never
-// sees it. Whether an abbreviation is unambiguous is a question about the
-// tool's whole option list — npm expands `--i` to `--iwr`, not to
-// `--if-present` — and that list is not something this file can hold. So an
-// abbreviation of a guarded flag is not resolved, it is refused, with a
-// message saying to spell the option out: an abbreviation the scanner cannot
-// read is one a reviewer has to guess at too.
-// npm accepts `-if-present` for `--if-present`, so the dashes say how the word
+// npm accepts `-if-present` for `--if-present`, so the dashes say how a word
 // was typed rather than what it means. A long name is read with its dashes and
-// any `no-` prefix removed, and compared against the guarded names the same
+// any `no-` prefix removed, and compared against the named options the same
 // way; a short flag keeps its exact spelling, since `-h` is not an
 // abbreviation of `help`.
 function longOptionName(name) {
@@ -251,14 +236,11 @@ function matchesOption(name, flags) {
 // they land is not knowable from here, so the scan does not stop at the
 // separator at all — a check has no use for an informational flag on either
 // side of it.
-// Go documents `-run`, `-race`, `-count`; Swift documents `-Xswiftc`. Every
-// other tool in the classes above spells a name with two dashes.
-const SINGLE_DASH_NAME_TOOL = new Set(["go", "swift"]);
 // `swift test list` is a documented subcommand; `cargo test list` is a test
 // filter that happens to read the same way.
 const SUBCOMMAND_REPORTING_TOOL = new Set(["swift"]);
 
-function informsInsteadOfRunning(words, { versionIsShort = false, executable = "" } = {}) {
+function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
   let beyondSeparator = false;
   for (const word of words) {
     const bare = bareWord(word);
@@ -269,56 +251,21 @@ function informsInsteadOfRunning(words, { versionIsShort = false, executable = "
     // `--help=config` is the same request with its topic attached, so the
     // value comes off before the word is read — but only from an option, since
     // `make test version=1` is a variable assignment and its target is `test`.
-    // An option's attached value comes off before the word is read, for every
-    // set that reads it: `--help=config` and `--if-present=true` are the same
-    // requests as their bare spellings. A word that is not an option keeps its
-    // `=`, since `make test version=1` is an assignment rather than a flag.
     const option = bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare;
     if (matchesOption(option, INFORMATIONAL_WORD)) return true;
-    // `--if-present=false` turns the tolerance off and a missing script then
-    // fails as it should — but npm reads every other value as on, `=0` and
-    // `=no` included, so listing the truthy spellings failed open. Exactly the
-    // one disabling value passes; everything else is the flag.
-    // Reading what this flag was set to took five rounds and five spellings:
-    // bare, `=true`, `=0`, `--no-` with a value, and the value a word away.
-    // Reading it at all is the mistake — a required check has no use for the
-    // flag in either state, since one meaning is "tolerate the absence of what
-    // I was asked to run" and the other is the default. So the whole family
-    // goes, whatever it is set to, and the parsing question with it.
-    const negated = option.startsWith("--no-");
-    if (matchesOption(negated ? `--${option.slice(5)}` : option, ABSENCE_TOLERATING_FLAG)) {
-      return true;
+    if (!option.startsWith("-")) continue;
+    // Past `--` the words belong to whatever is being run, and its options are
+    // its own business — `npm test -- -x` passes `-x` to the project's script.
+    if (beyondSeparator) continue;
+    // `-v` is the one spelling the tools disagree about: `npm test -v` prints
+    // npm's version and runs nothing, while `pytest -v` and `go test -v` are
+    // real runs asking to be louder. The tool classes model that much, so it
+    // is read; every other option has to be one this file names.
+    if (bare === "-v") {
+      if (versionIsShort) return true;
+      continue;
     }
-    // Dashes are spelling and come off; `no-` is meaning and stays. A negated
-    // reporting option asks for the work rather than the report, so
-    // `--no-dry-run` is a real check while `--dry-run` is not.
-    const reportingName = option.startsWith("-") ? option.replace(/^-+/, "") : "";
-    if (reportingName && !reportingName.startsWith("no-")) {
-      if (REPORTING_OPTION.test(reportingName)) return true;
-      if (NON_EXECUTING_MODE.has(reportingName)) return true;
-      if (EXIT_STATUS_DETACHING.has(reportingName)) return true;
-    }
-    if (versionIsShort && bare === "-v") return true;
-    // A single letter means whatever its tool says it means: `-n` is Make's
-    // dry run and pytest's worker count, `-t` marks Make targets done without
-    // running them. The scanner cannot know which, and neither can a reviewer
-    // reading the configuration — the same argument that refuses an
-    // abbreviated long option. Only the verbose flag the tool classes already
-    // model is readable. Length was the wrong question and took three tries to
-    // stop asking: `-fn` is Maven's alias for `--fail-never`, `-run` is Go's
-    // spelled-out option, `-nis` is a Make cluster hiding `-n`, and no cutoff
-    // separates them. What does separate them is convention — Go and Swift
-    // document single-dash names, and the other tools here spell names with
-    // `--` and use one dash for short flags and their clusters. So a
-    // single-dash word longer than a letter is readable only where that is the
-    // tool's own convention, and a cluster in Go or Swift is not a false
-    // success either: neither parses clusters, so the run fails. Past `--` the
-    // words belong to the script being run, and its flags are its business.
-    const shortOption = !beyondSeparator && /^-[^-]/.test(bare);
-    const spelledSingleDash = bare.length > 2 && SINGLE_DASH_NAME_TOOL.has(executable);
-    if (shortOption && !spelledSingleDash && !(bare === "-v" && !versionIsShort)) {
-      return true;
-    }
+    if (!READABLE_OPTION.has(option)) return true;
   }
   return false;
 }
@@ -397,7 +344,7 @@ function commandPositionIsTarget(words, executable) {
   if (SUBCOMMAND_REPORTING_TOOL.has(executable) && PRODUCT_CHECK_VERB.has(first)) {
     const reporting = words.slice(1).some((word) => {
       const bare = bareWord(word);
-      return bare && !bare.startsWith("-") && REPORTING_OPTION.test(bare);
+      return bare && !bare.startsWith("-") && REPORTING_WORD.test(bare);
     });
     if (reporting) return false;
   }
@@ -425,8 +372,7 @@ function runtimeOperandIndex(words) {
 function preparesDependencies(executable, words) {
   if (!SUBCOMMAND_CHECK.has(executable)) return false;
   if (informsInsteadOfRunning(words, {
-    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable),
-    executable
+    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable)
   })) {
     return false;
   }
@@ -437,8 +383,7 @@ function runsProjectCode(executable, words) {
   const isRuntime = RUNTIME_CHECK.has(executable);
   const operand = isRuntime ? runtimeOperandIndex(words) : -1;
   const informs = informsInsteadOfRunning(isRuntime ? words.slice(0, Math.max(operand, 0)) : words, {
-    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable),
-    executable
+    versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable)
   });
   if (informs) return false;
   if (SELF_SUFFICIENT_CHECK.has(executable)) {
@@ -673,18 +618,18 @@ export function validateProductCheckCommand(command) {
     }
     const words = commandWordsAfterAssignments(trimmed);
     if (!words.length) return "must execute a real product check";
+    // `npm run check --pref website` expands to `--prefix` and an exact lookup
+    // never sees it. Whether an abbreviation is unambiguous is a question about
+    // the tool's whole option list — npm expands `--i` to `--iwr`, not to
+    // `--if-present` — and that list is not something this file can hold. The
+    // allowlist refuses an abbreviation already, by not naming it; this says
+    // why, because "spell the option out" is the fix and the general refusal
+    // does not suggest it.
     const abbreviated = words.some((word) => {
       const bare = bareWord(word).replace(/=[\s\S]*$/, "");
-      const base = bare.startsWith("--no-") ? `--${bare.slice(5)}` : bare;
-      // Every guarded family belongs in this list. A family wired into the
-      // refusal but not into this scan is refused when spelled out and
-      // accepted when abbreviated, which has happened twice.
       return (
         abbreviatesOption(bare, INFORMATIONAL_WORD) ||
-        abbreviatesOption(base, ABSENCE_TOLERATING_FLAG) ||
-        abbreviatesOption(base, NON_EXECUTING_MODE) ||
-        abbreviatesOption(base, new Set(REPORTING_NAME)) ||
-        abbreviatesOption(base, EXIT_STATUS_DETACHING)
+        abbreviatesOption(bare, READABLE_OPTION)
       );
     });
     if (abbreviated) return "must spell out its options rather than abbreviate them";
