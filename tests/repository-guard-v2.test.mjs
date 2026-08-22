@@ -1037,7 +1037,7 @@ test("an environment-file name cannot be assembled or reached indirectly", () =>
   assert.deepEqual(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      step('node run.mjs "$GITHUB_WORKSPACE" "${HOME}" \'$(pwd)\'')
+      step('node run.mjs "$GITHUB_WORKSPACE" "${CI}" \'$(pwd)\'')
     ),
     []
   );
@@ -1099,7 +1099,12 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     ['      - run: eval "$(jq -r .comment.body \"$GITHUB_EVENT_PATH\")"\n', /runs shell that cannot be read/],
     ['      - run: jq -r .comment.body "$GITHUB_EVENT_PATH" > payload\n', /reads the event payload in its shell/],
     ['      - run: bash -c "$(cat payload)"\n', /runs shell that cannot be read/],
-    ['      - run: name=GITHUB_""EVENT_PATH\n', /runs shell that cannot be read/]
+    ['      - run: name=GITHUB_""EVENT_PATH\n', /runs shell that cannot be read/],
+    // The same payload reached by walking to it, or by a variable that maps
+    // the walk.
+    ['      - run: jq -r .comment.body ../../_temp/_github_workflow/event.json > payload\n', /reaches outside the workspace in its shell/],
+    ['      - run: cat /tmp/_github_workflow/event.json > payload\n', /reaches outside the workspace in its shell/],
+    ['      - run: cat "$RUNNER_TEMP/_github_workflow/event.json" > payload\n', /reaches outside the workspace in its shell/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),

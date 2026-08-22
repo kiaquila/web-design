@@ -1326,6 +1326,27 @@ function stepReadsEventPayload(step) {
   return EVENT_PAYLOAD_FILE.test(run.value);
 }
 
+// `../../_temp/_github_workflow/event.json` is that same payload reached by
+// walking to it, and `$RUNNER_TEMP` is the same walk with a variable for a
+// map. Naming the file's spellings one at a time is the losing side; what
+// they have in common is leaving the workspace. The workspace holds the
+// repository's own reviewed bytes, so shell in a write-capable
+// actor-triggered job stays inside it: no absolute path, nothing climbing
+// above the root, and none of the variables that point at runner state.
+const RUNNER_STATE_VARIABLE = /\b(?:RUNNER_TEMP|RUNNER_TOOL_CACHE|RUNNER_WORKSPACE|HOME)\b/;
+
+function stepReachesOutsideWorkspace(step) {
+  const text = stepShellText(step, { ignoreExpressions: true });
+  if (text === null) return false;
+  if (RUNNER_STATE_VARIABLE.test(text)) return true;
+  return shellWords(text).some((word) => {
+    const bare = word.replace(/^["']|["']$/g, "");
+    if (!bare.includes("/")) return false;
+    if (bare.startsWith("/")) return true;
+    return normalizedRelativeSegments(bare) === null;
+  });
+}
+
 function stepTouchesEnvironmentFiles(step) {
   const run = mapPair(step, "run")?.value;
   if (!isScalar(run) || typeof run.value !== "string") return false;
@@ -1559,6 +1580,11 @@ export function validateWorkflowText(path, text) {
               if (stepReadsEventPayload(step)) {
                 failures.push(
                   `Write-capable job ${jobName} reads the event payload in its shell: ${path}`
+                );
+              }
+              if (stepReachesOutsideWorkspace(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} reaches outside the workspace in its shell: ${path}`
                 );
               }
             }
