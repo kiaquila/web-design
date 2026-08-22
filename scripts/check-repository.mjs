@@ -225,9 +225,13 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     // fails as it should — but npm reads every other value as on, `=0` and
     // `=no` included, so listing the truthy spellings failed open. Exactly the
     // one disabling value passes; everything else is the flag.
-    if (ABSENCE_TOLERATING_FLAG.has(option)) {
+    const negated = option.startsWith("--no-");
+    if (ABSENCE_TOLERATING_FLAG.has(negated ? `--${option.slice(5)}` : option)) {
       const value = bare.includes("=") ? bare.slice(bare.indexOf("=") + 1) : "";
-      if (value !== "false") return true;
+      // `--no-if-present` turns it off, and `--no-if-present=false` is a
+      // double negative that turns it back on, so a negated spelling passes
+      // only bare — a value on top of a negation is not worth reading twice.
+      if (negated ? value !== "" : value !== "false") return true;
     }
     if (versionIsShort && bare === "-v") return true;
   }
