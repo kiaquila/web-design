@@ -221,11 +221,13 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     // `=`, since `make test version=1` is an assignment rather than a flag.
     const option = bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare;
     if (INFORMATIONAL_WORD.has(option)) return true;
-    // `--if-present=false` turns the tolerance off, and a missing script then
-    // fails as it should, so only the bare and truthy spellings are refused.
+    // `--if-present=false` turns the tolerance off and a missing script then
+    // fails as it should — but npm reads every other value as on, `=0` and
+    // `=no` included, so listing the truthy spellings failed open. Exactly the
+    // one disabling value passes; everything else is the flag.
     if (ABSENCE_TOLERATING_FLAG.has(option)) {
       const value = bare.includes("=") ? bare.slice(bare.indexOf("=") + 1) : "";
-      if (!value || /^(?:true|1|yes)$/i.test(value)) return true;
+      if (value !== "false") return true;
     }
     if (versionIsShort && bare === "-v") return true;
   }
