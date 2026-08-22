@@ -182,7 +182,7 @@ const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
 // shell a script runs in, so `/bin/true` becomes the exit status. A negated
 // spelling asks for the strict behaviour and is left alone.
 const EXIT_STATUS_DETACHING = new Set([
-  "ignore-errors", "fail-never", "exit-zero", "script-shell"
+  "ignore-errors", "fail-never", "exit-zero", "script-shell", "exec"
 ]);
 const REPORTING_NAME = ["show", "print", "list", "dry-run"];
 const REPORTING_OPTION = new RegExp(`^(?:${REPORTING_NAME.join("|")})(?:-|$)`);
@@ -384,6 +384,14 @@ function commandPositionIsTarget(words, executable) {
     if (isRepositoryFileWord(dispatched)) return true;
     const child = executableBasename(dispatched);
     return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(index + 1));
+  }
+  // `swift test list` lists the test methods and runs none of them: the same
+  // promise the reporting options make, worn as a subcommand. A dispatching
+  // verb is left alone, since the word after it names a package script this
+  // guard does not read.
+  if (PRODUCT_CHECK_VERB.has(first) && !VERB_NEEDING_ARGUMENT.has(first)) {
+    const following = bareWord(words[1] ?? "");
+    if (following && !following.startsWith("-") && REPORTING_OPTION.test(following)) return false;
   }
   if (VERDICT_VERB.has(first)) {
     return words.some((word) => VERDICT_FLAG.has(bareWord(word)));

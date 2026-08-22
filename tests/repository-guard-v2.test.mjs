@@ -373,6 +373,9 @@ test("rejects commands that only report success", () => {
     // layer up, and refused for the same reason.
     "npm test --script-shell=/bin/true", "make test --ignore-errors",
     "mvn test --fail-never", "ruff check --exit-zero",
+    // A wrapper that replaces the test binary, and a reporting name worn as a
+    // subcommand rather than a flag.
+    "go test -exec /bin/true ./...", "swift test list",
     "make test --touch", "make test --question", "make test --just-print",
     "make test --recon", "make test --what-if test", "make test --new-file x",
     "make test --assume-new x",
