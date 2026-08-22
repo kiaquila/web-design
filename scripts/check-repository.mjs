@@ -215,10 +215,13 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     // `--help=config` is the same request with its topic attached, so the
     // value comes off before the word is read — but only from an option, since
     // `make test version=1` is a variable assignment and its target is `test`.
-    if (INFORMATIONAL_WORD.has(bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare)) {
-      return true;
-    }
-    if (ABSENCE_TOLERATING_FLAG.has(bare)) return true;
+    // An option's attached value comes off before the word is read, for every
+    // set that reads it: `--help=config` and `--if-present=true` are the same
+    // requests as their bare spellings. A word that is not an option keeps its
+    // `=`, since `make test version=1` is an assignment rather than a flag.
+    const option = bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare;
+    if (INFORMATIONAL_WORD.has(option)) return true;
+    if (ABSENCE_TOLERATING_FLAG.has(option)) return true;
     if (versionIsShort && bare === "-v") return true;
   }
   return false;
