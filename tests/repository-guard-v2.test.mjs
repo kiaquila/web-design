@@ -1051,7 +1051,7 @@ test("an environment-file name cannot be assembled or reached indirectly", () =>
   assert.deepEqual(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      step('node run.mjs "$GITHUB_WORKSPACE" "${CI}" \'$(pwd)\'')
+      step('node run.mjs "$GITHUB_WORKSPACE" "${CI}"')
     ),
     []
   );
@@ -1147,7 +1147,10 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     ['      - env:\n          EVENT: event.json\n        run: printenv > vars\n', /moves data through its shell/],
     ['      - env:\n          EVENT: event.json\n        run: . bind\n', /moves data through its shell/],
     ['      - env:\n          EVENT: event.json\n        run: source bind\n', /moves data through its shell/],
-    ['      - run: cat vars | grep EVENT\n', /moves data through its shell/]
+    ['      - run: cat vars | grep EVENT\n', /moves data through its shell/],
+    // A program in another language, wearing quotes.
+    ['      - run: python3 -c \'import os,json;exec(json.load(open(os.environ["X"]))["b"])\'\n', /quotes a program in its shell/],
+    ['      - run: node -e "require(process.env.X)"\n', /quotes a program in its shell/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
@@ -1166,6 +1169,14 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     validateWorkflowText(
       ".github/workflows/example.yml",
       step('      - run: git -C . pull origin main\n')
+    ),
+    []
+  );
+  // A quoted word is still fine when it is a path or a whole variable.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      step('      - run: node "$GITHUB_WORKSPACE/scripts/run.mjs"\n')
     ),
     []
   );

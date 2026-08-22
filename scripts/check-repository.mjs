@@ -1429,6 +1429,27 @@ function environmentNames(node) {
 // is not sourcing anything.
 const SOURCING_COMMAND = /(?:^|[\n;&|(]\s*)(?:\.|source)\s/;
 
+// `python3 -c 'import json,os;exec(...)'` is a program in another language
+// wearing quotes, and quotes are exactly what the shell scan steps over.
+// Listing the flags that take a program (`-c`, `-e`, `--eval`, an awk script,
+// a jq filter) is the losing side once more, so a quoted word may only be
+// what a quoted word is needed for here: a path, a flag, a token, or one
+// whole variable reference with a path after it. A program belongs in a file,
+// where it is reviewed rather than quoted.
+function isPlainQuotedContent(content) {
+  const rest = content.replace(/^\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})/, "");
+  return READABLE_UNQUOTED_WORD.test(rest);
+}
+
+function stepQuotesAProgram(step) {
+  const text = stepShellText(step, { ignoreExpressions: true });
+  if (text === null) return false;
+  return shellWords(text).some((word) => {
+    const quoted = /^(['"])([\s\S]*)\1$/.exec(word);
+    return quoted ? !isPlainQuotedContent(quoted[2]) : false;
+  });
+}
+
 function stepMovesData(step) {
   const text = stepShellText(step, { ignoreExpressions: true });
   if (text === null) return false;
@@ -1716,6 +1737,11 @@ export function validateWorkflowText(path, text) {
               if (stepReadsEventPayload(step)) {
                 failures.push(
                   `Write-capable job ${jobName} reads the event payload in its shell: ${path}`
+                );
+              }
+              if (stepQuotesAProgram(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} quotes a program in its shell: ${path}`
                 );
               }
               if (stepMovesData(step)) {
