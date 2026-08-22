@@ -297,14 +297,14 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     // running them. The scanner cannot know which, and neither can a reviewer
     // reading the configuration — the same argument that refuses an
     // abbreviated long option. Only the verbose flag the tool classes already
-    // model is readable. The rule was one letter and let `mvn test -fn`
-    // through — Maven's alias for `--fail-never`, which reports success on a
-    // failed build. A cluster and a two-letter alias are as unreadable as a
-    // single letter, and a name only starts being a name at some length: up
-    // to three characters behind one dash is an alias, so Swift's `-Xswiftc`
-    // and `-warnings-as-errors` are still left alone. Past `--` the words
-    // belong to the script being run, and its own flags are its business.
-    if (!beyondSeparator && /^-[^-]{1,3}$/.test(bare) && !(bare === "-v" && !versionIsShort)) {
+    // model is readable. One letter was too narrow — `mvn test -fn` is Maven's
+    // alias for `--fail-never` and reports success on a failed build — and
+    // three was too wide, since `go test -run TestName` spells its option out
+    // in three characters. Two is where aliases end and names begin: `-fn`,
+    // `-nt` and `-ws` are unreadable, while `-run`, `-race`, `-Xswiftc` and
+    // `-warnings-as-errors` say what they are. Past `--` the words belong to
+    // the script being run, and its own flags are its business.
+    if (!beyondSeparator && /^-[^-]{1,2}$/.test(bare) && !(bare === "-v" && !versionIsShort)) {
       return true;
     }
   }

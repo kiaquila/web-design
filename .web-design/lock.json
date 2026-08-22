@@ -3,7 +3,7 @@
   "version": "0.1.0-dev",
   "sourceCommit": null,
   "profile": "no-deploy",
-  "manifestSha256": "10a7bc1848f7dd9fef9d9d9a450c96cf514af60d585d4baa6a0469c2ade7df2c",
+  "manifestSha256": "f4a03e8ecdf8c4915b65185efdedfc232b62721a5b6a731fa0cf90fdcece14b9",
   "files": {
     ".github/pull_request_template.md": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f",
     ".github/workflows/baseline-source-verification.yml": "d5f0361d1e3fd032e0077978e6a47eda8e99c2bbe388a5ecdacfebe9de9a9b9a",
@@ -36,7 +36,7 @@
     "scripts/bootstrap-project.mjs": "9e43b3f1942ebf950532da800810e747eb3e0b96515608fbcc5ce86fae3834ac",
     "scripts/check-baseline-change.mjs": "cbb6ba65859b674e7209fdc4215a8f647ff37409353a24b00bbd83b9f0eb53e6",
     "scripts/check-managed-files.mjs": "25ebeb32c9fcde47345d617958382827e696f8dd38d78ade0379c228bf819bb4",
-    "scripts/check-repository.mjs": "f10b6ba4bf97a0512d4c813763b783c420c6441d49cbff3cf368fa72ce7dfd4f",
+    "scripts/check-repository.mjs": "f3c1126ec05cd5917c999d361f866e696da3dcad636d47db44fea3a9d0ecc91c",
     "scripts/codex-review-gate.mjs": "e2b2dfd295b7b1773a10bf07f92c86868136104787a069606f0e45cab3f8f5cc",
     "scripts/codex-review-helpers.mjs": "ccc54e5bc89d66523451a3e467d107084e59068341546db03999ea2635266a5f",
     "scripts/codex-review-request.mjs": "4c5fd8dbd50728474a5008657d46e32cfa81861ccc181b6619b3f98dd29d1022",
@@ -52,7 +52,7 @@
     "tests/codex-review-gate.test.mjs": "1156864577f9a48b83ac57a0aef2e366c676b33949600fd130347a3360d52d5b",
     "tests/managed-files.test.mjs": "6b641ed06bcef07b741b06cfae7afc713a2aa22262ac04199ee0130e902c410d",
     "tests/profiles.test.mjs": "9e8f6931cc07d0b5e450bbf6737c4df2ee40f20659b5272206b00d2b146501b5",
-    "tests/repository-guard-v2.test.mjs": "565feb4744a0a7d92a5960e6700883457f31cf97f63184146ff50fb0815dd697",
+    "tests/repository-guard-v2.test.mjs": "6bee7f8e97d8cc56a14c588caeb058d24bd639ca084c85da786ccc1dc2ba47f9",
     "tests/sync-project.test.mjs": "d45f528c1e9c5d9cd3bf233947c70e5784c6c67033baa55186c45908414b3e71"
   }
 }

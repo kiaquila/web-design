@@ -211,8 +211,10 @@ test("the checks real projects configure stay expressible", () => {
     "npm test -- -x",
     // A spelled-out name behind one dash says what it is.
     "swift test -Xswiftc -warnings-as-errors",
-    // A name is a name once it is long enough to be one.
+    // A name is a name once it is long enough to be one — three characters,
+    // where `-run` and `-race` live, while `-fn` and `-nt` are aliases.
     "go test -race ./...",
+    "go test -run TestName ./...",
     "bash scripts/check.sh"
   ];
   for (const run of realistic) {
