@@ -334,6 +334,10 @@ test("rejects commands that only report success", () => {
     // A runtime that runs an application rather than returning a verdict, and
     // whose own informational surface is idiosyncratic, is not a check tool.
     "java -jar app.jar", "java -X scripts/check.jar",
+    // An option that names output reports instead of working: `swift build
+    // --show-bin-path` prints a path and compiles nothing.
+    "swift build --show-bin-path", "cargo build --list", "npm run check --dry-run",
+    "npm test --print-config",
     // A runner reaches for a dependency's binary, which the guard cannot
     // read: an analyser runs as a package script or a script in the tree.
     "npx true", "npx echo ok", "npx --yes true", "npx eslint .", "npx tsc --noEmit",

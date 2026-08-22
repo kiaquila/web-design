@@ -198,6 +198,15 @@ const INFORMATIONAL_WORD = new Set([
 // absence of what I was asked to run", which is the opposite of what a
 // required check is for.
 const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
+// A third shape after the informational and absence-tolerating ones, and the
+// third finding of its kind: `swift build --show-bin-path` prints a path and
+// exits zero without compiling, as `tsc --showConfig` printed a configuration
+// before its class was dropped. What these share is not a spelling but a
+// promise — an option whose name describes output rather than work reports
+// instead of working. The shapes below catch that across tools. A flag that
+// genuinely does work while naming its output would be refused too; that is
+// rare in a check command, and the exchange is deliberate.
+const REPORTING_OPTION = /^--(?:show|print|list)(?:-|$)|^--dry-run$/;
 // `-v` is the one spelling the tools disagree about: `npm test -v` prints
 // npm's version and runs nothing, while `pytest -v` and `go test -v` are real
 // runs asking to be louder. Naming the tools that read it as verbose keeps a
@@ -280,6 +289,7 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     if (matchesOption(negated ? `--${option.slice(5)}` : option, ABSENCE_TOLERATING_FLAG)) {
       return true;
     }
+    if (REPORTING_OPTION.test(option)) return true;
     if (versionIsShort && bare === "-v") return true;
   }
   return false;
