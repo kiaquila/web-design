@@ -1141,7 +1141,13 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     // A harmless assignment does not make the later reference readable: the
     // name can be rebound in between.
     ['      - env:\n          EVENT: event.json\n        run: EVENT=safe && read EVENT < vars && jq -r .comment.body "$EVENT" > payload\n', /uses a variable the workflow did not set/],
-    ['      - env:\n          TARGET: website\n        run: read TARGET < vars && node run.mjs "$TARGET"\n', /uses a variable the workflow did not set/]
+    ['      - env:\n          TARGET: website\n        run: read TARGET < vars && node run.mjs "$TARGET"\n', /moves data through its shell/],
+    // A name can be rebound by a file the scan never reads, so the shell does
+    // not get to build files, read them back, or source them.
+    ['      - env:\n          EVENT: event.json\n        run: printenv > vars\n', /moves data through its shell/],
+    ['      - env:\n          EVENT: event.json\n        run: . bind\n', /moves data through its shell/],
+    ['      - env:\n          EVENT: event.json\n        run: source bind\n', /moves data through its shell/],
+    ['      - run: cat vars | grep EVENT\n', /moves data through its shell/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
@@ -1153,6 +1159,13 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     validateWorkflowText(
       ".github/workflows/example.yml",
       step('      - env:\n          TARGET: website\n        run: node run.mjs "$TARGET" "$GITHUB_WORKSPACE"\n')
+    ),
+    []
+  );
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      step('      - run: git -C . pull origin main\n')
     ),
     []
   );
@@ -1284,7 +1297,7 @@ test("the step environment files are off the table beside an untrusted checkout"
   assert.deepEqual(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      step('echo "report ready" > report.txt')
+      step('node scripts/report.mjs')
     ),
     []
   );

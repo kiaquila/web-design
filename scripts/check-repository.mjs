@@ -1416,6 +1416,26 @@ function environmentNames(node) {
     .map((pair) => String(pair.key.value));
 }
 
+// A file holding `EVENT=/path/to/event.json`, then `. bind`, rebinds a name
+// that appears nowhere in the command — the lexical scan cannot see a name
+// that exists only inside a file it never reads. Rather than adding sourcing
+// to a list that has grown once per round, the ability to move data is what
+// goes: a shell here runs commands, it does not plumb them. No redirection,
+// no pipe, no sourcing — so there is no file to build, no file to read back,
+// and no second shell reading anything the first one wrote. Everything a step
+// needs still arrives through `env`, and anything that genuinely needs to
+// move bytes is a script, where the code is reviewed rather than quoted.
+// Only in command position: `git -C . pull` has a `.` as an argument, which
+// is not sourcing anything.
+const SOURCING_COMMAND = /(?:^|[\n;&|(]\s*)(?:\.|source)\s/;
+
+function stepMovesData(step) {
+  const text = stepShellText(step, { ignoreExpressions: true });
+  if (text === null) return false;
+  const bare = outsideQuotes(text);
+  return /[<>|]/.test(bare) || SOURCING_COMMAND.test(bare);
+}
+
 function stepNamesUnknownVariable(step, declared) {
   const text = stepShellText(step, { ignoreExpressions: true });
   if (text === null) return false;
@@ -1696,6 +1716,11 @@ export function validateWorkflowText(path, text) {
               if (stepReadsEventPayload(step)) {
                 failures.push(
                   `Write-capable job ${jobName} reads the event payload in its shell: ${path}`
+                );
+              }
+              if (stepMovesData(step)) {
+                failures.push(
+                  `Write-capable job ${jobName} moves data through its shell: ${path}`
                 );
               }
               if (stepNamesUnknownVariable(step, declaredEnvironmentNames)) {
