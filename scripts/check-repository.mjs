@@ -123,7 +123,7 @@ const SELF_SUFFICIENT_CHECK = new Set([
 // holds. Both are reviewed; neither has to be parsed.
 // These run the file they are handed, wherever it sits in the arguments.
 const RUNTIME_CHECK = new Set([
-  "node", "deno", "bun", "python", "python3", "ruby", "php", "java", "swift",
+  "node", "deno", "bun", "python", "python3", "ruby", "php",
   "bash", "sh", "zsh"
 ]);
 // These dispatch to a named tool, so the name is the command position.
@@ -132,9 +132,16 @@ const RUNTIME_CHECK = new Set([
 // to dispatch to that is not already better written as `npm run <script>` or a
 // script in the tree. So npx and its kin are not check executables at all.
 // These take a subcommand that has to run project code.
+// `swift test` and `swift build` are subcommands, not a file handed to a
+// runtime — classifying swift as a runtime meant a Swift project could not
+// state its check at all. `java` is gone from both: it runs an application
+// rather than returning a verdict, and its own informational surface is
+// idiosyncratic (`-X` prints help on extra options and exits zero). A Java
+// project's check is `mvn verify` or `gradle test`, which this reads already.
 const SUBCOMMAND_CHECK = new Set([
   "npm", "pnpm", "yarn", "go", "cargo", "dotnet", "make", "mvn", "gradle",
-  "gradlew", "./gradlew", "rake", "bundle", "composer", "poetry", "pipenv", "uv"
+  "gradlew", "./gradlew", "rake", "bundle", "composer", "poetry", "pipenv", "uv",
+  "swift"
 ]);
 const PRODUCT_CHECK_EXECUTABLE = new Set([
   ...SELF_SUFFICIENT_CHECK,
@@ -198,7 +205,7 @@ const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
 // is.
 const VERBOSE_SHORT_FLAG_TOOL = new Set([
   "pytest", "tox", "go", "cargo", "rake", "dotnet", "composer", "python",
-  "python3", "java", "swift", "bash", "sh", "zsh"
+  "python3", "swift", "bash", "sh", "zsh"
 ]);
 
 // A runtime hands everything after its file operand to that file, so

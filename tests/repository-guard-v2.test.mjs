@@ -192,6 +192,9 @@ test("the checks real projects configure stay expressible", () => {
     "npm run build && npm test",
     "composer test",
     "mvn verify",
+    "gradle test",
+    "swift test",
+    "dotnet test",
     "bash scripts/check.sh"
   ];
   for (const run of realistic) {
@@ -328,6 +331,9 @@ test("rejects commands that only report success", () => {
     // A dispatched command is read like any other check.
     "uv run --no-project true", "uv run echo ok", "bundle exec ls",
     // A runner dispatches to a dependency's binary, which can be a no-op.
+    // A runtime that runs an application rather than returning a verdict, and
+    // whose own informational surface is idiosyncratic, is not a check tool.
+    "java -jar app.jar", "java -X scripts/check.jar",
     // A runner reaches for a dependency's binary, which the guard cannot
     // read: an analyser runs as a package script or a script in the tree.
     "npx true", "npx echo ok", "npx --yes true", "npx eslint .", "npx tsc --noEmit",
