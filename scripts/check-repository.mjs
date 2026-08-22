@@ -140,9 +140,23 @@ const PRODUCT_CHECK_VERB = new Set([
 // `npm run --workspace website` as a dispatch would mean knowing which options
 // consume the next word.
 const VERB_NEEDING_ARGUMENT = new Set(["run", "exec"]);
-const INFORMATIONAL_WORD = new Set([
-  "version", "--version", "-v", "-V", "help", "--help", "-h"
-]);
+// `npm test --version` prints the version and exits zero: a global
+// informational flag wins over the subcommand in front of it, so these are
+// refused anywhere ahead of `--`, whatever the verb. Only the unambiguous
+// spellings are listed — `-v` is verbose to `pytest` and `go test`, and the
+// commands where it means version (`npm -v`, `node -v`) already fail for
+// having no target at all.
+const INFORMATIONAL_WORD = new Set(["version", "--version", "help", "--help"]);
+
+function informsInsteadOfRunning(words) {
+  for (const word of words) {
+    const bare = bareWord(word);
+    // Past `--` the words belong to the script being run, not to the tool.
+    if (bare === "--") return false;
+    if (INFORMATIONAL_WORD.has(bare)) return true;
+  }
+  return false;
+}
 
 function bareWord(word) {
   return String(word ?? "").replace(/^["']|["']$/g, "");
@@ -165,15 +179,14 @@ function commandPositionIsTarget(words) {
 }
 
 function runsProjectCode(executable, words) {
-  if (SELF_SUFFICIENT_CHECK.has(executable)) {
-    return !words.some((word) => INFORMATIONAL_WORD.has(bareWord(word)));
-  }
+  if (informsInsteadOfRunning(words)) return false;
+  if (SELF_SUFFICIENT_CHECK.has(executable)) return true;
   if (RUNTIME_CHECK.has(executable)) {
     return words.some((word) => isFileWord(bareWord(word)));
   }
   if (PACKAGE_RUNNER_CHECK.has(executable)) {
     const first = bareWord(words[0]);
-    return Boolean(first) && !first.startsWith("-") && !INFORMATIONAL_WORD.has(first);
+    return Boolean(first) && !first.startsWith("-");
   }
   return commandPositionIsTarget(words);
 }

@@ -20,7 +20,7 @@ the project owner then records the real project shape in
    npm run setup -- --slug my-project --profile static-cloudflare \
      --source-commit <40-character-web-design-release-sha> \
      --root-directory website \
-     --check "npm --prefix website run check"
+     --check "npm run check --prefix website"
    ```
 
 3. Replace the clearly marked project placeholders in `README.md` and

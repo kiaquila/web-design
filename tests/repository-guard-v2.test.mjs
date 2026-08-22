@@ -70,6 +70,39 @@ test("accepts product checks whose exit status comes from a real command", () =>
   }
 });
 
+test("the onboarding command the README teaches is a valid product check", () => {
+  // A consumer replaces this README with its own, so the onboarding text is
+  // only the source's to keep true.
+  const project = JSON.parse(readFileSync(resolve(".web-design/project.json"), "utf8"));
+  if (project.governance.mode !== "source") return;
+  const readme = readFileSync(resolve("README.md"), "utf8");
+  const documented = [...readme.matchAll(/--check "([^"]+)"/g)].map((match) => match[1]);
+  assert.ok(documented.length, "README must document at least one --check command");
+  for (const run of documented) {
+    const valid = structuredClone(config);
+    valid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
+  }
+});
+
+test("an informational flag beats the verb in front of it", () => {
+  for (const run of ["npm test --version", "npm run check --help", "go test --version", "pytest --help"]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must execute a real product check"],
+      run
+    );
+  }
+  // Past `--` the words belong to the script, not to the tool.
+  for (const run of ["npm run check -- --help", "go test -v ./...", "pytest -v"]) {
+    const valid = structuredClone(config);
+    valid.commands.check = [{ name: "site", run }];
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
+  }
+});
+
 test("rejects separators that let a failure be discarded", () => {
   const discarded = [
     "npm test; true",
