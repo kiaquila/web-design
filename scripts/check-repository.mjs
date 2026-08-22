@@ -143,6 +143,17 @@ const PRODUCT_CHECK_VERB = new Set([
   "run", "test", "tests", "check", "checks", "build", "lint",
   "typecheck", "vet", "verify", "e2e", "coverage", "bench", "exec", "all"
 ]);
+// A formatter rewrites files and exits zero either way, except when it is
+// asked for a verdict instead: `cargo fmt --check` returns nonzero when the
+// source needs changing, which is a real reading of the project's own code.
+// So the verb is a target only with the flag that turns it into one.
+const VERDICT_VERB = new Set(["fmt", "format"]);
+const VERDICT_FLAG = new Set(["--check", "--check-only"]);
+// `npm run` with no script name lists the scripts and exits zero, so the name
+// has to follow immediately there. `uv run`, `bundle exec`, and their kin
+// error out instead, so options may sit between the verb and the command —
+// `uv run --locked pytest` is the documented shape.
+const NAME_MUST_FOLLOW_VERB = new Set(["npm", "pnpm", "yarn"]);
 // `npm install` and `npm ci` fetch dependencies and exit zero without running
 // a line of the product, so neither is a check. They are still how a check
 // gets something to run, though, so a command may contain them as long as
@@ -214,15 +225,25 @@ function isRepositoryFileWord(word) {
   return normalizedRelativeSegments(word) !== null;
 }
 
-function dispatchesToName(words, index) {
-  const following = bareWord(words[index + 1]);
-  return Boolean(following) && !following.startsWith("-");
+function dispatchesToName(words, index, immediate) {
+  for (let position = index + 1; position < words.length; position += 1) {
+    const following = bareWord(words[position]);
+    if (!following) continue;
+    if (!following.startsWith("-")) return true;
+    if (immediate) return false;
+  }
+  return false;
 }
 
-function commandPositionIsTarget(words) {
+function commandPositionIsTarget(words, executable) {
   const first = bareWord(words[0]);
   if (!first || first.startsWith("-")) return false;
-  if (VERB_NEEDING_ARGUMENT.has(first)) return dispatchesToName(words, 0);
+  if (VERB_NEEDING_ARGUMENT.has(first)) {
+    return dispatchesToName(words, 0, NAME_MUST_FOLLOW_VERB.has(executable));
+  }
+  if (VERDICT_VERB.has(first)) {
+    return words.some((word) => VERDICT_FLAG.has(bareWord(word)));
+  }
   return PRODUCT_CHECK_VERB.has(first) || isRepositoryFileWord(first);
 }
 
@@ -271,7 +292,7 @@ function runsProjectCode(executable, words) {
     const first = bareWord(words[0]);
     return Boolean(first) && !first.startsWith("-");
   }
-  return commandPositionIsTarget(words);
+  return commandPositionIsTarget(words, executable);
 }
 
 const SHELL_CONTROL_CHARACTERS = /[;|&`<>(){}$\\]/;

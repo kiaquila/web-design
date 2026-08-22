@@ -53,6 +53,12 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "npm ci --prefix website && npm run check --prefix website",
     "npx eslint .",
     "uv run pytest",
+    // Options may sit between the verb and the command for a tool that errors
+    // without one, and a formatter asked for a verdict is a real check.
+    "uv run --locked pytest",
+    "bundle exec --keep-file-descriptors rspec",
+    "cargo fmt --check",
+    "npm run format -- --check",
     "pytest",
     "pytest tests/unit",
     "node --test tests/a.test.mjs tests/b.test.mjs",
@@ -230,6 +236,9 @@ test("rejects commands that only report success", () => {
     // A verdict on the dependency tree, a rewrite of the source, or a server
     // that never returns is not a verdict on the product.
     "npm audit", "cargo fmt", "npm start", "uv sync --no-install-project",
+    // npm lists its scripts and exits zero when the name is missing, so the
+    // name still has to follow the verb there.
+    "npm run --workspace website",
     // A slash is not a project: a runtime's operand has to be a path this
     // repository could hold.
     "node /dev/null", "bash /dev/null", "node ../outside/run.mjs", "node ~/run.mjs",
