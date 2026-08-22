@@ -117,11 +117,14 @@ const RUNTIME_CHECK = new Set([
   "bash", "sh", "zsh"
 ]);
 // These dispatch to a named tool, so the name is the command position.
-const PACKAGE_RUNNER_CHECK = new Set(["npx", "pnpx", "bunx", "uv"]);
+// `npx eslint .` names the tool it runs; `uv sync` does not run anything, it
+// updates an environment — so uv belongs with the subcommand tools, where
+// `uv run pytest` is the form that executes something.
+const PACKAGE_RUNNER_CHECK = new Set(["npx", "pnpx", "bunx"]);
 // These take a subcommand that has to run project code.
 const SUBCOMMAND_CHECK = new Set([
   "npm", "pnpm", "yarn", "go", "cargo", "dotnet", "make", "mvn", "gradle",
-  "gradlew", "./gradlew", "rake", "bundle", "composer", "poetry", "pipenv"
+  "gradlew", "./gradlew", "rake", "bundle", "composer", "poetry", "pipenv", "uv"
 ]);
 const PRODUCT_CHECK_EXECUTABLE = new Set([
   ...SELF_SUFFICIENT_CHECK,
@@ -130,10 +133,15 @@ const PRODUCT_CHECK_EXECUTABLE = new Set([
   ...SUBCOMMAND_CHECK
 ]);
 
+// Every verb here has to put the project's own code through something:
+// compiled, executed, or read by an analyser. `audit` reads the dependency
+// tree, `format` and `fmt` rewrite files and exit zero either way, and `start`
+// launches a server that a CI run then waits on — none of them is a verdict on
+// the product, so none of them is here. A project that wants one of those runs
+// it as a named script, where `run` and the script name are the target.
 const PRODUCT_CHECK_VERB = new Set([
   "run", "test", "tests", "check", "checks", "build", "lint",
-  "format", "fmt", "typecheck", "vet", "verify", "e2e", "audit", "coverage",
-  "bench", "exec", "start", "all"
+  "typecheck", "vet", "verify", "e2e", "coverage", "bench", "exec", "all"
 ]);
 // `npm install` and `npm ci` fetch dependencies and exit zero without running
 // a line of the product, so neither is a check. They are still how a check

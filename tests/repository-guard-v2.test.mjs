@@ -52,6 +52,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "npm run check --prefix website",
     "npm ci --prefix website && npm run check --prefix website",
     "npx eslint .",
+    "uv run pytest",
     "pytest",
     "pytest tests/unit",
     "node --test tests/a.test.mjs tests/b.test.mjs",
@@ -226,6 +227,9 @@ test("rejects commands that only report success", () => {
     "cat package.json", "ls", "cd website",
     // Fetching dependencies is how a check gets something to run, not a check.
     "npm install", "npm ci", "npm ci --prefix website", "yarn install", "bundle install",
+    // A verdict on the dependency tree, a rewrite of the source, or a server
+    // that never returns is not a verdict on the product.
+    "npm audit", "cargo fmt", "npm start", "uv sync --no-install-project",
     // A slash is not a project: a runtime's operand has to be a path this
     // repository could hold.
     "node /dev/null", "bash /dev/null", "node ../outside/run.mjs", "node ~/run.mjs",
