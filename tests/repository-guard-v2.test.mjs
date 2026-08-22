@@ -1109,7 +1109,10 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     // and a Windows runner path holds no forward slash at all.
     ['      - env:\n          EVENT: ../../_temp/_github_workflow/event.json\n        run: jq -r .comment.body "$EVENT" > payload\n', /reaches outside the workspace/],
     ['      - run: type \'D:\\a\\_temp\\_github_workflow\\event.json\'\n', /reaches outside the workspace/],
-    ['      - env:\n          EVENT: D:\\a\\_temp\\_github_workflow\\event.json\n        run: node run.mjs\n', /reaches outside the workspace/]
+    ['      - env:\n          EVENT: D:\\a\\_temp\\_github_workflow\\event.json\n        run: node run.mjs\n', /reaches outside the workspace/],
+    // The move can be the escape: the command then names a plain filename.
+    ['      - working-directory: ../../_temp/_github_workflow\n        run: jq -r .comment.body event.json > payload\n', /reaches outside the workspace/],
+    ['      - working-directory: ${{ github.event.comment.body }}\n        run: node run.mjs\n', /carries an expression that cannot be read/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
@@ -1124,6 +1127,26 @@ test("an expression that cannot be read fails closed in an actor-triggered write
       step(
         "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ github.event.repository.default_branch }}\n      - env:\n          GITHUB_TOKEN: ${{ github.token }}\n          SOURCE_TOKEN: ${{ secrets.READ_TOKEN || github.token }}\n        run: node scripts/request.mjs\n"
       )
+    ),
+    []
+  );
+});
+
+test("a run default that leaves the workspace is refused for every step", () => {
+  for (const workflow of [
+    "on: issue_comment\npermissions:\n  contents: write\ndefaults:\n  run:\n    working-directory: ../../_temp/_github_workflow\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: jq -r .comment.body event.json > payload\n",
+    "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    defaults:\n      run:\n        working-directory: ../../_temp/_github_workflow\n    steps:\n      - run: jq -r .comment.body event.json > payload\n"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", workflow).join("\n"),
+      /reaches outside the workspace/,
+      workflow
+    );
+  }
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      "on: issue_comment\npermissions:\n  contents: write\njobs:\n  a:\n    runs-on: ubuntu-latest\n    defaults:\n      run:\n        working-directory: website\n    steps:\n      - run: npm run check\n"
     ),
     []
   );

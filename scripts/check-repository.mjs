@@ -988,6 +988,8 @@ function checkoutInputsCarryUnreadableExpression(step) {
 }
 
 function stepCarriesUnreadableExpression(step) {
+  const directory = runDirectoryValue(step);
+  if (directory !== null && computedEnvironmentValue(directory)) return true;
   if (valuesCarryUnreadableExpression(step, "env")) return true;
   const uses = mapPair(step, "uses")?.value;
   const isCheckout =
@@ -1359,7 +1361,29 @@ function valuesEscapeWorkspace(node, key) {
   });
 }
 
+// `working-directory` moves the shell before it runs, so an escape there needs
+// no escaping word in the command at all: `../../_temp/_github_workflow` puts
+// the runner's event file one plain filename away. A job's `defaults.run`
+// carries the same move to every step that does not override it.
+function runDirectoryValue(node) {
+  const directory = mapPair(node, "working-directory")?.value;
+  if (!isScalar(directory) || typeof directory.value !== "string") return null;
+  return directory.value.trim();
+}
+
+function defaultRunDirectoryValue(node) {
+  const defaults = mapPair(node, "defaults")?.value;
+  const run = isMap(defaults) ? mapPair(defaults, "run")?.value : undefined;
+  return isMap(run) ? runDirectoryValue(run) : null;
+}
+
+function directoryEscapesWorkspace(value) {
+  if (value === null || value.includes("${{")) return false;
+  return pathEscapesWorkspace(value) || normalizedRelativeSegments(value) === null;
+}
+
 function stepReachesOutsideWorkspace(step) {
+  if (directoryEscapesWorkspace(runDirectoryValue(step))) return true;
   if (valuesEscapeWorkspace(step, "env") || valuesEscapeWorkspace(step, "with")) return true;
   const text = stepShellText(step, { ignoreExpressions: true });
   if (text === null) return false;
@@ -1561,7 +1585,9 @@ export function validateWorkflowText(path, text) {
           if (
             valuesEscapeWorkspace(root, "env") ||
             valuesEscapeWorkspace(jobPair.value, "env") ||
-            valuesEscapeWorkspace(jobPair.value, "with")
+            valuesEscapeWorkspace(jobPair.value, "with") ||
+            directoryEscapesWorkspace(defaultRunDirectoryValue(root)) ||
+            directoryEscapesWorkspace(defaultRunDirectoryValue(jobPair.value))
           ) {
             failures.push(
               `Write-capable job ${jobName} reaches outside the workspace: ${path}`
