@@ -58,6 +58,8 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "uv run npm run check",
     "uv run scripts/check.py",
     "npm run lint",
+    // The flag turned off leaves the missing-script failure in place.
+    "npm run check --if-present=false",
     "node scripts/lint.mjs",
     "cargo fmt --check",
     "npm run format -- --check",

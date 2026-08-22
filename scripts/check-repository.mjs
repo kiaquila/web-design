@@ -221,7 +221,12 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     // `=`, since `make test version=1` is an assignment rather than a flag.
     const option = bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare;
     if (INFORMATIONAL_WORD.has(option)) return true;
-    if (ABSENCE_TOLERATING_FLAG.has(option)) return true;
+    // `--if-present=false` turns the tolerance off, and a missing script then
+    // fails as it should, so only the bare and truthy spellings are refused.
+    if (ABSENCE_TOLERATING_FLAG.has(option)) {
+      const value = bare.includes("=") ? bare.slice(bare.indexOf("=") + 1) : "";
+      if (!value || /^(?:true|1|yes)$/i.test(value)) return true;
+    }
     if (versionIsShort && bare === "-v") return true;
   }
   return false;
