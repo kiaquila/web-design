@@ -206,7 +206,9 @@ const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
 // instead of working. The shapes below catch that across tools. A flag that
 // genuinely does work while naming its output would be refused too; that is
 // rare in a check command, and the exchange is deliberate.
-const REPORTING_OPTION = /^--(?:show|print|list)(?:-|$)|^--dry-run$/;
+// Read after the same dash normalization the other families use, so how the
+// option was typed does not decide whether it is seen.
+const REPORTING_OPTION = /^(?:show|print|list)(?:-|$)|^dry-run$/;
 // `-v` is the one spelling the tools disagree about: `npm test -v` prints
 // npm's version and runs nothing, while `pytest -v` and `go test -v` are real
 // runs asking to be louder. Naming the tools that read it as verbose keeps a
@@ -289,7 +291,8 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     if (matchesOption(negated ? `--${option.slice(5)}` : option, ABSENCE_TOLERATING_FLAG)) {
       return true;
     }
-    if (REPORTING_OPTION.test(option)) return true;
+    const reportingName = longOptionName(option);
+    if (reportingName !== null && REPORTING_OPTION.test(reportingName)) return true;
     if (versionIsShort && bare === "-v") return true;
   }
   return false;

@@ -338,6 +338,9 @@ test("rejects commands that only report success", () => {
     // --show-bin-path` prints a path and compiles nothing.
     "swift build --show-bin-path", "cargo build --list", "npm run check --dry-run",
     "npm test --print-config",
+    // The same options with one dash, since how it was typed is not what it
+    // means.
+    "swift build -show-bin-path", "cargo build -list", "npm run check -dry-run",
     // A runner reaches for a dependency's binary, which the guard cannot
     // read: an analyser runs as a package script or a script in the tree.
     "npx true", "npx echo ok", "npx --yes true", "npx eslint .", "npx tsc --noEmit",
