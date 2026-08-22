@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "50af89a886a89dc200a9bdbb4f9ccf95680f5ea51172b816be680afec1a7f9ab"
+      "sha256": "0c4e19c6b25b36b486a9e196b4e43a8016642a21d5bd066ae27f09fae02efeb4"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -192,7 +192,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "f771b2c670bc8d3840f108b6f645e310ca9b769f1f490e265e6d41e125c82097"
+      "sha256": "1c190ab345772bb1ed776fe288dafe3a354ae6ae5277b704704d73d10da6b3ae"
     },
     {
       "path": "tests/sync-project.test.mjs",

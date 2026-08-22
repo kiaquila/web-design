@@ -254,6 +254,8 @@ test("rejects commands that only report success", () => {
     // is the question that kept producing findings.
     "npm run check --if-present=false", "npm run check --no-if-present",
     "npm run check --no-if-present false",
+    // npm expands an unambiguous abbreviation, so the scan reads it too.
+    "npm run check --if-p", "npm run check --no-if-p", "npm test --vers",
     // After a formatter verdict the trailing words reach the formatter rather
     // than the project.
     "cargo fmt --check -- --help", "cargo fmt --check -- --version",

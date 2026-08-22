@@ -205,6 +205,17 @@ const VERBOSE_SHORT_FLAG_TOOL = new Set([
 // for the interpreter's version; the caller passes only the words ahead of the
 // operand. A package runner is the other way round: the tool it dispatches to
 // reads `-h` the same way its runner would, so every word counts.
+// `npm run check --if-p` expands to `--if-present`, which an exact lookup
+// never sees, and the same abbreviation reaches `--version` as `--vers`. A
+// long option is therefore read as any flag it is an unambiguous start of —
+// the abbreviation is the tool's own reading of the word, so the scan uses it
+// too.
+function matchesOption(name, flags) {
+  if (flags.has(name)) return true;
+  if (!name.startsWith("--") || name.length < 3) return false;
+  return [...flags].some((flag) => flag.startsWith("--") && flag.startsWith(name));
+}
+
 function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparator = true } = {}) {
   for (const word of words) {
     const bare = bareWord(word);
@@ -220,7 +231,7 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     // requests as their bare spellings. A word that is not an option keeps its
     // `=`, since `make test version=1` is an assignment rather than a flag.
     const option = bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare;
-    if (INFORMATIONAL_WORD.has(option)) return true;
+    if (matchesOption(option, INFORMATIONAL_WORD)) return true;
     // `--if-present=false` turns the tolerance off and a missing script then
     // fails as it should — but npm reads every other value as on, `=0` and
     // `=no` included, so listing the truthy spellings failed open. Exactly the
@@ -232,7 +243,9 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     // I was asked to run" and the other is the default. So the whole family
     // goes, whatever it is set to, and the parsing question with it.
     const negated = option.startsWith("--no-");
-    if (ABSENCE_TOLERATING_FLAG.has(negated ? `--${option.slice(5)}` : option)) return true;
+    if (matchesOption(negated ? `--${option.slice(5)}` : option, ABSENCE_TOLERATING_FLAG)) {
+      return true;
+    }
     if (versionIsShort && bare === "-v") return true;
   }
   return false;
