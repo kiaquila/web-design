@@ -113,6 +113,14 @@ const PERSONAL_PATH_PATTERNS = [
 const SELF_SUFFICIENT_CHECK = new Set([
   "pytest", "tox", "rspec", "jest", "vitest", "mocha", "phpunit"
 ]);
+// These read the project's own source and return a verdict on it. Unlike the
+// self-sufficient runners they need paths and flags to say what to read, so
+// options are not refused here — there is no mode in which they report success
+// without looking, short of the informational flags every class refuses.
+const ANALYSER_CHECK = new Set([
+  "eslint", "tsc", "biome", "stylelint", "ruff", "mypy", "flake8", "pylint",
+  "rubocop", "phpstan", "psalm", "shellcheck", "actionlint"
+]);
 // These run the file they are handed, wherever it sits in the arguments.
 const RUNTIME_CHECK = new Set([
   "node", "deno", "bun", "python", "python3", "ruby", "php", "java", "swift",
@@ -130,6 +138,7 @@ const SUBCOMMAND_CHECK = new Set([
 ]);
 const PRODUCT_CHECK_EXECUTABLE = new Set([
   ...SELF_SUFFICIENT_CHECK,
+  ...ANALYSER_CHECK,
   ...RUNTIME_CHECK,
   ...PACKAGE_RUNNER_CHECK,
   ...SUBCOMMAND_CHECK
@@ -315,6 +324,7 @@ function runsProjectCode(executable, words) {
     stopAtSeparator: !VERDICT_VERB.has(bareWord(words[0]))
   });
   if (informs) return false;
+  if (ANALYSER_CHECK.has(executable)) return true;
   if (SELF_SUFFICIENT_CHECK.has(executable)) {
     // Options are the only way to neuter a tool that runs the suite by
     // itself — `--collect-only` gathers the tests and executes none of them —
@@ -327,8 +337,14 @@ function runsProjectCode(executable, words) {
     return operand >= 0 && isRepositoryFileWord(bareWord(words[operand]));
   }
   if (PACKAGE_RUNNER_CHECK.has(executable)) {
+    // `npx true` runs a dependency's no-op binary, so the tool a runner
+    // dispatches to is read like any other check rather than taken on its
+    // name alone.
     const first = bareWord(words[0]);
-    return Boolean(first) && !first.startsWith("-");
+    if (!first || first.startsWith("-")) return false;
+    if (isRepositoryFileWord(first)) return true;
+    const child = executableBasename(first);
+    return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(1));
   }
   return commandPositionIsTarget(words, executable);
 }
