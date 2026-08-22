@@ -59,7 +59,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "uv run scripts/check.py",
     "npm run lint",
     // The flag turned off leaves the missing-script failure in place.
-    "npm run check --if-present=false", "npm run check --no-if-present",
+
     "node scripts/lint.mjs",
     "cargo fmt --check",
     "npm run format -- --check",
@@ -250,6 +250,10 @@ test("rejects commands that only report success", () => {
     "npm run check --if-present=garbage",
     // A double negative turns it back on.
     "npm run check --no-if-present=false", "npm run check --no-if-present=true",
+    // The flag is refused in every spelling, set either way: reading its value
+    // is the question that kept producing findings.
+    "npm run check --if-present=false", "npm run check --no-if-present",
+    "npm run check --no-if-present false",
     // After a formatter verdict the trailing words reach the formatter rather
     // than the project.
     "cargo fmt --check -- --help", "cargo fmt --check -- --version",
