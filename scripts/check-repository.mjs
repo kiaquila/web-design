@@ -1419,13 +1419,22 @@ function environmentNames(node) {
 function stepNamesUnknownVariable(step, declared) {
   const text = stepShellText(step, { ignoreExpressions: true });
   if (text === null) return false;
-  const known = new Set([...declared, ...environmentNames(step)]);
-  for (const match of text.matchAll(/(?:^|[\s;&|(])([A-Za-z_][A-Za-z0-9_]*)=/g)) {
-    known.add(match[1]);
+  const known = new Set([...declared, ...environmentNames(step), ...SAFE_RUNNER_VARIABLE]);
+  // `EVENT=safe && ... && read EVENT < path && ... "$EVENT"` reads the name
+  // the workflow set and gets the one `read` put there instead. Deciding
+  // which binding a reference lands on is dataflow, and the commands that can
+  // rebind a name have no end, so a name that appears as a word of the
+  // command at all — an assignment target, an argument to something that
+  // binds — is no longer readable there. A workflow value is used as it
+  // arrives, or the work belongs in a script.
+  const bound = new Set();
+  for (const word of shellWords(text)) {
+    const name = word.replace(/["']/g, "").replace(/=[\s\S]*$/, "");
+    if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) bound.add(name);
   }
   for (const match of text.matchAll(/\$(?:([A-Za-z_][A-Za-z0-9_]*)|\{([A-Za-z_][A-Za-z0-9_]*)\})/g)) {
     const name = match[1] ?? match[2];
-    if (!known.has(name) && !SAFE_RUNNER_VARIABLE.has(name)) return true;
+    if (!known.has(name) || bound.has(name)) return true;
   }
   return false;
 }

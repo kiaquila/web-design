@@ -1137,7 +1137,11 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     ['      - run: dd if=\'../../_temp/_github_workflow/event.json\' of=event.json\n', /reaches outside the workspace/],
     // A name bound by `read` is not a name the workflow set.
     ['      - run: printenv > vars && read EVENT < vars && jq -r .comment.body "$EVENT" > payload\n', /uses a variable the workflow did not set/],
-    ['      - run: node run.mjs "$SECRET_PATH"\n', /uses a variable the workflow did not set/]
+    ['      - run: node run.mjs "$SECRET_PATH"\n', /uses a variable the workflow did not set/],
+    // A harmless assignment does not make the later reference readable: the
+    // name can be rebound in between.
+    ['      - env:\n          EVENT: event.json\n        run: EVENT=safe && read EVENT < vars && jq -r .comment.body "$EVENT" > payload\n', /uses a variable the workflow did not set/],
+    ['      - env:\n          TARGET: website\n        run: read TARGET < vars && node run.mjs "$TARGET"\n', /uses a variable the workflow did not set/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
@@ -1148,7 +1152,7 @@ test("an expression that cannot be read fails closed in an actor-triggered write
   assert.deepEqual(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      step('      - env:\n          TARGET: website\n        run: code=0 && node run.mjs "$TARGET" "$GITHUB_WORKSPACE" "$code"\n')
+      step('      - env:\n          TARGET: website\n        run: node run.mjs "$TARGET" "$GITHUB_WORKSPACE"\n')
     ),
     []
   );
