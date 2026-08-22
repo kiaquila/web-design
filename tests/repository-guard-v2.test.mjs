@@ -53,6 +53,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "npm ci --prefix website && npm run check --prefix website",
     "npx eslint .",
     "pytest",
+    "pytest tests/unit",
     "node --test tests/a.test.mjs tests/b.test.mjs",
     'npm test -- --grep "a|b"',
     "npm run build -- --tag '#1'",
@@ -91,7 +92,14 @@ test("an informational flag beats the verb in front of it", () => {
     // Short spellings every tool in these classes reads the same way.
     "pytest -h", "pytest -V", "npm test -h", "tox -h",
     // `-v` is npm's version but pytest's verbosity, so it is judged per tool.
-    "npm test -v", "npm run check -v", "make -v", "mvn -v"
+    "npm test -v", "npm run check -v", "make -v", "mvn -v",
+    // An option is the only way to neuter a tool that runs the suite alone.
+    "pytest --collect-only", "pytest --co", "pytest -v", "tox -e py311",
+    // An interpreter option's value is not the file operand.
+    "python3 -X pycache_prefix=foo/bar -V", "python3 -X importtime -V",
+    // A separated option value cannot be told from the operand, so an
+    // interpreter option that takes one fails closed.
+    "python3 -X importtime scripts/check.py"
   ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
@@ -116,7 +124,6 @@ test("an informational flag beats the verb in front of it", () => {
   for (const run of [
     "npm run check -- --help",
     "go test -v ./...",
-    "pytest -v",
     "python3 scripts/check.py -V",
     "node scripts/check.mjs -h",
     "bash scripts/build.sh --help"

@@ -160,16 +160,16 @@ const VERBOSE_SHORT_FLAG_TOOL = new Set([
   "python3", "java", "swift", "bash", "sh", "zsh"
 ]);
 
-function informsInsteadOfRunning(words, { stopAtFile = false, versionIsShort = false } = {}) {
+// A runtime hands everything after its file operand to that file, so
+// `python3 scripts/check.py -V` is the script's own flag rather than a request
+// for the interpreter's version; the caller passes only the words ahead of the
+// operand. A package runner is the other way round: the tool it dispatches to
+// reads `-h` the same way its runner would, so every word counts.
+function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
   for (const word of words) {
     const bare = bareWord(word);
     // Past `--` the words belong to the script being run, not to the tool.
     if (bare === "--") return false;
-    // A runtime hands everything after its file operand to that file, so
-    // `python3 scripts/check.py -V` is the script's own flag, not a request
-    // for the interpreter's version. A package runner is the other way round:
-    // the tool it dispatches to reads `-h` the same way its runner would.
-    if (stopAtFile && isFileWord(bare)) return false;
     if (INFORMATIONAL_WORD.has(bare)) return true;
     if (versionIsShort && bare === "-v") return true;
   }
@@ -181,6 +181,8 @@ function bareWord(word) {
 }
 
 function isFileWord(word) {
+  // `pycache_prefix=foo/bar` is an option's value wearing a slash, not a file.
+  if (word.includes("=")) return false;
   return word.includes("/") || /\.[A-Za-z0-9]+$/.test(word);
 }
 
@@ -206,16 +208,38 @@ function commandPositionIsTarget(words) {
   return PRODUCT_CHECK_VERB.has(first) || isRepositoryFileWord(first);
 }
 
+// A runtime's operand is the first word that is not a flag. Everything before
+// it belongs to the interpreter and must be a flag outright: `-X
+// pycache_prefix=foo/bar` puts a slash where the operand would be, and reading
+// that as the file would leave a trailing `-V` unnoticed. `--test tests/a.mjs`
+// is unaffected, since a flag with no separated value is still just a flag.
+function runtimeOperandIndex(words) {
+  for (let index = 0; index < words.length; index += 1) {
+    const bare = bareWord(words[index]);
+    if (bare === "--") return index + 1 < words.length ? index + 1 : -1;
+    if (bare.startsWith("-")) continue;
+    return index;
+  }
+  return -1;
+}
+
 function runsProjectCode(executable, words) {
   const isRuntime = RUNTIME_CHECK.has(executable);
-  const informs = informsInsteadOfRunning(words, {
-    stopAtFile: isRuntime,
+  const operand = isRuntime ? runtimeOperandIndex(words) : -1;
+  const informs = informsInsteadOfRunning(isRuntime ? words.slice(0, Math.max(operand, 0)) : words, {
     versionIsShort: !VERBOSE_SHORT_FLAG_TOOL.has(executable)
   });
   if (informs) return false;
-  if (SELF_SUFFICIENT_CHECK.has(executable)) return true;
+  if (SELF_SUFFICIENT_CHECK.has(executable)) {
+    // Options are the only way to neuter a tool that runs the suite by
+    // itself — `--collect-only` gathers the tests and executes none of them —
+    // and telling those from a verbosity flag would be a table per tool and
+    // per version. A self-sufficient check is therefore the bare command, or
+    // the command with paths to run.
+    return words.every((word) => !bareWord(word).startsWith("-"));
+  }
   if (isRuntime) {
-    return words.some((word) => isRepositoryFileWord(bareWord(word)));
+    return operand >= 0 && isRepositoryFileWord(bareWord(words[operand]));
   }
   if (PACKAGE_RUNNER_CHECK.has(executable)) {
     const first = bareWord(words[0]);
