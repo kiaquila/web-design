@@ -101,7 +101,10 @@ test("an abbreviated option is refused rather than resolved", () => {
   // Whether an abbreviation is unambiguous is a question about the tool's
   // whole option list, which this file cannot hold: npm expands `--i` to
   // `--iwr` rather than to `--if-present`. So the check says what it means.
-  for (const run of ["npm run check --if-p", "npm run check --no-if-p", "npm test --vers"]) {
+  for (const run of [
+    "npm run check --if-p", "npm run check --no-if-p", "npm test --vers",
+    "npm run check -if-p"
+  ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(
@@ -202,23 +205,26 @@ test("rejects a check that inverts its exit status", () => {
   }
 });
 
-test("a leading assignment is environment, not the command", () => {
-  for (const run of ["FOO=bar true", "FOO=bar BAZ=qux true", "FOO='a b' true", 'FOO="a b" true']) {
+test("a leading assignment reconfigures the tool and is refused", () => {
+  // `npm_config_if_present=true npm run check` sets the flag through the
+  // environment, and `npm_config_script_shell=true npm test` replaces the
+  // shell the script runs in. Which names matter is a fact about each tool,
+  // so none of them may be set here — a check that needs environment sets it
+  // inside the script it runs.
+  for (const run of [
+    "FOO=bar npm test",
+    "FOO='a b' npm test",
+    "npm_config_if_present=true npm run check",
+    "npm_config_script_shell=true npm test",
+    "FOO=bar true"
+  ]) {
     const invalid = structuredClone(config);
     invalid.commands.check = [{ name: "site", run }];
     assert.deepEqual(
       validateProjectConfig(invalid, ["no-deploy"]),
-      ["commands.check[0].run must execute a real product check"],
+      ["commands.check[0].run must not set environment variables ahead of the command"],
       run
     );
-  }
-  const wrappedAfterAssignment = structuredClone(config);
-  wrappedAfterAssignment.commands.check = [{ name: "site", run: "FOO=bar env true" }];
-  assert.equal(validateProjectConfig(wrappedAfterAssignment, ["no-deploy"]).length, 1);
-  for (const run of ["FOO=bar npm test", "FOO='a b' npm test"]) {
-    const valid = structuredClone(config);
-    valid.commands.check = [{ name: "site", run }];
-    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], run);
   }
 });
 
@@ -269,6 +275,8 @@ test("rejects commands that only report success", () => {
     // is the question that kept producing findings.
     "npm run check --if-present=false", "npm run check --no-if-present",
     "npm run check --no-if-present false",
+    // The dashes say how the word was typed, not what it means.
+    "npm run check -if-present", "npm test -version",
 
     // After a formatter verdict the trailing words reach the formatter rather
     // than the project.

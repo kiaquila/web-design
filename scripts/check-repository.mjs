@@ -212,14 +212,31 @@ const VERBOSE_SHORT_FLAG_TOOL = new Set([
 // abbreviation of a guarded flag is not resolved, it is refused, with a
 // message saying to spell the option out: an abbreviation the scanner cannot
 // read is one a reviewer has to guess at too.
+// npm accepts `-if-present` for `--if-present`, so the dashes say how the word
+// was typed rather than what it means. A long name is read with its dashes and
+// any `no-` prefix removed, and compared against the guarded names the same
+// way; a short flag keeps its exact spelling, since `-h` is not an
+// abbreviation of `help`.
+function longOptionName(name) {
+  if (!name.startsWith("-")) return null;
+  const stripped = name.replace(/^-+/, "");
+  if (stripped.length < 2) return null;
+  return stripped.startsWith("no-") ? stripped.slice(3) : stripped;
+}
+
 function abbreviatesOption(name, flags) {
-  if (flags.has(name)) return false;
-  if (!name.startsWith("--") || name.length < 3) return false;
-  return [...flags].some((flag) => flag.startsWith("--") && flag.startsWith(name));
+  const long = longOptionName(name);
+  if (long === null) return false;
+  const names = [...flags].map((flag) => flag.replace(/^-+/, ""));
+  if (names.includes(long)) return false;
+  return names.some((flag) => flag.length > 1 && flag.startsWith(long));
 }
 
 function matchesOption(name, flags) {
-  return flags.has(name);
+  if (flags.has(name)) return true;
+  const long = longOptionName(name);
+  if (long === null) return false;
+  return [...flags].some((flag) => flag.startsWith("--") && flag.slice(2) === long);
 }
 
 function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparator = true } = {}) {
@@ -573,6 +590,15 @@ export function validateProductCheckCommand(command) {
     }
     if (wrapsTheProductCommand(trimmed)) {
       return "must not wrap the product command; the first word decides the exit status";
+    }
+    // `npm_config_if_present=true npm run check` sets the flag through the
+    // environment, and `npm_config_script_shell=true npm test` replaces the
+    // shell a script runs in. Every tool reads its own environment, so which
+    // names matter is unknowable here; a check's behaviour has to be visible
+    // in the command, and a check that needs environment sets it inside the
+    // script it runs.
+    if (wordsRespectingQuotes(trimmed).length !== commandWordsAfterAssignments(trimmed).length) {
+      return "must not set environment variables ahead of the command";
     }
     const words = commandWordsAfterAssignments(trimmed);
     if (!words.length) return "must execute a real product check";
