@@ -265,9 +265,13 @@ function matchesOption(name, flags) {
 // separator at all — a check has no use for an informational flag on either
 // side of it.
 function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
+  let beyondSeparator = false;
   for (const word of words) {
     const bare = bareWord(word);
-    if (bare === "--") continue;
+    if (bare === "--") {
+      beyondSeparator = true;
+      continue;
+    }
     // `--help=config` is the same request with its topic attached, so the
     // value comes off before the word is read — but only from an option, since
     // `make test version=1` is a variable assignment and its target is `test`.
@@ -299,6 +303,16 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
       return true;
     }
     if (versionIsShort && bare === "-v") return true;
+    // A single letter means whatever its tool says it means: `-n` is Make's
+    // dry run and pytest's worker count, `-t` marks Make targets done without
+    // running them. The scanner cannot know which, and neither can a reviewer
+    // reading the configuration — the same argument that refuses an
+    // abbreviated long option. Only the verbose flag the tool classes already
+    // model is readable; everything else is spelled out. Past `--` the words
+    // belong to the script being run, and its own flags are its business.
+    if (!beyondSeparator && /^-[^-]/.test(bare) && !(bare === "-v" && !versionIsShort)) {
+      return true;
+    }
   }
   return false;
 }

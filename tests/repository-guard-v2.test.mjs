@@ -204,6 +204,8 @@ test("the checks real projects configure stay expressible", () => {
     "dotnet test",
     // A negated reporting option asks for the work, not the report.
     "npm run check --no-dry-run",
+    // Past `--` the flags belong to the project's own script.
+    "npm test -- -x",
     "bash scripts/check.sh"
   ];
   for (const run of realistic) {
@@ -350,6 +352,10 @@ test("rejects commands that only report success", () => {
     // The same options with one dash, since how it was typed is not what it
     // means.
     "swift build -show-bin-path", "cargo build -list", "npm run check -dry-run",
+    // A single letter means whatever its tool says: `-n` is Make's dry run
+    // and pytest's worker count, `-t` marks Make targets done without running
+    // them. Only the verbose flag the classes model is readable.
+    "make test -n", "make test -t", "npm run check -s",
 
     // A runner reaches for a dependency's binary, which the guard cannot
     // read: an analyser runs as a package script or a script in the tree.
