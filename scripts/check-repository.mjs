@@ -1346,7 +1346,11 @@ function pathEscapesWorkspace(value) {
   // talked out of seeing the climb. Nothing here needs `..` at all, so the
   // prefix comes off and any `..` segment is the answer on its own — no
   // arithmetic to be fooled.
-  const bare = value.replace(/^[A-Za-z_][A-Za-z0-9_]*=/, "");
+  // Quoting is grouping, not part of the path, and it can sit anywhere: an
+  // outer quote around the whole word, or one that surfaces only after the
+  // `if=` prefix comes off. Spliced words are already refused in these jobs,
+  // so dropping every quote character leaves the path the shell would use.
+  const bare = value.replace(/^["']|["']$/g, "").replace(/^[A-Za-z_][A-Za-z0-9_]*=/, "").replace(/["']/g, "");
   if (/^[\\/]/.test(bare) || /^[A-Za-z]:/.test(bare)) return true;
   return bare
     .split(/[\\/]+/)
@@ -1395,7 +1399,7 @@ function stepReachesOutsideWorkspace(step) {
   const text = stepShellText(step, { ignoreExpressions: true });
   if (text === null) return false;
   if (RUNNER_STATE_VARIABLE.test(text)) return true;
-  return shellWords(text).some((word) => pathEscapesWorkspace(word.replace(/^["']|["']$/g, "")));
+  return shellWords(text).some((word) => pathEscapesWorkspace(word));
 }
 
 function stepTouchesEnvironmentFiles(step) {

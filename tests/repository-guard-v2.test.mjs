@@ -1117,7 +1117,10 @@ test("an expression that cannot be read fails closed in an actor-triggered write
     // separator at all.
     ['      - run: dd if=../../_temp/_github_workflow/event.json of=event.json\n', /reaches outside the workspace/],
     ['      - run: cp ../../_temp/_github_workflow/event.json event.json\n', /reaches outside the workspace/],
-    ['      - run: cd ..\n', /reaches outside the workspace/]
+    ['      - run: cd ..\n', /reaches outside the workspace/],
+    // A quote can sit between the operand prefix and the path.
+    ['      - run: dd if="/tmp/_github_workflow/event.json" of=event.json\n', /reaches outside the workspace/],
+    ['      - run: dd if=\'../../_temp/_github_workflow/event.json\' of=event.json\n', /reaches outside the workspace/]
   ]) {
     assert.match(
       validateWorkflowText(".github/workflows/example.yml", step(stepYaml)).join("\n"),
