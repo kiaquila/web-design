@@ -209,6 +209,15 @@ const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
 // Read after the same dash normalization the other families use, so how the
 // option was typed does not decide whether it is seen.
 const REPORTING_OPTION = /^(?:show|print|list)(?:-|$)|^dry-run$/;
+// Naming output is one way to not do the work; claiming it is already done is
+// another. GNU Make documents a closed set of modes that skip the recipe —
+// `--touch` marks targets made, `--question` only asks, `--just-print` and
+// `--recon` print — and make is the one tool here whose target is a bare verb
+// with no other signal. The set is the manual's, not a growing list of
+// spellings, and their one-letter aliases are refused by the rule below.
+const NON_EXECUTING_MODE = new Set([
+  "touch", "question", "just-print", "recon", "old-file", "assume-old"
+]);
 // `-v` is the one spelling the tools disagree about: `npm test -v` prints
 // npm's version and runs nothing, while `pytest -v` and `go test -v` are real
 // runs asking to be louder. Naming the tools that read it as verbose keeps a
@@ -299,8 +308,9 @@ function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
     // reporting option asks for the work rather than the report, so
     // `--no-dry-run` is a real check while `--dry-run` is not.
     const reportingName = option.startsWith("-") ? option.replace(/^-+/, "") : "";
-    if (reportingName && !reportingName.startsWith("no-") && REPORTING_OPTION.test(reportingName)) {
-      return true;
+    if (reportingName && !reportingName.startsWith("no-")) {
+      if (REPORTING_OPTION.test(reportingName)) return true;
+      if (NON_EXECUTING_MODE.has(reportingName)) return true;
     }
     if (versionIsShort && bare === "-v") return true;
     // A single letter means whatever its tool says it means: `-n` is Make's

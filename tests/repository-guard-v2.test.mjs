@@ -358,6 +358,9 @@ test("rejects commands that only report success", () => {
     // and pytest's worker count, `-t` marks Make targets done without running
     // them. Only the verbose flag the classes model is readable.
     "make test -n", "make test -t", "npm run check -s",
+    // Make's documented modes that skip the recipe, in their spelled forms.
+    "make test --touch", "make test --question", "make test --just-print",
+    "make test --recon",
 
     // A runner reaches for a dependency's binary, which the guard cannot
     // read: an analyser runs as a package script or a script in the tree.
