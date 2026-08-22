@@ -38,6 +38,7 @@
     "scripts/codex-review-request.mjs",
     "scripts/codex-review-rerun.mjs",
     "scripts/publish-codex-review-check.mjs",
+    "scripts/repository-paths.mjs",
     "scripts/run-project-checks.mjs",
     "scripts/sync-project.mjs",
     "scripts/test-web-design.mjs",

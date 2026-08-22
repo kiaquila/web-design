@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { REQUIRED_ROOT_FILES } from "./check-repository.mjs";
+import { REQUIRED_ROOT_FILES } from "./repository-paths.mjs";
 
 export function sha256(buffer) {
   return createHash("sha256").update(buffer).digest("hex");

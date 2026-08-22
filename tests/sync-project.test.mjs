@@ -10,7 +10,7 @@ import {
   writeFileSync
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { syncProject, validateArchive } from "../scripts/sync-project.mjs";
@@ -306,6 +306,19 @@ test("removes a revoked managed file only when it is unchanged", async () => {
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }
+});
+
+test("the updater runs on a bare runner", () => {
+  // `web-design-update.yml` invokes the updater on a fresh runner with nothing
+  // installed. Importing the guard for a shared constant pulled its YAML
+  // parser in at load time and the updater died with a missing module before
+  // it could read a release, so the constant lives in a module that imports
+  // nothing and this is what keeps it that way.
+  const updater = readFileSync(resolve("scripts/sync-project.mjs"), "utf8");
+  assert.equal(/^import .*check-repository\.mjs/m.test(updater), false);
+  const shared = readFileSync(resolve("scripts/repository-paths.mjs"), "utf8");
+  assert.equal(/^import\b/m.test(shared), false);
+  assert.match(shared, /export const REQUIRED_ROOT_FILES/);
 });
 
 test("a required file leaving the manifest is handed over, not taken away", async () => {

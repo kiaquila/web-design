@@ -40,7 +40,7 @@
     },
     {
       "path": ".web-design/managed-files.json",
-      "sha256": "10879cf74e635b8194f96dbd0a22b43014a4edaeaaac59fe4ab067c331dd203d"
+      "sha256": "256e23e4e3af433d49d4c779824301489591a23823e361988ba13d7446e437a9"
     },
     {
       "path": ".web-design/policy/package-lock.json",
@@ -128,7 +128,7 @@
     },
     {
       "path": "scripts/check-repository.mjs",
-      "sha256": "5eb1e312e24aba18c6c338b9dd18e31a51e48b5989c7365ab8e5cd5c1f35c2c9"
+      "sha256": "6fa87282fc8dae13ba9f6ec10234ba27441fbefbeb4cc890c28ce19698b6bee2"
     },
     {
       "path": "scripts/codex-review-gate.mjs",
@@ -151,12 +151,16 @@
       "sha256": "51214af4de89dd5b1b710efdf53e5f31fb7100d544d274a62a5345928c29e2c3"
     },
     {
+      "path": "scripts/repository-paths.mjs",
+      "sha256": "269632b8e96eb469b23d539cd371cd0c24181d6bf20e6ff86ef2bab1d687e3fb"
+    },
+    {
       "path": "scripts/run-project-checks.mjs",
       "sha256": "91c013b809679aada2c1d1b10fef6724b8ef495029fe98957d3aa30ce5b2cb5e"
     },
     {
       "path": "scripts/sync-project.mjs",
-      "sha256": "cf6c19ef429f6a4dd79c0961025be6ab853c1643ad860b4c00aed806ebdb79ea"
+      "sha256": "4d5eaf1a7285661204e64decd63efb35740219667c638bedaec1f546cd864a65"
     },
     {
       "path": "scripts/test-web-design.mjs",
@@ -192,7 +196,7 @@
     },
     {
       "path": "tests/sync-project.test.mjs",
-      "sha256": "4f207f39c6ab839b2846e7d78173c865c5fe848f17b213ffcd358f2433e49aa6"
+      "sha256": "d45f528c1e9c5d9cd3bf233947c70e5784c6c67033baa55186c45908414b3e71"
     }
   ]
 }

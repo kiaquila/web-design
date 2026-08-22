@@ -4,6 +4,7 @@ import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
+import { REQUIRED_ROOT_FILES } from "./repository-paths.mjs";
 import { fileURLToPath } from "node:url";
 
 const requirePolicyDependency = createRequire(
@@ -18,44 +19,6 @@ if (!yamlEntry.startsWith(`${policyNodeModules}${sep}`)) {
 }
 const { isAlias, isMap, isScalar, isSeq, parseDocument } = requirePolicyDependency(yamlEntry);
 
-// Exported so `sync-project.mjs` can tell a file the repository must have from
-// one it may lose: a required file that stops being managed is handed to the
-// project, not deleted from it.
-export const REQUIRED_ROOT_FILES = [
-  ".gitignore",
-  ".github/CODEOWNERS",
-  ".web-design/project.json",
-  ".web-design/lock.json",
-  ".web-design/managed-files.json",
-  ".web-design/release-manifest.json",
-  ".github/pull_request_template.md",
-  ".github/workflows/baseline-source-verification.yml",
-  ".github/workflows/ci.yml",
-  ".github/workflows/repository-guard.yml",
-  ".github/workflows/osv-scan.yml",
-  ".github/workflows/web-design-update.yml",
-  "AGENTS.md",
-  "CLAUDE.md",
-  "README.md",
-  "docs/standards/content-and-design.md",
-  "docs/standards/deployment.md",
-  "docs/standards/git-and-reviews.md",
-  "docs/standards/project-structure.md",
-  "docs/standards/security.md",
-  "docs/standards/testing.md",
-  "docs/operations/bootstrap.md",
-  "docs/operations/github-setup.md",
-  "docs/operations/updates.md",
-  ".web-design/policy/package-lock.json",
-  ".web-design/policy/package.json",
-  "scripts/check-managed-files.mjs",
-  "scripts/check-baseline-change.mjs",
-  "scripts/check-repository.mjs",
-  "scripts/build-release-manifest.mjs",
-  "scripts/run-project-checks.mjs",
-  "scripts/sync-project.mjs",
-  "scripts/test-web-design.mjs"
-];
 
 const FORBIDDEN_SEGMENTS = new Set([
   ".next",
