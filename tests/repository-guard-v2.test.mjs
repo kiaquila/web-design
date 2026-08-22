@@ -241,6 +241,8 @@ test("rejects commands that only report success", () => {
     // npm lists its scripts and exits zero when the name is missing, so the
     // name still has to follow the verb there.
     "npm run --workspace website",
+    // And succeeds silently when the script it names is missing.
+    "npm run check --if-present", "pnpm run check --if-present",
     // After a formatter verdict the trailing words reach the formatter rather
     // than the project.
     "cargo fmt --check -- --help", "cargo fmt --check -- --version",

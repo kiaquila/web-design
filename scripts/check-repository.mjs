@@ -184,6 +184,12 @@ const VERB_NEEDING_ARGUMENT = new Set(["run", "exec"]);
 const INFORMATIONAL_WORD = new Set([
   "version", "--version", "-V", "help", "--help", "-h"
 ]);
+// A different way to exit zero without running: `npm run check --if-present`
+// succeeds when `check` is not in package.json at all, so a typo or a removed
+// script leaves the check green and silent. The flag says "tolerate the
+// absence of what I was asked to run", which is the opposite of what a
+// required check is for.
+const ABSENCE_TOLERATING_FLAG = new Set(["--if-present"]);
 // `-v` is the one spelling the tools disagree about: `npm test -v` prints
 // npm's version and runs nothing, while `pytest -v` and `go test -v` are real
 // runs asking to be louder. Naming the tools that read it as verbose keeps a
@@ -212,6 +218,7 @@ function informsInsteadOfRunning(words, { versionIsShort = false, stopAtSeparato
     if (INFORMATIONAL_WORD.has(bare.startsWith("-") ? bare.replace(/=[\s\S]*$/, "") : bare)) {
       return true;
     }
+    if (ABSENCE_TOLERATING_FLAG.has(bare)) return true;
     if (versionIsShort && bare === "-v") return true;
   }
   return false;
