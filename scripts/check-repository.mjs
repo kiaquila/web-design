@@ -109,6 +109,11 @@ const SUBCOMMAND_CHECK = new Set([
   "gradlew", "./gradlew", "rake", "bundle", "composer", "poetry", "pipenv", "uv",
   "swift"
 ]);
+// Swift is the one hybrid in the subcommand class: `swift test` dispatches a
+// subcommand, while `swift scripts/check.swift` executes the repository file
+// directly. Keep that grammar explicit so file-shaped Make targets and other
+// generic subcommand operands cannot regain the same allowance.
+const DIRECT_FILE_SUBCOMMAND_CHECK = new Set(["swift"]);
 const PRODUCT_CHECK_EXECUTABLE = new Set([
   ...SELF_SUFFICIENT_CHECK,
   ...RUNTIME_CHECK,
@@ -389,8 +394,9 @@ function commandPositionIsTarget(words, executable) {
     return words.some((word) => VERDICT_FLAG.has(bareWord(word)));
   }
   // A bare file is meaningful only in a grammar that explicitly executes it:
-  // runtimes handle that above, and dispatching verbs handle it in their own
-  // branch. Subcommand tools read this position as a verb or target instead.
+  // runtime and hybrid grammars are handled before this helper, and
+  // dispatching verbs handle it in their own branch. Generic subcommand tools
+  // read this position as a verb or target instead.
   // In particular, `make ./Makefile` asks Make to update the Makefile target;
   // it can exit zero without running any validation recipe.
   return PRODUCT_CHECK_VERB.has(first);
@@ -422,6 +428,13 @@ function preparesDependencies(executable, words) {
 }
 
 function runsProjectCode(executable, words) {
+  const first = bareWord(words[0]);
+  if (DIRECT_FILE_SUBCOMMAND_CHECK.has(executable) && isRepositoryFileWord(first)) {
+    // As with a runtime, later words belong to the reviewed script rather than
+    // to Swift itself, so `swift scripts/check.swift -V` still executes the
+    // script instead of asking the compiler for its version.
+    return true;
+  }
   const isRuntime = RUNTIME_CHECK.has(executable);
   const operand = isRuntime ? runtimeOperandIndex(words) : -1;
   const informs = informsInsteadOfRunning(isRuntime ? words.slice(0, Math.max(operand, 0)) : words, {
@@ -445,7 +458,6 @@ function runsProjectCode(executable, words) {
     // that cannot be said another way: `node --test tests/a.mjs` becomes a
     // package script or `node scripts/check.mjs`, which is how the template's
     // own suite runs `node --test` already.
-    const first = bareWord(words[0]);
     return Boolean(first) && !first.startsWith("-") && isRepositoryFileWord(first);
   }
   return commandPositionIsTarget(words, executable);

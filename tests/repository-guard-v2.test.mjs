@@ -59,6 +59,8 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "uv run scripts/check.py",
     "npm run lint",
     "node scripts/lint.mjs",
+    "swift scripts/check.swift",
+    "swift scripts/check.swift -V",
     "cargo fmt --check",
     "pytest",
     "pytest tests/unit",
@@ -439,6 +441,9 @@ test("rejects commands that only report success", () => {
     // An allowlisted executable still reports on itself rather than the
     // product when nothing points it at project code.
     "npm --version", "node --version", "node -v", "go version", "npm --prefix website",
+    // Swift's hybrid file form follows runtime grammar: the script must be
+    // first, so an informational compiler option cannot hide ahead of it.
+    "swift --version scripts/check.swift",
     "npm test && npm --version",
     // `npm run` lists the scripts and exits zero; the script name is the target.
     "npm run", "npm run --silent", "npm exec", "npm --prefix website run",
