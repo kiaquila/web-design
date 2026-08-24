@@ -340,6 +340,10 @@ test("rejects commands that only report success", () => {
     "cat package.json", "ls", "cd website",
     // Fetching dependencies is how a check gets something to run, not a check.
     "npm install", "npm ci", "npm ci --prefix website", "yarn install", "bundle install",
+    // A bare file is not executable in a generic subcommand position. Make,
+    // for example, treats this as a target and can report that there is
+    // nothing to do without running the Makefile's validation recipe.
+    "make ./Makefile", "cargo ./Cargo.toml", "npm ./package.json",
     // A verdict on the dependency tree, a rewrite of the source, or a server
     // that never returns is not a verdict on the product.
     "npm audit", "cargo fmt", "npm start", "uv sync --no-install-project",

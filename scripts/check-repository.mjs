@@ -388,7 +388,12 @@ function commandPositionIsTarget(words, executable) {
   if (VERDICT_VERB.has(first)) {
     return words.some((word) => VERDICT_FLAG.has(bareWord(word)));
   }
-  return PRODUCT_CHECK_VERB.has(first) || isRepositoryFileWord(first);
+  // A bare file is meaningful only in a grammar that explicitly executes it:
+  // runtimes handle that above, and dispatching verbs handle it in their own
+  // branch. Subcommand tools read this position as a verb or target instead.
+  // In particular, `make ./Makefile` asks Make to update the Makefile target;
+  // it can exit zero without running any validation recipe.
+  return PRODUCT_CHECK_VERB.has(first);
 }
 
 // A runtime's operand is the first word that is not a flag. Everything before
