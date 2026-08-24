@@ -3,6 +3,10 @@
   "version": "0.1.0-dev",
   "files": [
     {
+      "path": ".github/CODEOWNERS",
+      "sha256": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e"
+    },
+    {
       "path": ".github/pull_request_template.md",
       "sha256": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f"
     },
@@ -40,7 +44,7 @@
     },
     {
       "path": ".web-design/managed-files.json",
-      "sha256": "256e23e4e3af433d49d4c779824301489591a23823e361988ba13d7446e437a9"
+      "sha256": "6c5355c6e8882562ec38122938843e7dfab3e2125a431c0f1c9efda6b5562c92"
     },
     {
       "path": ".web-design/policy/package-lock.json",
@@ -80,7 +84,7 @@
     },
     {
       "path": "docs/operations/github-setup.md",
-      "sha256": "6a26036908e6bb939d5e13e49fdc60e3490b2a9e45b461e74926332f9d29b0fe"
+      "sha256": "3285916711cc68b87a867f8a445a305f72545d9dd69df1e85582643576ba4a97"
     },
     {
       "path": "docs/operations/project-handoff.md",
@@ -88,7 +92,7 @@
     },
     {
       "path": "docs/operations/updates.md",
-      "sha256": "0e08788fba0c8dcec60c7dd034057e0e5c17337f431c426ccd48c1620e9fa0ba"
+      "sha256": "8adf07fb99de9da734d84b6be2ea63a72d55a29b3eda5a4c6a73f72c96e330ff"
     },
     {
       "path": "docs/standards/content-and-design.md",
@@ -196,7 +200,7 @@
     },
     {
       "path": "tests/sync-project.test.mjs",
-      "sha256": "d45f528c1e9c5d9cd3bf233947c70e5784c6c67033baa55186c45908414b3e71"
+      "sha256": "90b53c4db4492c83c4f58e1fae0674f2c5504eeea383bf5783166e02da8063f9"
     }
   ]
 }

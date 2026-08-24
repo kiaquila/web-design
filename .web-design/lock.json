@@ -3,8 +3,9 @@
   "version": "0.1.0-dev",
   "sourceCommit": null,
   "profile": "no-deploy",
-  "manifestSha256": "62575ab6c7d5af5ae648733f60dd05dfb5d2a19f51ae8ee346f744d55c768647",
+  "manifestSha256": "0b04a35e0b74af342fcfea92403d61db58b2c8b8126257d9bf9e5061c5eb1ce8",
   "files": {
+    ".github/CODEOWNERS": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e",
     ".github/pull_request_template.md": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f",
     ".github/workflows/baseline-source-verification.yml": "d5f0361d1e3fd032e0077978e6a47eda8e99c2bbe388a5ecdacfebe9de9a9b9a",
     ".github/workflows/ci.yml": "04e915d37603aec7d5e36708e4d24e3a0bcfa2cb270ff7f33793c5eac40eab12",
@@ -14,7 +15,7 @@
     ".github/workflows/osv-scan.yml": "a14d1b91520601a22b36c057711a7e80c1f3827e585e9cd90f809e09e90d860d",
     ".github/workflows/repository-guard.yml": "686d5d927fc6d52f189ebd003333391e51cd7437b38b3475cbec347aa1b79735",
     ".github/workflows/web-design-update.yml": "da0d84310ee1ea474b5f73e66d1681fdce4d8c07fa83ca31877c104a2d9318af",
-    ".web-design/managed-files.json": "256e23e4e3af433d49d4c779824301489591a23823e361988ba13d7446e437a9",
+    ".web-design/managed-files.json": "6c5355c6e8882562ec38122938843e7dfab3e2125a431c0f1c9efda6b5562c92",
     ".web-design/policy/package-lock.json": "a13e6dead7cf8e58f785b0ef48483bfbe3e0513fe162bfb35d81b0a0b923bec9",
     ".web-design/policy/package.json": "b83a9b6bc1503475c4126e2b63351134997951239f49b57c9f6bcc8db8945d05",
     ".web-design/profiles/custom-production.json": "98a969099629aae05e9a92164319be16a2d572f0f7f2e3cd1d95eab5d0c3f8d2",
@@ -24,9 +25,9 @@
     ".web-design/profiles/static-vercel.json": "f658fc3d928b49872ab956a9a802419bc55c671e89f2ba9d35971fb533162004",
     "docs/operations/bootstrap.md": "b57803b9e48f59af442270a57eb2a8c9c84978eec4c0929418d1c2fb79ac463c",
     "docs/operations/cloudflare.md": "70d6ab3e6fc74164ab5b510918008f2d3794556293a62be07445a5af0093c9d3",
-    "docs/operations/github-setup.md": "6a26036908e6bb939d5e13e49fdc60e3490b2a9e45b461e74926332f9d29b0fe",
+    "docs/operations/github-setup.md": "3285916711cc68b87a867f8a445a305f72545d9dd69df1e85582643576ba4a97",
     "docs/operations/project-handoff.md": "36d7fc1f52ab9ee5d4a81be55d799942ebb6971c327414c385f8f79b8e070414",
-    "docs/operations/updates.md": "0e08788fba0c8dcec60c7dd034057e0e5c17337f431c426ccd48c1620e9fa0ba",
+    "docs/operations/updates.md": "8adf07fb99de9da734d84b6be2ea63a72d55a29b3eda5a4c6a73f72c96e330ff",
     "docs/standards/content-and-design.md": "97026c6f26f7e78ce31a756fd8d7c5f37d684f5f7ef87de2f8774c26b7cfebe7",
     "docs/standards/deployment.md": "47f5e60bb1db48216738ac28e1881df7fdfc75fa245cdfb5fd330ec4ff6e7903",
     "docs/standards/git-and-reviews.md": "b5077b9b4b4f939fcbf57ffca190914f62e8115c06a02fa7596c26a58bd9b6ec",
@@ -53,6 +54,6 @@
     "tests/managed-files.test.mjs": "6b641ed06bcef07b741b06cfae7afc713a2aa22262ac04199ee0130e902c410d",
     "tests/profiles.test.mjs": "9e8f6931cc07d0b5e450bbf6737c4df2ee40f20659b5272206b00d2b146501b5",
     "tests/repository-guard-v2.test.mjs": "1e74dda51c5039aaeda6a0ed1afb669a18d7c919718300b02b14c5f2b5ff5ea5",
-    "tests/sync-project.test.mjs": "d45f528c1e9c5d9cd3bf233947c70e5784c6c67033baa55186c45908414b3e71"
+    "tests/sync-project.test.mjs": "90b53c4db4492c83c4f58e1fae0674f2c5504eeea383bf5783166e02da8063f9"
   }
 }
