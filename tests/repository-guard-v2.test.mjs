@@ -57,6 +57,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     // same run as `npm --prefix website run check`, with the flag after it.
     "npm run check --prefix website",
     "npm ci --prefix website && npm run check --prefix website",
+    "bundle check && bundle exec rspec",
     "uv run pytest",
     // Options may sit between the verb and the command for a tool that errors
     // without one, and a formatter asked for a verdict is a real check.
