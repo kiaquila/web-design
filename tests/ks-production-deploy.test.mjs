@@ -20,6 +20,38 @@ const projectCiWorkflow = await readFile(
   "utf8"
 );
 
+function projectCiCheckNames(source) {
+  const jobs = [];
+  let currentJob;
+  let insideJobs = false;
+
+  const finishJob = () => {
+    if (currentJob) jobs.push(currentJob.name ?? currentJob.id);
+  };
+
+  for (const line of source.split("\n")) {
+    if (line === "jobs:") {
+      insideJobs = true;
+      continue;
+    }
+    if (!insideJobs) continue;
+    if (line && !line.startsWith(" ")) break;
+
+    const job = /^  ([A-Za-z_][A-Za-z0-9_-]*):(?:\s+#.*)?$/.exec(line);
+    if (job) {
+      finishJob();
+      currentJob = { id: job[1] };
+      continue;
+    }
+
+    const explicitName = /^    name:\s*(["']?)([^"']+)\1\s*$/.exec(line);
+    if (currentJob && explicitName) currentJob.name = explicitName[2].trim();
+  }
+
+  finishJob();
+  return jobs;
+}
+
 test("production deploy is push-only, KS-scoped, main-only, and serialized", () => {
   assert.match(workflow, /^on:\n  push:\n/m);
   assert.match(workflow, /branches:\n\s+- main/);
@@ -96,18 +128,31 @@ test("production deploy verifies the revision, pages, cache purge, and asset has
 });
 
 test("required checks include every Project CI job and the PR-only Codex gate", () => {
-  const projectCiJobNames = [
-    ...projectCiWorkflow.matchAll(/^  [a-z0-9-]+:\n    name: ([a-z0-9-]+)$/gm)
-  ].map((match) => match[1]);
+  const projectCiJobNames = projectCiCheckNames(projectCiWorkflow);
   const workflowChecks = PUSH_CHECKS.filter(
     (name) => !["repository-guard", "osv-scan"].includes(name)
   );
 
   assert.deepEqual(PULL_REQUEST_CHECKS, [...PUSH_CHECKS, "Codex Review"]);
+  assert.ok(PUSH_CHECKS.includes("repository-guard"));
+  assert.ok(PUSH_CHECKS.includes("osv-scan"));
   assert.deepEqual(workflowChecks.toSorted(), projectCiJobNames.toSorted());
   assert.match(
     projectCiWorkflow,
     /template-harness:[\s\S]*run: node --test template\/tests\/\*\.test\.mjs/
+  );
+});
+
+test("Project CI job discovery uses the job id when name is omitted", () => {
+  assert.deepEqual(
+    projectCiCheckNames(`jobs:
+  named-job:
+    name: visible-check
+    runs-on: ubuntu-latest
+  implicit-check:
+    runs-on: ubuntu-latest
+`),
+    ["visible-check", "implicit-check"]
   );
 });
 
