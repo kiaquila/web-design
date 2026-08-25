@@ -852,14 +852,9 @@ export function validateProjectConfig(config, profiles = []) {
     }
   }
   const rootDirectory = config?.deployment?.rootDirectory;
-  const normalizedRoot = typeof rootDirectory === "string" ? normalize(rootDirectory) : "";
-  if (
-    !normalizedRoot ||
-    isAbsolute(normalizedRoot) ||
-    normalizedRoot === ".." ||
-    normalizedRoot.startsWith(`..${sep}`)
-  ) {
-    failures.push("deployment.rootDirectory must stay inside the repository");
+  const normalizedRoot = normalizeProjectOwnedDirectory(rootDirectory);
+  if (normalizedRoot === null) {
+    failures.push("deployment.rootDirectory must name project-owned source inside the repository");
   }
   if (config?.deployment?.productionBranch !== "main") {
     failures.push("deployment.productionBranch must be main");
@@ -2264,7 +2259,7 @@ export function scanRepository(root) {
     const config = JSON.parse(readFileSync(join(root, ".web-design/project.json"), "utf8"));
     failures.push(...validateProjectConfig(config, profiles));
     const profile = profiles[config?.project?.profile];
-    const deploymentRoot = config?.deployment?.rootDirectory || ".";
+    const deploymentRoot = normalizeProjectOwnedDirectory(config?.deployment?.rootDirectory) ?? ".";
     for (const required of profile?.requiredProjectFiles ?? []) {
       if (!existsSync(join(root, deploymentRoot, required))) {
         failures.push(`Profile ${profile.id} requires ${join(deploymentRoot, required)}`);

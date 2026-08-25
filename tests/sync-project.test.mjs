@@ -379,6 +379,24 @@ test("a required root file is not revoked in the release that adds the handover"
   }
 });
 
+test("rejects revocation of the ownership manifest", async () => {
+  const { parent, source, target } = fixture();
+  try {
+    write(source, ".web-design/managed-files.json", ownershipText([]));
+    write(
+      source,
+      ".web-design/release-manifest.json",
+      `${JSON.stringify({ schemaVersion: 1, version: "1.0.0", files: [] })}\n`
+    );
+    await assert.rejects(
+      applyLocal(target, source, "1.0.0", { acceptOwnershipChange: true }),
+      /managed-files ownership manifest cannot be revoked/
+    );
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
 test("drift in a required file still stops an update that is not releasing it", async () => {
   // The deferral above is a deferral, not an exemption: a workflow edited
   // locally is still drift, and the update stops for it.

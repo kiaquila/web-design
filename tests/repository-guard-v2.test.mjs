@@ -558,6 +558,27 @@ test("rejects unsafe slugs, product paths, and unknown profiles", () => {
   assert.equal(validateProjectConfig(invalid, ["no-deploy"]).length, 3);
 });
 
+test("constrains deployment roots to project-owned source", () => {
+  for (const rootDirectory of [
+    "../outside", "/tmp/project", ".web-design", ".github/actions",
+    "dist", "website/node_modules", "NODE_MODULES./pkg", "website/dist/../src"
+  ]) {
+    const invalid = structuredClone(config);
+    invalid.deployment.rootDirectory = rootDirectory;
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["deployment.rootDirectory must name project-owned source inside the repository"],
+      rootDirectory
+    );
+  }
+
+  for (const rootDirectory of [".", "website", "packages/@scope/site"]) {
+    const valid = structuredClone(config);
+    valid.deployment.rootDirectory = rootDirectory;
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], rootDirectory);
+  }
+});
+
 test("constrains project-check working directories to project-owned source", () => {
   for (const workingDirectory of [
     "../outside", "/tmp/project", "node_modules/pkg", "website/dist",
