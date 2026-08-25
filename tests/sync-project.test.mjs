@@ -546,7 +546,12 @@ test("refuses a release that respells a managed path onto a revoked one", async 
   // One file, two names. The addition classifies `same` against the bytes the
   // revocation then stages for deletion, so an apply would delete the file and
   // write a lock that expects it.
-  for (const [installed, proposed] of [["Foo.md", "foo.md"], ["foo.md", "foo.md."]]) {
+  for (const [installed, proposed] of [
+    ["Foo.md", "foo.md"],
+    ["foo.md", "foo.md."],
+    // macOS stores this name decomposed and opens it for either spelling.
+    ["docs/caf\u00e9.md".normalize("NFC"), "docs/caf\u00e9.md".normalize("NFD")]
+  ]) {
     const paths = [".web-design/managed-files.json", installed];
     const { parent, source, target } = fixture(paths);
     try {

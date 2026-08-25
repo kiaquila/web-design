@@ -42,8 +42,11 @@ function parseArgs(argv) {
 // `GIT~1`. Comparing exact bytes let a downloaded release name repository
 // control data — Git metadata, the lock, the ownership manifest's own
 // exclusions — that every check below was written to keep out of reach.
+// Composition is folded first, for the same reason and before the rest: macOS
+// stores `café` decomposed and opens it for either spelling, so `café.md`
+// written as NFC and as NFD are one file that two strings describe.
 function canonicalSegment(part) {
-  return part.replace(/[. ]+$/, "").toLowerCase();
+  return part.normalize("NFC").replace(/[. ]+$/, "").toLowerCase().normalize("NFC");
 }
 
 // A segment made only of dots and spaces canonicalizes to nothing, which is how

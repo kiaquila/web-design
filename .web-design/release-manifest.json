@@ -168,7 +168,7 @@
     },
     {
       "path": "scripts/sync-project.mjs",
-      "sha256": "a4a57abe1063c8c93eae66a89136f41c4038a6e3da3108a1292c7e74d416e817"
+      "sha256": "9ec8a6c1004e39f457a2f192187add84af4975df8afbe0afe922c1d0deb2c761"
     },
     {
       "path": "scripts/test-web-design.mjs",
@@ -204,7 +204,7 @@
     },
     {
       "path": "tests/sync-project.test.mjs",
-      "sha256": "1fc801b56cec0c2c31cd0c7bff0014132c59a8bdd657a2a12e21b66951bca814"
+      "sha256": "d359f406cc18f148cb6e7082c38f51183d3621d69385c3b3c34c21cc7ee0ca63"
     },
     {
       "path": "tests/update-checks.test.mjs",
