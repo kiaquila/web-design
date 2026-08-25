@@ -523,6 +523,10 @@ test("refuses a control path by the file it opens, not by its spelling", () => {
   for (const unsafe of [
     ".git/config", ".GIT/config", "docs/.Git/config", ".git./config", ".git /config",
     "GIT~1/config", "docs/git~1/hooks/pre-commit",
+    // Windows drops the trailing space and opens the parent, while `resolve()`
+    // reads `.. ` as an ordinary directory name and reports the path as new.
+    "docs/.. /AGENTS.md", ".. /escape", "docs/... /AGENTS.md", "docs/. /AGENTS.md",
+    "docs/.../AGENTS.md", "docs/ /AGENTS.md",
     ".web-design/lock.json", ".WEB-DESIGN/lock.json", ".web-design/Lock.json",
     ".web-design/PROJECT.json", ".Web-Design/release-manifest.json",
     "docs/page.WEB-DESIGN-NEW", "docs/page.web-design-old.",

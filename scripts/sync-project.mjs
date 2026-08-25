@@ -52,8 +52,16 @@ export function safeManagedPath(path) {
   if (typeof path !== "string" || !path || isAbsolute(path)) return false;
   if (path.includes("\\")) return false;
   const parts = path.split("/");
-  if (parts.some((part) => !part || part === "." || part === "..")) return false;
-  if (parts.some((part) => REPOSITORY_METADATA_SEGMENT.has(canonicalSegment(part)))) return false;
+  // A segment made only of dots and spaces canonicalizes to nothing, which is
+  // how `.`, `..` and the Windows spellings that reach them — `.. `, `...` —
+  // are all refused by one condition. `docs/.. /AGENTS.md` is the reason it is
+  // not enough to compare the raw segment: Windows drops the trailing space
+  // and opens the parent, while `resolve()` here reads `.. ` as an ordinary
+  // directory name and reports the path as new.
+  if (parts.some((part) => {
+    const canonical = canonicalSegment(part);
+    return !part || !canonical || REPOSITORY_METADATA_SEGMENT.has(canonical);
+  })) return false;
   const normalized = normalize(path);
   if (normalized === ".." || normalized.startsWith(`..${sep}`)) return false;
   const canonical = normalized.split(sep).map(canonicalSegment).join("/");
