@@ -7,13 +7,19 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { scanRepository, validateProjectConfig, validateWorkflowText } from "../scripts/check-repository.mjs";
+import {
+  managedControlFilePaths,
+  scanRepository,
+  validateProjectConfig,
+  validateWorkflowText
+} from "../scripts/check-repository.mjs";
 
 const config = {
   schemaVersion: 1,
@@ -444,6 +450,15 @@ test("rejects commands that only report success", () => {
     // Swift's hybrid file form follows runtime grammar: the script must be
     // first, so an informational compiler option cannot hide ahead of it.
     "swift --version scripts/check.swift",
+    // Runtime and hybrid file operands must stay in reviewed source rather
+    // than installed dependencies, caches, or generated output.
+    "node .web-design/policy/node_modules/yaml/dist/index.js",
+    "python3 dist/check.py", "swift node_modules/check.swift",
+    "node NODE_MODULES./pkg/check.mjs", "node .WEB-DESIGN/policy/check.mjs",
+    "node safe-link/../scripts/check.mjs",
+    // Managed baseline controls verify the template, not the consumer's
+    // product, so they cannot be the only product check.
+    "node scripts/check-repository.mjs", "uv run scripts/check-repository.mjs",
     "npm test && npm --version",
     // `npm run` lists the scripts and exits zero; the script name is the target.
     "npm run", "npm run --silent", "npm exec", "npm --prefix website run",
@@ -537,6 +552,127 @@ test("rejects unsafe slugs, product paths, and unknown profiles", () => {
   invalid.project.profile = "unknown";
   invalid.project.productPaths = ["../customer-data"];
   assert.equal(validateProjectConfig(invalid, ["no-deploy"]).length, 3);
+});
+
+test("constrains project-check working directories to project-owned source", () => {
+  for (const workingDirectory of [
+    "../outside", "/tmp/project", "node_modules/pkg", "website/dist",
+    ".web-design/policy", ".github/actions", "NODE_MODULES/pkg",
+    "node_modules./pkg", ".WEB-DESIGN/policy", "website/dist/../src", 42
+  ]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "site", run: "npm test", workingDirectory }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].workingDirectory must name project-owned source inside the repository"],
+      String(workingDirectory)
+    );
+  }
+
+  for (const workingDirectory of [".", "website", "packages/@scope/site"]) {
+    const valid = structuredClone(config);
+    valid.commands.check = [{ name: "site", run: "npm test", workingDirectory }];
+    assert.deepEqual(validateProjectConfig(valid, ["no-deploy"]), [], workingDirectory);
+  }
+});
+
+test("resolves direct check files relative to their working directory", () => {
+  for (const run of ["node check-repository.mjs", "uv run check-repository.mjs"]) {
+    const invalid = structuredClone(config);
+    invalid.commands.check = [{ name: "baseline", run, workingDirectory: "scripts" }];
+    assert.deepEqual(
+      validateProjectConfig(invalid, ["no-deploy"]),
+      ["commands.check[0].run must execute a real product check"],
+      run
+    );
+  }
+});
+
+test("reads managed control paths from both ownership manifest forms", () => {
+  assert.deepEqual(
+    managedControlFilePaths({
+      schemaVersion: 1,
+      files: [
+        "scripts/check-repository.mjs",
+        { path: "scripts/run-project-checks.mjs" }
+      ]
+    }),
+    ["scripts/check-repository.mjs", "scripts/run-project-checks.mjs"]
+  );
+  assert.throws(
+    () => managedControlFilePaths({ schemaVersion: 1, files: [{}] }),
+    /Invalid managed-files ownership entry/
+  );
+  assert.throws(
+    () => managedControlFilePaths({ schemaVersion: 1, files: ["scripts/../outside.mjs"] }),
+    /Invalid managed-files ownership entry/
+  );
+});
+
+test("the project-check runner refuses unsafe working directories before execution", () => {
+  const temporary = mkdtempSync(join(tmpdir(), "web-design-project-check-"));
+  try {
+    mkdirSync(join(temporary, ".web-design"), { recursive: true });
+    mkdirSync(join(temporary, "node_modules", "dependency"), { recursive: true });
+    writeFileSync(
+      join(temporary, ".web-design", "project.json"),
+      `${JSON.stringify({
+        governance: { mode: "consumer" },
+        commands: {
+          check: [{
+            name: "dependency",
+            run: "node check.mjs",
+            workingDirectory: "node_modules/dependency"
+          }]
+        }
+      })}\n`
+    );
+    writeFileSync(join(temporary, "node_modules", "dependency", "check.mjs"), "process.exit(0);\n");
+
+    const result = spawnSync(
+      process.execPath,
+      [resolve("scripts/run-project-checks.mjs")],
+      { cwd: temporary, encoding: "utf8" }
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Invalid project check workingDirectory at index 0/);
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+});
+
+test("the project-check runner refuses symlinked working directories", () => {
+  const temporary = mkdtempSync(join(tmpdir(), "web-design-project-check-"));
+  const outside = mkdtempSync(join(tmpdir(), "web-design-project-check-outside-"));
+  try {
+    mkdirSync(join(temporary, ".web-design"), { recursive: true });
+    writeFileSync(join(outside, "check.mjs"), "process.exit(0);\n");
+    symlinkSync(outside, join(temporary, "project-source"), "dir");
+    writeFileSync(
+      join(temporary, ".web-design", "project.json"),
+      `${JSON.stringify({
+        governance: { mode: "consumer" },
+        commands: {
+          check: [{
+            name: "outside",
+            run: "node check.mjs",
+            workingDirectory: "project-source"
+          }]
+        }
+      })}\n`
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [resolve("scripts/run-project-checks.mjs")],
+      { cwd: temporary, encoding: "utf8" }
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Invalid project check workingDirectory at index 0/);
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  }
 });
 
 test("rejects dangerous workflow triggers and mutable action refs", () => {

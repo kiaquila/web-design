@@ -4,7 +4,13 @@ import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
-import { REQUIRED_ROOT_FILES } from "./repository-paths.mjs";
+import {
+  canonicalRepositorySegment,
+  FORBIDDEN_REPOSITORY_SEGMENTS,
+  isRestrictedRepositorySegment,
+  normalizeProjectOwnedDirectory,
+  REQUIRED_ROOT_FILES
+} from "./repository-paths.mjs";
 import { fileURLToPath } from "node:url";
 
 const requirePolicyDependency = createRequire(
@@ -19,15 +25,13 @@ if (!yamlEntry.startsWith(`${policyNodeModules}${sep}`)) {
 }
 const { isAlias, isMap, isScalar, isSeq, parseDocument } = requirePolicyDependency(yamlEntry);
 
+const MANAGED_CONTROL_FILES = new Set(
+  managedControlFilePaths(JSON.parse(
+    readFileSync(new URL("../.web-design/managed-files.json", import.meta.url), "utf8")
+  )).map(canonicalRepositoryPath)
+);
 
-const FORBIDDEN_SEGMENTS = new Set([
-  ".next",
-  ".vinext",
-  ".wrangler",
-  "coverage",
-  "dist",
-  "node_modules"
-]);
+const FORBIDDEN_SEGMENTS = new Set(FORBIDDEN_REPOSITORY_SEGMENTS);
 const FORBIDDEN_NAMES = [
   /^\.DS_Store$/,
   /^\.env(?:\..+)?$/,
@@ -326,14 +330,56 @@ function isFileWord(word) {
 // A runtime's operand has to be a path the repository could actually hold, so
 // absolute paths, home-relative paths, drive letters, and anything climbing
 // out of the tree are not targets.
-function isRepositoryFileWord(word) {
+function isRepositoryFileWord(word, workingDirectory = ".") {
   // `python3 -c "'' # scripts/check.py"` hides a comment and a source string
   // behind something path-shaped, so a file operand has to read as a plain
   // path: literal path characters only, nothing quoted, spaced, or commented.
   if (!/^[A-Za-z0-9._/-]+$/.test(word)) return false;
   if (!isFileWord(word)) return false;
   if (word.startsWith("/")) return false;
-  return normalizedRelativeSegments(word) !== null;
+  const literalSegments = word.split("/").filter(Boolean);
+  // Inspect the path as written before reducing it. Besides making aliases
+  // such as NODE_MODULES. fail on case-insensitive/Windows filesystems, this
+  // prevents `safe-link/../script.mjs` from hiding a symlink traversal.
+  if (literalSegments.some((segment) => segment === ".." || isRestrictedRepositorySegment(segment))) {
+    return false;
+  }
+  const segments = normalizedRelativeSegments(word);
+  if (segments === null || segments.some(isRestrictedRepositorySegment)) return false;
+  const base = normalizeProjectOwnedDirectory(workingDirectory);
+  if (base === null) return false;
+  const repositoryPath = base === "."
+    ? segments.join("/")
+    : `${base}/${segments.join("/")}`;
+  return !MANAGED_CONTROL_FILES.has(canonicalRepositoryPath(repositoryPath));
+}
+
+function canonicalRepositoryPath(value) {
+  return String(value)
+    .split("/")
+    .filter((segment) => segment && segment !== ".")
+    .map(canonicalRepositorySegment)
+    .join("/");
+}
+
+export function managedControlFilePaths(ownership) {
+  if (ownership?.schemaVersion !== 1 || !Array.isArray(ownership.files)) {
+    throw new Error("Invalid managed-files ownership manifest");
+  }
+  return ownership.files.map((entry, index) => {
+    const path = typeof entry === "string" ? entry : entry?.path;
+    const segments = typeof path === "string" ? path.split("/") : [];
+    if (
+      typeof path !== "string" ||
+      !/^[A-Za-z0-9._/-]+$/.test(path) ||
+      path.startsWith("/") ||
+      /^[A-Za-z]:/.test(path) ||
+      segments.some((segment) => !segment || segment === "." || segment === "..")
+    ) {
+      throw new Error(`Invalid managed-files ownership entry at index ${index}`);
+    }
+    return path;
+  });
 }
 
 // A dispatched command has to be found, not guessed, and finding it past
@@ -351,7 +397,7 @@ function dispatchTargetIndex(words) {
   return 1;
 }
 
-function commandPositionIsTarget(words, executable) {
+function commandPositionIsTarget(words, executable, workingDirectory) {
   const first = bareWord(words[0]);
   if (!first || first.startsWith("-")) return false;
   if (VERB_NEEDING_ARGUMENT.has(first)) {
@@ -373,9 +419,13 @@ function commandPositionIsTarget(words, executable) {
     const index = dispatchTargetIndex(words);
     if (index < 0) return false;
     const dispatched = bareWord(words[index]);
-    if (isRepositoryFileWord(dispatched)) return true;
+    if (isRepositoryFileWord(dispatched, workingDirectory)) return true;
     const child = executableBasename(dispatched);
-    return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(child, words.slice(index + 1));
+    return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(
+      child,
+      words.slice(index + 1),
+      workingDirectory
+    );
   }
   // `swift test list` lists the test methods and runs none of them: the same
   // promise the reporting options make, worn as a subcommand. This is Swift's
@@ -427,9 +477,12 @@ function preparesDependencies(executable, words) {
   return DEPENDENCY_VERB.has(bareWord(words[0]));
 }
 
-function runsProjectCode(executable, words) {
+function runsProjectCode(executable, words, workingDirectory = ".") {
   const first = bareWord(words[0]);
-  if (DIRECT_FILE_SUBCOMMAND_CHECK.has(executable) && isRepositoryFileWord(first)) {
+  if (
+    DIRECT_FILE_SUBCOMMAND_CHECK.has(executable) &&
+    isRepositoryFileWord(first, workingDirectory)
+  ) {
     // As with a runtime, later words belong to the reviewed script rather than
     // to Swift itself, so `swift scripts/check.swift -V` still executes the
     // script instead of asking the compiler for its version.
@@ -458,9 +511,13 @@ function runsProjectCode(executable, words) {
     // that cannot be said another way: `node --test tests/a.mjs` becomes a
     // package script or `node scripts/check.mjs`, which is how the template's
     // own suite runs `node --test` already.
-    return Boolean(first) && !first.startsWith("-") && isRepositoryFileWord(first);
+    return (
+      Boolean(first) &&
+      !first.startsWith("-") &&
+      isRepositoryFileWord(first, workingDirectory)
+    );
   }
-  return commandPositionIsTarget(words, executable);
+  return commandPositionIsTarget(words, executable, workingDirectory);
 }
 
 const SHELL_CONTROL_CHARACTERS = /[;|&`<>(){}$\\]/;
@@ -635,7 +692,7 @@ function withoutQuoteCharacters(segment) {
   return bare;
 }
 
-export function validateProductCheckCommand(command) {
+export function validateProductCheckCommand(command, { workingDirectory = "." } = {}) {
   let checks = 0;
   if (/[\n\r]/.test(command)) return "must be a single line";
   const segments = splitOutsideQuotes(command);
@@ -696,10 +753,13 @@ export function validateProductCheckCommand(command) {
     // `npm --prefix build --version`. The executable only says which tool
     // runs; what it is pointed at is what makes the check real.
     const rest = words.slice(1);
-    if (!runsProjectCode(executable, rest) && !preparesDependencies(executable, rest)) {
+    if (
+      !runsProjectCode(executable, rest, workingDirectory) &&
+      !preparesDependencies(executable, rest)
+    ) {
       return "must execute a real product check";
     }
-    if (runsProjectCode(executable, rest)) checks += 1;
+    if (runsProjectCode(executable, rest, workingDirectory)) checks += 1;
   }
   if (!checks) return "must execute a real product check";
   return null;
@@ -769,7 +829,17 @@ export function validateProjectConfig(config, profiles = []) {
         failures.push(`commands.check[${index}].run must be a non-empty string`);
         continue;
       }
-      const problem = validateProductCheckCommand(check.run);
+      const workingDirectory = Object.hasOwn(check, "workingDirectory")
+        ? normalizeProjectOwnedDirectory(check.workingDirectory)
+        : ".";
+      if (workingDirectory === null) {
+        failures.push(
+          `commands.check[${index}].workingDirectory must name project-owned source inside the repository`
+        );
+      }
+      const problem = validateProductCheckCommand(check.run, {
+        workingDirectory: workingDirectory ?? "."
+      });
       if (problem) failures.push(`commands.check[${index}].run ${problem}`);
     }
   }
