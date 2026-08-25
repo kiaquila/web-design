@@ -288,7 +288,7 @@ function isRepositoryDirectoryWord(word) {
   if (!/^[@A-Za-z0-9._/-]+$/.test(word)) return false;
   const segments = normalizedRelativeSegments(word);
   if (segments === null) return false;
-  return segments.every((segment) => !FORBIDDEN_SEGMENTS.has(segment));
+  return segments.every((segment) => !isRestrictedRepositorySegment(segment));
 }
 
 function informsInsteadOfRunning(words, { versionIsShort = false } = {}) {
@@ -341,7 +341,7 @@ function isRepositoryFileWord(word, workingDirectory = ".") {
   // `python3 -c "'' # scripts/check.py"` hides a comment and a source string
   // behind something path-shaped, so a file operand has to read as a plain
   // path: literal path characters only, nothing quoted, spaced, or commented.
-  if (!/^[A-Za-z0-9._/-]+$/.test(word)) return false;
+  if (!/^[@A-Za-z0-9._/-]+$/.test(word)) return false;
   if (!isFileWord(word)) return false;
   if (word.startsWith("/")) return false;
   const literalSegments = word.split("/").filter(Boolean);

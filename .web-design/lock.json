@@ -3,7 +3,7 @@
   "version": "0.1.0-dev",
   "sourceCommit": null,
   "profile": "no-deploy",
-  "manifestSha256": "f4a43ccc2035123961d7228d73dfdbee732fc22cdb586dbc52daf21302b1992c",
+  "manifestSha256": "98b62849355b63d8f35bed00d55bdf3285418fe7d93e019c807af28e8c3e800a",
   "files": {
     ".github/CODEOWNERS": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e",
     ".github/pull_request_template.md": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f",
@@ -37,7 +37,7 @@
     "scripts/bootstrap-project.mjs": "9e43b3f1942ebf950532da800810e747eb3e0b96515608fbcc5ce86fae3834ac",
     "scripts/check-baseline-change.mjs": "cbb6ba65859b674e7209fdc4215a8f647ff37409353a24b00bbd83b9f0eb53e6",
     "scripts/check-managed-files.mjs": "25ebeb32c9fcde47345d617958382827e696f8dd38d78ade0379c228bf819bb4",
-    "scripts/check-repository.mjs": "0623e5f5af287e17dd5aa05f2b12ef725e379a5603214e8cccf977481b9c3287",
+    "scripts/check-repository.mjs": "8c542bf3ac008fe88278a852e90781fd9507bb943da7e62c74ec370f0c272c0f",
     "scripts/codex-review-gate.mjs": "e2b2dfd295b7b1773a10bf07f92c86868136104787a069606f0e45cab3f8f5cc",
     "scripts/codex-review-helpers.mjs": "ccc54e5bc89d66523451a3e467d107084e59068341546db03999ea2635266a5f",
     "scripts/codex-review-request.mjs": "4c5fd8dbd50728474a5008657d46e32cfa81861ccc181b6619b3f98dd29d1022",
@@ -54,7 +54,7 @@
     "tests/codex-review-gate.test.mjs": "1156864577f9a48b83ac57a0aef2e366c676b33949600fd130347a3360d52d5b",
     "tests/managed-files.test.mjs": "6b641ed06bcef07b741b06cfae7afc713a2aa22262ac04199ee0130e902c410d",
     "tests/profiles.test.mjs": "9e8f6931cc07d0b5e450bbf6737c4df2ee40f20659b5272206b00d2b146501b5",
-    "tests/repository-guard-v2.test.mjs": "c95df6eb475550af2b0798fd2d77d512454e3bb7dc0afc29537b7c0ade67daf8",
+    "tests/repository-guard-v2.test.mjs": "ae31cdddaa7d379256fd70ef3a61f3313274fdca6c9cb6675474b49203a12541",
     "tests/sync-project.test.mjs": "393a38175fadc8209ee25a44ce5c728ea623e6ab2d660e49b4720fcdb325b3bc",
     "tests/update-checks.test.mjs": "c8fb9501a484bb908b74910db42a41804552ee8d8d04f7cbe87c2275cf973691"
   }

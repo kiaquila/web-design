@@ -189,6 +189,7 @@ test("the checks real projects configure stay expressible", () => {
     "npm run check --prefix website",
     "npm ci --prefix website && npm run check --prefix website",
     "node scripts/check.mjs",
+    "node packages/@scope/site/scripts/check.mjs",
     "pytest",
     "pytest tests/unit",
     "uv run pytest",
@@ -227,6 +228,8 @@ test("a named option's value is read as the path it is", () => {
     "npm run check --prefix ../outside", "npm run check --prefix packages/@scope/../../../etc",
     "npm run check --prefix node_modules/noop-package",
     "npm run check --prefix dist",
+    "npm run check --prefix .web-design/noop",
+    "npm run check --prefix .github/noop",
     // `--workspace` takes a name rather than a path, and a name is resolved by
     // reading a manifest this guard does not open, so it is not named at all.
     "npm run test --workspace website", "npm run test --workspace=website",
