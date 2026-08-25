@@ -152,6 +152,13 @@ const SCRIPT_NAME_DISPATCH = new Set(["npm", "pnpm", "yarn"]);
 // something in it is a real check: `npm ci --prefix website && npm run check
 // --prefix website` passes, `npm install` on its own does not.
 const DEPENDENCY_VERB = new Set(["ci", "install"]);
+// A generic verb can mean something weaker for a specific tool. Bundler's
+// `check` verifies only that Gemfile dependencies are installed; it does not
+// execute application code or tests. Keep such exceptions tied to their tool
+// instead of weakening the useful `check` verb for every build system.
+const NON_PRODUCT_VERB_BY_TOOL = new Map([
+  ["bundle", new Set(["check"])]
+]);
 // `npm run` lists the scripts and exits zero, so a dispatching verb is a
 // target only once the name follows it, and immediately: reading
 // `npm run --workspace website` as a dispatch would mean knowing which options
@@ -400,6 +407,7 @@ function dispatchTargetIndex(words) {
 function commandPositionIsTarget(words, executable, workingDirectory) {
   const first = bareWord(words[0]);
   if (!first || first.startsWith("-")) return false;
+  if (NON_PRODUCT_VERB_BY_TOOL.get(executable)?.has(first)) return false;
   if (VERB_NEEDING_ARGUMENT.has(first)) {
     // `npm run check` names a script the package defines: unreadable from
     // here, and a name is enough. Everything else names a command — `npm exec
