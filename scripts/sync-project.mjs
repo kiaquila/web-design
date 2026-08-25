@@ -35,21 +35,36 @@ function parseArgs(argv) {
   return args;
 }
 
+// A name is refused by the file it opens, not by the bytes it is spelled with.
+// macOS and Windows are case-insensitive by default, so `.GIT/config` opens
+// `.git/config`; Windows also drops trailing dots and spaces, so `.git.` and
+// `.git ` reach it too, and its 8.3 alias for a long name beginning `.git` is
+// `GIT~1`. Comparing exact bytes let a downloaded release name repository
+// control data — Git metadata, the lock, the ownership manifest's own
+// exclusions — that every check below was written to keep out of reach.
+function canonicalSegment(part) {
+  return part.replace(/[. ]+$/, "").toLowerCase();
+}
+
+const REPOSITORY_METADATA_SEGMENT = new Set([".git", "git~1"]);
+
 export function safeManagedPath(path) {
   if (typeof path !== "string" || !path || isAbsolute(path)) return false;
   if (path.includes("\\")) return false;
   const parts = path.split("/");
-  if (parts.some((part) => !part || part === "." || part === ".." || part === ".git")) return false;
+  if (parts.some((part) => !part || part === "." || part === "..")) return false;
+  if (parts.some((part) => REPOSITORY_METADATA_SEGMENT.has(canonicalSegment(part)))) return false;
   const normalized = normalize(path);
   if (normalized === ".." || normalized.startsWith(`..${sep}`)) return false;
+  const canonical = normalized.split(sep).map(canonicalSegment).join("/");
   if (
-    normalized === ".web-design/lock.json" ||
-    normalized === ".web-design/project.json" ||
-    normalized === ".web-design/release-manifest.json" ||
-    normalized.endsWith(".web-design-new") ||
-    normalized.endsWith(".web-design-old")
+    canonical === ".web-design/lock.json" ||
+    canonical === ".web-design/project.json" ||
+    canonical === ".web-design/release-manifest.json" ||
+    canonical.endsWith(".web-design-new") ||
+    canonical.endsWith(".web-design-old")
   ) return false;
-  return !/(?:^|\/)(?:\.env(?:\..+)?|[^/]+\.(?:key|pem|p12|pfx|session))$/i.test(path);
+  return !/(?:^|\/)(?:\.env(?:\..+)?|[^/]+\.(?:key|pem|p12|pfx|session))$/i.test(canonical);
 }
 
 export function assertNoSymlinkComponents(root, path, { finalMustExist = false } = {}) {

@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { syncProject, validateArchive } from "../scripts/sync-project.mjs";
+import { safeManagedPath, syncProject, validateArchive } from "../scripts/sync-project.mjs";
 import { REQUIRED_ROOT_FILES } from "../scripts/repository-paths.mjs";
 
 function hash(value) {
@@ -514,8 +514,32 @@ test("rejects traversal and bad source hashes before writing", async () => {
   }
 });
 
+test("refuses a control path by the file it opens, not by its spelling", () => {
+  // A case-insensitive filesystem — macOS and Windows by default — opens
+  // `.git/config` for `.GIT/config`, and Windows drops trailing dots and
+  // spaces and answers to the 8.3 alias besides. An exact-bytes comparison
+  // let a release name Git metadata, the lock, or the state files the
+  // updater writes beside a managed one.
+  for (const unsafe of [
+    ".git/config", ".GIT/config", "docs/.Git/config", ".git./config", ".git /config",
+    "GIT~1/config", "docs/git~1/hooks/pre-commit",
+    ".web-design/lock.json", ".WEB-DESIGN/lock.json", ".web-design/Lock.json",
+    ".web-design/PROJECT.json", ".Web-Design/release-manifest.json",
+    "docs/page.WEB-DESIGN-NEW", "docs/page.web-design-old.",
+    "secrets/.ENV", "secrets/deploy.KEY"
+  ]) {
+    assert.equal(safeManagedPath(unsafe), false, unsafe);
+  }
+  for (const safe of [
+    "docs/standards/testing.md", ".web-design/managed-files.json",
+    "scripts/git-helper.mjs", "docs/gitignore.md", "website/src/digit~1.css"
+  ]) {
+    assert.equal(safeManagedPath(safe), true, safe);
+  }
+});
+
 test("rejects normalized aliases, backslashes, and nested git metadata paths", async () => {
-  for (const unsafe of ["docs/../escape", "docs\\escape", "docs/.git/config"]) {
+  for (const unsafe of ["docs/../escape", "docs\\escape", "docs/.git/config", "docs/.GIT/config"]) {
     const { parent, source, target } = fixture();
     try {
       write(source, ".web-design/managed-files.json", ownershipText([unsafe]));
