@@ -24,12 +24,16 @@
   default branch, so GitHub rather than the workflow file decides whether the
   job may run. That environment decides which ref runs, not what the run was
   asked to do: a workflow's `inputs` are typed into the dispatch form by
-  whoever pressed the button, or passed by a caller, and they reach a job
-  through `env`, where they are the contents of a variable a script reads.
-  They may not be spliced into `run:`, name a `working-directory` or a
-  `container`, be handed to a published action's `with:`, or be passed on as a
-  job output, because Actions substitutes them before anything parses the line
-  and what the actor typed then becomes what runs.
+  whoever pressed the button, or passed by a caller. They reach a job through
+  `env`, where they are the contents of a variable a script reads and can
+  validate. Actions substitutes an expression before anything parses the line,
+  so the places that decide what a job runs — `run:`, `working-directory`,
+  `container`, `runs-on`, and the `with:` of an action the baseline does not
+  vouch for — carry only expressions the guard can read, and an input is not
+  one of them. This is read as an allowlist rather than by looking for the
+  word `inputs`: contexts are case-insensitive, `github.event['inputs']`
+  indexes its way to the same value, and dumping the payload carries it
+  without naming it.
 - Pin external GitHub Actions and shared workflows to full commit SHAs. Do not
   use `pull_request_target`, `write-all`, or implicit secret inheritance.
 - Keep `.env`, private keys, session files, tokens, personal absolute paths,

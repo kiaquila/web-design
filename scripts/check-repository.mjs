@@ -1018,7 +1018,7 @@ const REF_SELECTABLE_EVENTS = new Set([
 // dispatch is here for its payload alone — the ref it selects and the run
 // metadata around it come from what the repository already holds — and not
 // for its `inputs`, which are typed by whoever dispatched the run and are held
-// to `WORKFLOW_INPUT_EXPRESSION` separately.
+// to `READABLE_CODE_EXPRESSION` separately.
 const REPOSITORY_CONTROLLED_EVENTS = new Set(["push", "workflow_dispatch", "schedule"]);
 
 // A push filtered to the default branch runs the default branch's own copy of
@@ -1597,23 +1597,28 @@ function stepUsesUnreadableExpansion(step, options) {
 // step can read `$GITHUB_EVENT_PATH` and write a comment body into
 // `$GITHUB_OUTPUT`, so an output carries whatever its producer put there.
 // `outcome` stays, because the runner writes it and it is one of four words.
+const WORKFLOW_INPUT_EXPRESSION = /^inputs\.[A-Za-z0-9_]+$/;
 const TRUSTED_ENVIRONMENT_EXPRESSION = [
   /^github\.token$/,
   /^secrets\.[A-Za-z0-9_]+(?:\s*\|\|\s*github\.token)?$/,
-  /^inputs\.[A-Za-z0-9_]+$/,
+  WORKFLOW_INPUT_EXPRESSION,
   /^github\.(?:server_url|repository|run_id|sha)$/,
   /^steps\.[A-Za-z0-9_-]+\.outcome\s*==\s*'[A-Za-z0-9_-]+'\s*&&\s*'[A-Za-z0-9_-]+'\s*\|\|\s*'[A-Za-z0-9_-]+'$/
 ];
 
-function computedEnvironmentValue(value) {
+function unreadableExpression(value, readable) {
   const chunks = value.match(/\$\{\{[^}]*\}\}|\$\{\{/g) ?? [];
   return chunks.some((chunk) => {
     // A chunk the scanner cannot close — nested braces, an unterminated
     // expression — is unreadable, which is enough to refuse it.
     if (!chunk.endsWith("}}")) return true;
     const inner = chunk.slice(3, -2).trim();
-    return !TRUSTED_ENVIRONMENT_EXPRESSION.some((pattern) => pattern.test(inner));
+    return !readable.some((pattern) => pattern.test(inner));
   });
+}
+
+function computedEnvironmentValue(value) {
+  return unreadableExpression(value, TRUSTED_ENVIRONMENT_EXPRESSION);
 }
 
 function environmentCarriesComputedValue(node) {
@@ -1631,71 +1636,103 @@ function environmentCarriesComputedValue(node) {
 // ref is chosen from what the repository has, but the inputs are typed into a
 // form by whoever pressed the button, and a called workflow's are whatever the
 // caller passed. The allowlist above vouches for `inputs.X` because in `env:`
-// it arrives as the contents of a variable — data a script reads. Actions
-// substitutes it before anything parses the line, so in `run:` the same text
-// arrives as the command itself, as a `working-directory` it picks which
-// project's scripts a later command runs, as a `container` it picks the image
-// the whole job runs inside, and in a published action's `with:` it lands
-// where the scan cannot read it at all — the reason an action beside proposed
-// code has to be vouched for. So an input reaches a job through `env`, the
-// door the managed update workflow already uses for every one of its inputs,
-// and every other position is refused. Listing the positions that are code
-// would be the losing side of this, as it has been elsewhere in this file, so
-// the few that are provably a value are named instead and the rest of the job
-// tree is walked. `github.event.inputs` is the same value under its older
-// spelling.
-const WORKFLOW_INPUT_EXPRESSION = /\$\{\{[^}]*\b(?:github\.event\.)?inputs\./;
+// it arrives as the contents of a variable — data a script reads, which is why
+// the managed update workflow can take a version string and validate it before
+// use. Actions substitutes the same text before anything parses the line, so
+// in `run:` it arrives as the command itself, as a `working-directory` it
+// picks whose scripts a later command runs, as a `container` it picks the
+// image the whole job runs inside, and in a published action's `with:` it
+// lands where the scan cannot read it at all — the reason an action beside
+// proposed code has to be vouched for.
+//
+// Matching the input's spelling would be the losing side of this, as matching
+// payload syntax was: contexts are case-insensitive, `github.event['inputs']`
+// indexes its way to the same value, and `toJSON(github.event)` carries it
+// without naming it. So the positions that decide what runs are read by an
+// allowlist instead. It is the environment allowlist without the input form —
+// this is exactly where a value would become a program — plus the default
+// branch's name, which the runner fills in from the repository's own settings
+// and which the managed update workflow needs to name the base of the pull
+// request it opens.
+const READABLE_CODE_EXPRESSION = [
+  ...TRUSTED_ENVIRONMENT_EXPRESSION.filter((pattern) => pattern !== WORKFLOW_INPUT_EXPRESSION),
+  /^github\.event\.repository\.default_branch$/
+];
 
-function inputInText(value) {
-  return typeof value === "string" && WORKFLOW_INPUT_EXPRESSION.test(value);
+function unreadableCode(value) {
+  return typeof value === "string" && unreadableExpression(value, READABLE_CODE_EXPRESSION);
 }
 
-function carriesInput(node) {
-  if (isScalar(node)) return inputInText(node.value);
-  if (isSeq(node)) return node.items.some((item) => carriesInput(item));
+function carriesUnreadableCode(node) {
+  if (isScalar(node)) return unreadableCode(node.value);
+  if (isSeq(node)) return node.items.some((item) => carriesUnreadableCode(item));
   if (isMap(node)) {
-    return node.items.some((pair) => carriesInput(pair.key) || carriesInput(pair.value));
+    return node.items.some(
+      (pair) => carriesUnreadableCode(pair.key) || carriesUnreadableCode(pair.value)
+    );
   }
   return false;
 }
 
-// `if:`, `name:`, and a concurrency group are read by the runner and never
-// reach a shell — a step gated on an input, or a deployment queue keyed by
-// one, is how a manual workflow is meant to be written. `runs-on`, `strategy`,
-// `environment`, and `outputs` are absent on purpose: each of those decides
-// where the job runs, what it runs over, which secrets it may read, or what a
-// later job receives.
-const INPUT_VALUE_KEY = new Set(["concurrency", "env", "if", "name"]);
+// The positions an expression reaches as a value rather than as code. `env:`
+// is the door everything else is told to use. `if:`, `name:`, and a
+// concurrency group are read by the runner and never reach a shell — a step
+// gated on an input, or a deployment queue keyed by one, is how a manual
+// workflow is meant to be written. A job's `outputs:` are YAML handed to the
+// next job, where they arrive as `needs.<job>.outputs.<name>` and meet this
+// same allowlist, so laundering an input through one is refused where it is
+// read rather than where it is written; that also leaves `steps.X.outputs.Y`
+// usable for what the update workflow already does with it. `runs-on`,
+// `strategy`, `environment`, `container`, and `services` are absent on
+// purpose: each decides where the job runs, what it runs over, or which
+// secrets it may read.
+const EXPRESSION_VALUE_KEY = new Set(["concurrency", "env", "if", "name", "outputs"]);
 
-// The same boundary `usesUnvouchedReference` draws beside an untrusted
-// checkout: this repository's own local actions and reusable workflows, which
-// are reviewed code under the same CODEOWNERS rule as the scripts a `run:`
-// step calls, and the two published actions whose handling of inputs the
-// baseline vouches for. `actions/checkout` needs `ref: ${{ inputs.head_sha }}`
-// to reach a proposed head at all, and where that ref is not provably trusted
-// `untrustedCheckoutDirectory` already governs what may happen beside it.
-function nodeMakesCodeOfInput(node, steps) {
-  if (!isMap(node)) return carriesInput(node);
-  const uses = mapPair(node, "uses")?.value;
-  const vouched = uses !== undefined && !usesUnvouchedReference(uses);
-  return node.items.some((pair) => {
-    const key = isScalar(pair.key) ? pair.key.value : null;
-    if (typeof key === "string" && INPUT_VALUE_KEY.has(key)) return false;
-    if (key === "with" && vouched) return false;
-    if (key === "steps" && steps && isSeq(pair.value)) {
-      return pair.value.items.some((step) => nodeMakesCodeOfInput(step, false));
-    }
-    return carriesInput(pair.key) || carriesInput(pair.value);
+// A local action or reusable workflow is this repository's own code, under the
+// same CODEOWNERS boundary as the scripts a `run:` step calls, so what it is
+// handed is reviewed along with it. A published one is opaque — that is why an
+// action beside proposed code has to be vouched for — and being vouched for is
+// not an exemption for the whole of `with:`: `github-server-url` sends the
+// checkout and its token to whatever host it names, so the exemption is the
+// per-input one `checkoutInputsCarryUnreadableExpression` already draws. `ref`
+// and `repository` stay open because a checkout has to be able to reach a
+// proposed head, and `untrustedCheckoutDirectory` governs the tree it lands in.
+function withDecidesWhatRuns(inputs, uses) {
+  if (!isMap(inputs)) return carriesUnreadableCode(inputs);
+  const reference = isScalar(uses) && typeof uses.value === "string" ? uses.value.trim() : null;
+  if (reference !== null && reference.startsWith("./")) return false;
+  const checkout = reference !== null && /^actions\/checkout@/.test(reference);
+  return inputs.items.some((pair) => {
+    const key = isScalar(pair.key) ? String(pair.key.value) : null;
+    if (checkout && key !== null && GOVERNED_CHECKOUT_INPUTS.has(key)) return false;
+    return carriesUnreadableCode(pair.key) || carriesUnreadableCode(pair.value);
   });
 }
 
-// Every job, not only a write-capable one: a job that holds nothing but a read
-// token can still hand an input onward, because its `outputs` are the next
-// job's `needs`, and the receiving job's run text is not read as an expression
-// once its event is trusted. What the rule protects is the workflow's inputs,
-// so it does not depend on which token a particular job was given.
-function jobMakesCodeOfInput(job) {
-  return nodeMakesCodeOfInput(job, true);
+function nodeDecidesWhatRunsFromExpression(node, steps) {
+  if (!isMap(node)) return carriesUnreadableCode(node);
+  const uses = mapPair(node, "uses")?.value;
+  return node.items.some((pair) => {
+    const key = isScalar(pair.key) ? pair.key.value : null;
+    if (typeof key === "string" && EXPRESSION_VALUE_KEY.has(key)) return false;
+    if (key === "with") return withDecidesWhatRuns(pair.value, uses);
+    if (key === "steps" && steps && isSeq(pair.value)) {
+      return pair.value.items.some((step) => nodeDecidesWhatRunsFromExpression(step, false));
+    }
+    return carriesUnreadableCode(pair.key) || carriesUnreadableCode(pair.value);
+  });
+}
+
+// Held to write-capable jobs, as every other rule about what a shell may carry
+// is. A read-only job that launders an input through its `outputs` gains
+// nothing by it: the value arrives at the next job as
+// `needs.<job>.outputs.<name>`, which is not readable either, so the laundered
+// form is refused where it is spent rather than where it is written. A
+// workflow-level `defaults.run` moves every step that does not override it, so
+// it is read here rather than once for the document.
+function jobDecidesWhatRunsFromExpression(job, root) {
+  if (unreadableCode(defaultRunDirectoryValue(root))) return true;
+  return nodeDecidesWhatRunsFromExpression(job, true);
 }
 
 // Actions substitutes `${{ }}` into run text before the shell parses it, so
@@ -2059,19 +2096,14 @@ export function validateWorkflowText(path, text) {
     // caller's inputs — so a write-capable job under one of those may reach
     // only for the actions this baseline vouches for. A deploy job on a
     // repository-controlled event keeps its own tooling; what a dispatch adds
-    // on top of its payload is its `inputs`, which `jobMakesCodeOfInput`
-    // holds every job in this workflow to on its own.
+    // on top of its payload is its `inputs`, which
+    // `jobDecidesWhatRunsFromExpression` holds every write-capable job to
+    // whatever its event.
     const actorTriggered =
       events.size === 0 ||
       [...events].some((event) =>
         event === "push" ? !trustedPush : !REPOSITORY_CONTROLLED_EVENTS.has(event)
       );
-    // A workflow-level default moves every step that does not override it, so
-    // the directory an input names has to be refused here as well as on the
-    // job and the step.
-    if (inputInText(defaultRunDirectoryValue(root))) {
-      failures.push(`Workflow runs its steps from a directory a workflow input names: ${path}`);
-    }
     let topLevelWrites = false;
     const rootDefaults = mapPair(root, "defaults")?.value;
     const rootRunDefaults = isMap(rootDefaults) ? mapPair(rootDefaults, "run")?.value : undefined;
@@ -2107,9 +2139,6 @@ export function validateWorkflowText(path, text) {
           continue;
         }
         validateMappingKeys(jobPair.value, `job ${jobName} mapping`, failures, path);
-        if (jobMakesCodeOfInput(jobPair.value)) {
-          failures.push(`Workflow job ${jobName} makes code of a workflow input: ${path}`);
-        }
         const reusableWorkflow = mapPair(jobPair.value, "uses");
         if (reusableWorkflow) validateActionReference(reusableWorkflow.value, failures, path);
         const jobSecrets = mapPair(jobPair.value, "secrets");
@@ -2137,6 +2166,11 @@ export function validateWorkflowText(path, text) {
         const writes = jobPermissions
           ? permissionWrites(jobPermissions.value, `job ${jobName} permissions`, failures, path)
           : topLevelWrites;
+        if (writes && jobDecidesWhatRunsFromExpression(jobPair.value, root)) {
+          failures.push(
+            `Write-capable job ${jobName} decides what it runs from an expression that cannot be read: ${path}`
+          );
+        }
         if (writes && actorTriggered) {
           // A job that calls a reusable workflow has no steps to scan, and the
           // called workflow runs with this job's token. Its inputs are the

@@ -69,8 +69,10 @@ After the first green workflow run:
    under another name is a reviewed change to the managed guard and this list
    together. The environment settles which ref may run, not what the run was
    asked to do, so a project-owned deployment workflow reads its dispatch
-   inputs through `env` — the guard refuses one that becomes a command, a
-   working directory, a container image, an action's input, or a job output.
+   inputs through `env`, where a step can validate one before using it. The
+   guard refuses an input that becomes the command itself, the directory a
+   command runs in, the job's container image, or the input of an action the
+   baseline does not vouch for.
 8. Enable available dependency alerts, automated fixes, secret scanning, and
    push protection.
 9. Keep deployment secrets in the `production` environment-scoped store and

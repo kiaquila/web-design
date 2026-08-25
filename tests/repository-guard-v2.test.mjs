@@ -1981,81 +1981,133 @@ test("a manual run's inputs are the actor's words, not the repository's", () => 
     dispatched(
       `    environment: ${environment}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    steps:\n${stepYaml}`
     );
+  const refused = (workflow, label) =>
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", workflow).join("\n"),
+      /Write-capable job deploy decides what it runs from an expression that cannot be read/,
+      label
+    );
   // Every restricted environment, including the one reserved for a
   // project-owned deployment workflow: the environment decides which ref may
   // run, never what the inputs say.
   for (const environment of ["web-design-update", "codex-review-dispatch", "production"]) {
-    assert.match(
-      validateWorkflowText(
-        ".github/workflows/example.yml",
-        gated(environment, "      - run: ${{ inputs.command }}\n")
-      ).join("\n"),
-      /job deploy makes code of a workflow input/,
-      environment
-    );
+    refused(gated(environment, "      - run: ${{ inputs.command }}\n"), environment);
   }
-  assert.match(
-    validateWorkflowText(
-      ".github/workflows/example.yml",
-      gated("web-design-update", "      - run: curl -sL ${{ inputs.command }} | bash\n")
-    ).join("\n"),
-    /job deploy makes code of a workflow input/
+  refused(
+    gated("web-design-update", "      - run: curl -sL ${{ inputs.command }} | bash\n"),
+    "piped into a shell"
   );
-  // The older spelling reaches the same value.
-  assert.match(
-    validateWorkflowText(
-      ".github/workflows/example.yml",
-      gated("production", "      - run: ${{ github.event.inputs.command }}\n")
-    ).join("\n"),
-    /job deploy makes code of a workflow input/
-  );
+  // Reading the input by its spelling would be the losing side of this, so
+  // these are refused for not being readable rather than for naming an input:
+  // contexts are case-insensitive, indexing reaches the same value, dumping
+  // the payload carries it without naming it, and a job output hands it to the
+  // next job's `needs`.
+  for (const [label, run] of Object.entries({
+    "older spelling": "${{ github.event.inputs.command }}",
+    "case-insensitive context": "${{ INPUTS.command }}",
+    "indexed input": "${{ inputs['command'] }}",
+    "indexed through the payload": "${{ github['event']['inputs']['command'] }}",
+    "the whole payload": "echo ${{ toJSON(github.event) }}",
+    "laundered through another job": "${{ needs.prepare.outputs.command }}"
+  })) {
+    refused(gated("production", `      - run: ${run}\n`), label);
+  }
   // An input that picks where a command runs, which image the job runs inside,
   // or what a published action is handed decides what runs just as directly.
-  const refused = [
+  refused(
     gated("production", "      - working-directory: ${{ inputs.command }}\n        run: npm run deploy\n"),
+    "working directory"
+  );
+  refused(
     gated(
       "production",
       "      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea\n        with:\n          script: ${{ inputs.command }}\n"
     ),
+    "an action that is not vouched for"
+  );
+  // Being vouched for is not an exemption for the whole of `with:`: a checkout
+  // sends its token to whatever host `github-server-url` names, so only the
+  // inputs the checkout rules govern stay open.
+  refused(
+    gated(
+      "production",
+      "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          github-server-url: ${{ inputs.command }}\n"
+    ),
+    "a checkout input the checkout rules do not govern"
+  );
+  refused(
     dispatched(
       "    container: ${{ inputs.command }}\n    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm run deploy\n"
     ),
-    // A read-only job hands its `outputs` on as the next job's `needs`, where
-    // a trusted event no longer reads the run text as an expression.
-    "on:\n  workflow_dispatch:\n    inputs:\n      command:\n        required: true\n        type: string\npermissions:\n  contents: read\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    outputs:\n      command: ${{ inputs.command }}\n    steps:\n      - run: npm ci\n"
-  ];
-  for (const workflow of refused) {
-    assert.match(
-      validateWorkflowText(".github/workflows/example.yml", workflow).join("\n"),
-      /job deploy makes code of a workflow input/,
-      workflow
-    );
-  }
+    "container image"
+  );
   // A workflow-level default moves every step that does not override it.
-  assert.match(
-    validateWorkflowText(
-      ".github/workflows/example.yml",
-      "on:\n  workflow_dispatch:\n    inputs:\n      command:\n        required: true\n        type: string\npermissions:\n  contents: read\ndefaults:\n  run:\n    working-directory: ${{ inputs.command }}\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm ci\n"
-    ).join("\n"),
-    /runs its steps from a directory a workflow input names/
+  refused(
+    "on:\n  workflow_dispatch:\n    inputs:\n      command:\n        required: true\n        type: string\npermissions:\n  contents: read\ndefaults:\n  run:\n    working-directory: ${{ inputs.command }}\njobs:\n  deploy:\n" +
+      "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
+      "    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm ci\n",
+    "workflow-level default directory"
   );
 });
 
 test("an input still reaches a manual job as a value", () => {
   // `env` is the door the managed update workflow already uses for every one
-  // of its inputs: the value arrives as the contents of a variable. A step
-  // gated on an input, or named after one, never reaches a shell, and
-  // `actions/checkout` needs the input to reach a proposed head at all.
-  const failures = validateWorkflowText(
-    ".github/workflows/example.yml",
+  // of its inputs: the value arrives as the contents of a variable, which a
+  // step can validate before use. A concurrency group keyed by an input, and a
+  // job output, are read where the next job spends them rather than where this
+  // one writes them, which keeps `steps.X.outputs.Y` usable. `run:` still
+  // carries the default branch's name, which the runner fills in from the
+  // repository's own settings.
+  const gated =
+    "on:\n  workflow_dispatch:\n    inputs:\n      version:\n        required: true\n        type: string\npermissions:\n  contents: read\njobs:\n  deploy:\n" +
+    "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
+    "    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n" +
+    "    concurrency:\n      group: deploy-${{ inputs.version }}\n" +
+    "    outputs:\n      version: ${{ steps.record.outputs.version }}\n" +
+    "    env:\n      VERSION: ${{ inputs.version }}\n    steps:\n" +
+    "      - id: record\n        name: Record ${{ inputs.version }}\n        if: ${{ inputs.version != '' }}\n" +
+    "        env:\n          VERSION: ${{ inputs.version }}\n        run: node scripts/record.mjs\n" +
+    "      - run: gh pr create --base ${{ github.event.repository.default_branch }}\n";
+  assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", gated), []);
+  // `actions/checkout` needs the input to reach a proposed head at all, which
+  // is what the Codex review dispatch job does; the tree it lands in is
+  // governed by the untrusted-checkout rules rather than by this one.
+  const proposed =
     "on:\n  workflow_dispatch:\n    inputs:\n      head_sha:\n        required: true\n        type: string\npermissions:\n  contents: read\njobs:\n  deploy:\n" +
-      "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
-      "    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    env:\n      HEAD_SHA: ${{ inputs.head_sha }}\n    steps:\n" +
-      "      - name: Check ${{ inputs.head_sha }} out under its own path\n        if: ${{ inputs.head_sha != '' }}\n" +
-      "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ inputs.head_sha }}\n          path: candidate\n" +
-      "      - env:\n          HEAD_SHA: ${{ inputs.head_sha }}\n        run: node scripts/verify.mjs\n"
+    "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
+    "    environment: codex-review-dispatch\n    permissions:\n      checks: write\n    runs-on: ubuntu-latest\n    steps:\n" +
+    "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ inputs.head_sha }}\n          path: candidate\n" +
+    "      - env:\n          HEAD_SHA: ${{ inputs.head_sha }}\n        run: node scripts/publish.mjs\n";
+  assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", proposed), []);
+});
+
+test("a project-owned production deployment keeps its own tooling", () => {
+  // `production` exists for a workflow the project owns, so the rule has to
+  // leave that workflow buildable: a named secret and a literal command are
+  // readable, and the deployment action is the project's business.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      "on:\n  workflow_dispatch:\npermissions:\n  contents: read\njobs:\n  deploy:\n" +
+        "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
+        "    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    steps:\n" +
+        "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n" +
+        "      - run: npm ci && npm run build\n" +
+        "      - uses: cloudflare/wrangler-action@0123456789abcdef0123456789abcdef01234567\n        with:\n          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n          command: deploy\n"
+    ),
+    []
   );
-  assert.deepEqual(failures, []);
+  // The rule is held to write-capable jobs, as the shell rules are, so an
+  // ordinary read-only build keeps the cache keys everyone writes.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      "on: pull_request\npermissions:\n  contents: read\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n" +
+        "      - uses: actions/cache@0123456789abcdef0123456789abcdef01234567\n        with:\n          path: ~/.npm\n          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}\n" +
+        "      - run: npm ci && npm test\n"
+    ),
+    []
+  );
 });
 
 test("the managed workflows this baseline ships stay acceptable to its own guard", () => {
