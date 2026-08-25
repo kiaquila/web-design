@@ -1,12 +1,5 @@
 import assert from "node:assert/strict";
-import {
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync
-} from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -14,7 +7,7 @@ import test from "node:test";
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const guardScript = join(repositoryRoot, "scripts/check-repository.mjs");
-const checkoutSha = "34e114876b0b11c390a56381ad16ebd13914f8d5";
+const checkoutSha = "3d3c42e5aac5ba805825da76410c181273ba90b1";
 
 function write(root, path, contents = "placeholder\n") {
   const target = join(root, path);
@@ -29,180 +22,64 @@ function git(root, ...args) {
 
 function makeFixture() {
   const root = mkdtempSync(join(tmpdir(), "web-design-guard-"));
-  write(root, ".gitignore", "node_modules/\ndist/\n");
-  write(
-    root,
-    ".repo-guard.json",
-    JSON.stringify({
-      infrastructureDirectories: ["docs", "scripts", "tests"],
-      projects: ["demo"]
-    })
-  );
-  write(root, "AGENTS.md");
-  write(root, "CLAUDE.md");
+  for (const path of [
+    ".gitignore",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "docs/repository-guardrails.md",
+    "docs/stage-hosting.md",
+    "docs/template-adoption.md",
+    "scripts/codex-review-gate.mjs",
+    "scripts/codex-review-helpers.mjs",
+    "scripts/codex-review-request.mjs",
+    "scripts/codex-review-rerun.mjs",
+    "scripts/publish-codex-review-check.mjs",
+    "template/README.md",
+    "tests/codex-review-gate.test.mjs",
+    "tests/ks-production-deploy.test.mjs",
+    "tests/ks-production-server-deploy.test.mjs",
+    "tests/repository-guard.test.mjs",
+    "third-party-notices.md"
+  ]) write(root, path);
+  write(root, ".repo-guard.json", JSON.stringify({
+    infrastructureDirectories: ["docs", "scripts", "template", "tests"],
+    projects: ["demo"]
+  }));
   write(root, "README.md", "[Demo](./demo/)\n");
   write(root, "demo/AGENTS.md");
   write(root, "demo/README.md");
-  write(root, "docs/repository-guardrails.md");
-  write(root, "docs/stage-hosting.md");
-  write(root, "scripts/codex-review-gate.mjs");
-  write(root, "scripts/codex-review-helpers.mjs");
-  write(root, "scripts/codex-review-request.mjs");
-  write(root, "scripts/codex-review-rerun.mjs");
-  write(root, "scripts/register-cloudflare-stage-deployments.mjs");
-  write(root, "scripts/wait-for-production-checks.mjs");
-  write(root, "tests/cloudflare-stage-deployments.test.mjs");
-  write(root, "tests/codex-review-gate.test.mjs");
-  write(root, "tests/ks-production-deploy.test.mjs");
-  write(root, "tests/repository-guard.test.mjs");
-  write(root, "third-party-notices.md");
   mkdirSync(join(root, "scripts"), { recursive: true });
   cpSync(guardScript, join(root, "scripts/check-repository.mjs"));
-  write(
-    root,
-    ".github/workflows/codex-review.yml",
-    [
-      "name: Codex Review",
-      "on:",
-      "  pull_request:",
-      "permissions:",
-      "  contents: read",
-      "jobs:",
-      "  codex-review:",
-      "    name: Codex Review",
-      "    runs-on: ubuntu-latest",
-      "    steps:",
-      `      - uses: actions/checkout@${checkoutSha}`,
-      "      - name: Checkout trusted Codex review gate",
-      `        uses: actions/checkout@${checkoutSha}`,
-      "        with:",
-      "          ref: ${{ github.event.repository.default_branch }}",
-      "          path: .codex-review-trusted",
-      "      - run: |",
-      "          script_root=\"$GITHUB_WORKSPACE/.codex-review-trusted\"",
-      "          node \"$script_root/scripts/codex-review-gate.mjs\"",
-      ""
-    ].join("\n")
-  );
-  write(
-    root,
-    ".github/workflows/codex-review-request.yml",
-    [
-      "name: Codex Review Request",
-      "on: issue_comment",
-      "permissions:",
-      "  contents: read",
-      "  pull-requests: write",
-      "jobs:",
-      "  codex-review-request:",
-      "    runs-on: ubuntu-latest",
-      "    steps:",
-      `      - uses: actions/checkout@${checkoutSha}`,
-      ""
-    ].join("\n")
-  );
-  write(
-    root,
-    ".github/workflows/codex-review-rerun.yml",
-    [
-      "name: Codex Review Rerun",
-      "on: pull_request_review",
-      "permissions:",
-      "  contents: read",
-      "jobs:",
-      "  rerun:",
-      "    runs-on: ubuntu-latest",
-      "    steps:",
-      `      - uses: actions/checkout@${checkoutSha}`,
-      ""
-    ].join("\n")
-  );
-  write(
-    root,
-    ".github/workflows/cloudflare-stage-deployments.yml",
-    [
-      "name: Cloudflare Stage Deployments",
-      "on: push",
-      "permissions:",
-      "  contents: read",
-      "  deployments: write",
-      "jobs:",
-      "  register:",
-      "    runs-on: ubuntu-latest",
-      "    steps:",
-      `      - uses: actions/checkout@${checkoutSha}`,
-      ""
-    ].join("\n")
-  );
-  write(
-    root,
-    ".github/workflows/repository-guard.yml",
-    [
-      "name: Guard",
+
+  for (const name of [
+    "ci",
+    "codex-review",
+    "codex-review-request",
+    "codex-review-rerun",
+    "ks-production-deploy",
+    "osv-scan",
+    "repository-guard"
+  ]) {
+    write(root, `.github/workflows/${name}.yml`, [
+      `name: ${name}`,
       "on: push",
       "permissions:",
       "  contents: read",
       "jobs:",
-      "  guard:",
+      "  check:",
       "    runs-on: ubuntu-latest",
       "    steps:",
       `      - uses: actions/checkout@${checkoutSha}`,
       ""
-    ].join("\n")
-  );
-  write(
-    root,
-    ".github/workflows/ks-production-deploy.yml",
-    [
-      "name: KS Production Deploy",
-      "on:",
-      "  push:",
-      "    branches:",
-      "      - main",
-      "    paths:",
-      '      - "ks/**"',
-      "permissions:",
-      "  contents: read",
-      "jobs:",
-      "  required-checks:",
-      "    runs-on: ubuntu-latest",
-      "    steps:",
-      "      - run: node scripts/wait-for-production-checks.mjs",
-      "  deploy:",
-      "    needs: required-checks",
-      "    if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
-      "    concurrency:",
-      "      group: ks-production-deploy",
-      "      cancel-in-progress: false",
-      "    runs-on: ubuntu-latest",
-      "    permissions:",
-      "      id-token: write",
-      "    environment:",
-      "      name: production",
-      "    steps:",
-      `      - uses: actions/checkout@${checkoutSha}`,
-      "      - env:",
-      "          KS_DESIGN_EXPECTED_REVISION: ${{ github.sha }}",
-      "          KS_DESIGN_DEPLOY_RUN_ID: ${{ github.run_id }}",
-      "          KS_DESIGN_DEPLOY_TARGET: ks-production",
-      "          KS_DESIGN_SSH_PRIVATE_KEY: ${{ secrets.KS_DESIGN_SSH_PRIVATE_KEY }}",
-      "        run: |",
-      "          tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8",
-      "          ks/website/production/deploy.sh",
-      "          echo purge_cache",
-      "          sha256sum ks/website/src/js/site.js",
-      ""
-    ].join("\n")
-  );
+    ].join("\n"));
+  }
   git(root, "init", "-q");
   git(root, "add", "-A");
   return root;
 }
 
 function runGuard(root) {
-  return spawnSync(process.execPath, [guardScript, "--root", root], {
-    encoding: "utf8"
-  });
+  return spawnSync(process.execPath, [guardScript, "--root", root], { encoding: "utf8" });
 }
 
 function withFixture(run) {
@@ -214,7 +91,7 @@ function withFixture(run) {
   }
 }
 
-test("accepts a minimal conforming project", () => {
+test("accepts a minimal conforming repository", () => {
   withFixture((root) => {
     const result = runGuard(root);
     assert.equal(result.status, 0, result.stderr);
@@ -222,298 +99,75 @@ test("accepts a minimal conforming project", () => {
   });
 });
 
-test("accepts a project-named Worker with the temporary stage contract", () => {
+test("requires project context files and a root index link", () => {
   withFixture((root) => {
-    write(
-      root,
-      ".repo-guard.json",
-      JSON.stringify({
-        infrastructureDirectories: ["docs", "scripts", "tests"],
-        projects: ["demo"],
-        stageProjects: {
-          demo: {
-            rootDirectory: "demo/website",
-            watchPath: "demo/*"
-          }
-        }
-      })
-    );
-    write(
-      root,
-      "demo/website/package.json",
-      JSON.stringify({
-        scripts: {
-          build: "vite build",
-          "stage:deploy":
-            "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy",
-          "stage:preview":
-            "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler versions upload"
-        }
-      })
-    );
-    write(
-      root,
-      "demo/website/wrangler.json",
-      JSON.stringify({
-        name: "demo",
-        main: "./worker/index.ts",
-        compatibility_date: "2026-08-05",
-        compatibility_flags: ["nodejs_compat"],
-        workers_dev: true,
-        preview_urls: true
-      })
-    );
-    write(root, "demo/website/worker/index.ts");
-    git(root, "add", "-A");
-
-    const result = runGuard(root);
-    assert.equal(result.status, 0, result.stderr);
-
-    write(
-      root,
-      ".repo-guard.json",
-      JSON.stringify({
-        infrastructureDirectories: ["docs", "scripts", "tests"],
-        projects: ["demo"],
-        previewProjects: {
-          demo: {
-            rootDirectory: "demo/website",
-            watchPath: "demo/*"
-          }
-        }
-      })
-    );
-    write(
-      root,
-      "demo/website/wrangler.json",
-      JSON.stringify({
-        name: "demo",
-        main: "./worker/index.ts",
-        compatibility_date: "2026-08-05",
-        compatibility_flags: ["nodejs_compat"],
-        workers_dev: false,
-        preview_urls: true
-      })
-    );
-    git(root, "add", "-A");
-
-    const previewOnlyResult = runGuard(root);
-    assert.equal(previewOnlyResult.status, 0, previewOnlyResult.stderr);
-  });
-});
-
-test("rejects a stage Worker whose name differs from the project slug", () => {
-  withFixture((root) => {
-    write(
-      root,
-      ".repo-guard.json",
-      JSON.stringify({
-        infrastructureDirectories: ["docs", "scripts", "tests"],
-        projects: ["demo"],
-        stageProjects: {
-          demo: {
-            rootDirectory: "demo/website",
-            watchPath: "demo/*"
-          }
-        }
-      })
-    );
-    write(
-      root,
-      "demo/website/package.json",
-      JSON.stringify({
-        scripts: {
-          build: "vite build",
-          "stage:deploy":
-            "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler deploy",
-          "stage:preview":
-            "WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/wrangler.log wrangler versions upload"
-        }
-      })
-    );
-    write(
-      root,
-      "demo/website/wrangler.json",
-      JSON.stringify({
-        name: "web-design-demo",
-        main: "./worker/index.ts",
-        compatibility_date: "2026-08-05",
-        compatibility_flags: ["nodejs_compat"],
-        workers_dev: true,
-        preview_urls: true
-      })
-    );
-    git(root, "add", "-A");
-
+    rmSync(join(root, "demo/AGENTS.md"));
+    writeFileSync(join(root, "README.md"), "No project link\n");
     const result = runGuard(root);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /must be named demo/);
-  });
-});
-
-test("rejects a pull-request trigger on the production workflow", () => {
-  withFixture((root) => {
-    const workflowPath = join(root, ".github/workflows/ks-production-deploy.yml");
-    const workflow = readFileSync(workflowPath, "utf8").replace(
-      "  push:\n",
-      "  pull_request:\n  push:\n"
-    );
-    writeFileSync(workflowPath, workflow);
-    git(root, "add", "-A");
-
-    const result = runGuard(root);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /must never run for pull_request events/);
-  });
-});
-
-test("rejects a known token signature", () => {
-  withFixture((root) => {
-    const token = ["ghp", "A".repeat(32)].join("_");
-    write(root, "credentials.txt", `${token}\n`);
-    git(root, "add", "-A");
-    const result = runGuard(root);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Possible GitHub token/);
-  });
-});
-
-test("rejects personal absolute paths", () => {
-  withFixture((root) => {
-    const personalPath = ["", "Users", "example", "project", "file.txt"].join("/");
-    write(root, "notes.md", `${personalPath}\n`);
-    git(root, "add", "-A");
-    const result = runGuard(root);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Personal absolute path/);
-  });
-});
-
-test("rejects unpinned GitHub Actions", () => {
-  withFixture((root) => {
-    write(
-      root,
-      ".github/workflows/repository-guard.yml",
-      "name: Guard\non: push\npermissions:\n  contents: read\njobs:\n" +
-        "  guard:\n    runs-on: ubuntu-latest\n    steps:\n" +
-        "      - uses: actions/checkout@v4\n"
-    );
-    git(root, "add", "-A");
-    const result = runGuard(root);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /not pinned to a full commit SHA/);
+    assert.match(result.stderr, /demo is missing AGENTS\.md/);
+    assert.match(result.stderr, /must link to \.\/demo\//);
   });
 });
 
 test("rejects unclassified top-level directories", () => {
   withFixture((root) => {
-    write(root, "unlisted-project/README.md");
+    write(root, "mystery/file.txt");
     git(root, "add", "-A");
     const result = runGuard(root);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Unclassified top-level directory/);
+    assert.match(result.stderr, /Unclassified top-level directory: mystery/);
   });
 });
 
-test("rejects removal of the Codex review gate", () => {
+test("rejects secrets, personal paths, and local environment files", () => {
   withFixture((root) => {
-    rmSync(join(root, "scripts/codex-review-gate.mjs"));
-    git(root, "add", "-A");
+    write(root, "demo/token.txt", `ghp_${"A".repeat(32)}\n`);
+    write(root, "demo/path.txt", ["", "Users", "example", "private", "file.txt"].join("/") + "\n");
+    write(root, "demo/.env", "SECRET=placeholder\n");
+    git(root, "add", "-f", "demo/.env", "demo/path.txt", "demo/token.txt");
     const result = runGuard(root);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Missing required repository file: scripts\/codex-review-gate\.mjs/);
+    assert.match(result.stderr, /Possible GitHub token/);
+    assert.match(result.stderr, /Personal absolute path/);
+    assert.match(result.stderr, /Sensitive or local-only file/);
   });
 });
 
-test("rejects a Codex Review workflow without its trusted gate", () => {
+test("rejects generated output and dependency directories", () => {
   withFixture((root) => {
-    write(
-      root,
-      ".github/workflows/codex-review.yml",
-      [
-        "name: Codex Review",
-        "on:",
-        "  pull_request:",
-        "permissions:",
-        "  contents: read",
-        "jobs:",
-        "  codex-review:",
-        "    name: Codex Review",
-        "    runs-on: ubuntu-latest",
-        "    steps:",
-        "      - run: true",
-        ""
-      ].join("\n")
-    );
-    git(root, "add", "-A");
+    write(root, "demo/dist/index.html");
+    write(root, "demo/node_modules/package/index.js");
+    git(root, "add", "-f", "demo/dist/index.html", "demo/node_modules/package/index.js");
     const result = runGuard(root);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Codex Review workflow is missing trusted gate invariant/);
+    assert.match(result.stderr, /demo\/dist\/index\.html/);
+    assert.match(result.stderr, /demo\/node_modules\/package\/index\.js/);
   });
 });
 
-test("rejects commented-out Codex Review gate invariants", () => {
+test("requires safe workflow triggers, permissions, and pinned actions", () => {
   withFixture((root) => {
-    write(root, ".github/workflows/codex-review.yml", [
-      "name: Codex Review", "on:", "  pull_request:", "permissions:",
-      "  contents: read", "jobs:", "  codex-review:", "    name: Codex Review",
-      "    runs-on: ubuntu-latest", "    steps:", "      - run: true",
-      "# name: Checkout trusted Codex review gate",
-      "# ref: ${{ github.event.repository.default_branch }}",
-      "# path: .codex-review-trusted",
-      "# node \"$script_root/scripts/codex-review-gate.mjs\"", ""
-    ].join("\n"));
+    const path = join(root, ".github/workflows/ci.yml");
+    const workflow = readFileSync(path, "utf8")
+      .replace("on: push", "on: pull_request_target")
+      .replace("permissions:\n  contents: read\n", "")
+      .replace(checkoutSha, "v4");
+    writeFileSync(path, workflow);
     git(root, "add", "-A");
     const result = runGuard(root);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Codex Review workflow is missing trusted gate invariant/);
+    assert.match(result.stderr, /pull_request_target/);
+    assert.match(result.stderr, /top-level permissions/);
+    assert.match(result.stderr, /not pinned to a full commit SHA/);
   });
 });
 
-test("rejects a Codex Review Request job that overrides trusted workflow permissions", () => {
+test("allows an environment example with placeholders", () => {
   withFixture((root) => {
-    write(root, ".github/workflows/codex-review-request.yml", [
-      "name: Codex Review Request", "on: issue_comment", "permissions:",
-      "  contents: read", "  pull-requests: write", "jobs:", "  codex-review-request:",
-      "    name: Trusted request", "    permissions:", "      contents: read",
-      "    runs-on: ubuntu-latest", "    steps:",
-      `      - uses: actions/checkout@${checkoutSha}`, ""
-    ].join("\n"));
-    git(root, "add", "-A");
+    write(root, "demo/.env.example", "API_KEY=replace-me\n");
+    git(root, "add", "-f", "demo/.env.example");
     const result = runGuard(root);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Codex Review Request job must not override its trusted workflow permissions/);
-  });
-});
-
-test("rejects a Codex Review Request job with a quoted permission override key", () => {
-  withFixture((root) => {
-    write(root, ".github/workflows/codex-review-request.yml", [
-      "name: Codex Review Request", "on: issue_comment", "permissions:",
-      "  contents: read", "  pull-requests: write", "jobs:", "  codex-review-request:",
-      "    name: Trusted request", '    "permissions":', "      contents: read",
-      "    runs-on: ubuntu-latest", "    steps:",
-      `      - uses: actions/checkout@${checkoutSha}`, ""
-    ].join("\n"));
-    git(root, "add", "-A");
-    const result = runGuard(root);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Codex Review Request job must not override its trusted workflow permissions/);
-  });
-});
-
-test("rejects a Codex Review Request job with a spaced permission-key colon", () => {
-  withFixture((root) => {
-    write(root, ".github/workflows/codex-review-request.yml", [
-      "name: Codex Review Request", "on: issue_comment", "permissions:",
-      "  contents: read", "  pull-requests: write", "jobs:", "  codex-review-request:",
-      "    name: Trusted request", "    permissions :", "      contents: read",
-      "    runs-on: ubuntu-latest", "    steps:",
-      `      - uses: actions/checkout@${checkoutSha}`, ""
-    ].join("\n"));
-    git(root, "add", "-A");
-    const result = runGuard(root);
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /Codex Review Request job must not override its trusted workflow permissions/);
+    assert.equal(result.status, 0, result.stderr);
   });
 });

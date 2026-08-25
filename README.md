@@ -44,6 +44,20 @@ Menus can be a deliverable inside a business project, as they are for Chaijaná.
 Reusable menu tooling or a menu-focused product should live in its own future
 repository rather than turning this workspace into a menu monorepo.
 
+## Lightweight project template
+
+[`template/`](./template/) is the small, customer-free reference harness for
+new standalone web-design repositories. It contains the reusable instructions,
+CI policy, project-command runner, and configurable payload-budget check. It is
+an example to copy and adapt in a reviewed migration PR, not a package or a
+centrally managed baseline.
+
+There is deliberately no release, lock, manifest, sync, update-bot, or
+upstream-verification protocol. Existing projects choose the files and rules
+that fit their stack, keep them locally, and receive later improvements only
+through an explicit manual PR. See
+[`docs/template-adoption.md`](./docs/template-adoption.md).
+
 ## Starting a project
 
 1. Create `<business-slug>/` in lower-case kebab-case.
@@ -54,21 +68,24 @@ repository rather than turning this workspace into a menu monorepo.
 4. Add the slug to `projects` in [`.repo-guard.json`](./.repo-guard.json).
 5. Add the project to this index and run `node scripts/check-repository.mjs`.
 
-If the project needs a temporary customer-facing stage, follow
-[`docs/stage-hosting.md`](./docs/stage-hosting.md). Active stages are listed in
-`stageProjects` and `previewProjects` in [`.repo-guard.json`](./.repo-guard.json); each uses a
-`<business-slug>` Cloudflare Worker and an isolated public preview for every
-pull request. Most also expose a stable
-`https://<business-slug>.ks-design.workers.dev` deployment from `main`; KS is
-explicitly preview-only because its production origin is `ks-design.art`.
+Cloudflare build and stage checks are under a migration moratorium in this
+repository. The historical configuration remains documented in
+[`docs/stage-hosting.md`](./docs/stage-hosting.md), but it is no longer enforced
+or run here. Each standalone project will re-enable only the deployment checks
+that match its own hosting after its migration is verified.
 
 ## Guardrails
 
-Pull requests run repository policy checks, project tests, a dependency
-vulnerability scan, and a current-head Codex review gate. The policy check
+Pull requests run repository policy checks, every retained project's tests, the
+standalone template harness, a dependency vulnerability scan, and a
+current-head Codex review gate. The policy check
 rejects common secrets and private keys, personal absolute paths, tracked
 generated output, unsafe workflow triggers, un-pinned GitHub Actions, and
 project folders without their local context files.
+
+The standalone template adds a configurable production-payload budget based on
+the proven `alex-neon` check: raw and gzip totals, per-extension ceilings, and a
+critical first-render gzip ceiling.
 
 The implementation and maintainer setup are documented in
 [`docs/repository-guardrails.md`](./docs/repository-guardrails.md).

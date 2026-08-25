@@ -30,9 +30,6 @@ and project-specific test commands. It should not repeat the entire root file.
 - explicit least-privilege workflow permissions;
 - commit-SHA pinning for external GitHub Actions;
 - absence of the high-risk `pull_request_target` trigger.
-- consistency of active temporary stages: every Worker name must match its
-  project slug, with project-local Wrangler configuration, public preview URLs,
-  and standard deploy scripts.
 
 The PR workflow checks out policy code from the default branch and runs that
 trusted copy against the proposed PR tree. On the first installation only, when
@@ -114,20 +111,32 @@ The omitted-control audit was repeated against Unicorn Hub commit
   for this repository. Existing pinned lockfiles, Dependabot cooldown, CI, OSV,
   and repository policy cover their relevant safety properties here.
 
-## Project checks
+## Lightweight standalone template
 
-CI currently validates both Chaijaná deliverables:
+The reusable harness lives in [`../template/`](../template/). It intentionally
+has no release channel, ownership manifest, lock file, sync command, update
+workflow, or upstream-source gate. Those mechanisms made the template itself a
+second product and forced consumers to accept one centrally owned file set.
 
-- the standalone menu build and tests;
-- the website lint, production build, and rendered HTML tests.
+Adoption is manual and selective. A project copies the useful files in a
+focused PR, adapts its local command and payload-budget configuration, and owns
+the result. Later improvements are normal reviewed diffs, not automatic or
+bulk-managed updates. The procedure and review evidence are documented in
+[`template-adoption.md`](./template-adoption.md).
 
-When a new project is added, extend Project CI with a focused job for its actual
-stack. Do not add placeholder checks that always pass.
+## Project checks and deployment moratorium
 
-Temporary customer stages use the separate contract in
-[`stage-hosting.md`](./stage-hosting.md). The `stageProjects` map in
-`.repo-guard.json` is an inventory of stages that should currently exist; it is
-not a permanent requirement for every project in the repository.
+Project CI continues to run each project's real build and tests while the
+project remains here, and it runs the standalone template's regression harness.
+The production wait policy is regression-tested against the complete Project CI
+job list so that adding or renaming a job cannot silently remove it from the
+gate. Do not add placeholder checks that always pass.
+
+Cloudflare build, preview, and stage-registration checks are temporarily
+disabled in this repository during the move to standalone repositories. The
+historical settings remain in [`stage-hosting.md`](./stage-hosting.md) only as
+migration evidence. Each destination repository will enable its own relevant
+deployment checks after the migration is independently verified.
 
 ## Supply-chain protection
 
@@ -160,8 +169,8 @@ the expected values are `["PR_TITLE","PR_BODY"]`.
 After the workflows exist on `main`, protect `main` with:
 
 - pull requests required before merge;
-- required checks `repository-guard`, `chaijana-menu`, `chaijana-website`,
-  `osv-scan`, and `Codex Review`;
+- required checks `repository-guard`, every named Project CI job (including
+  `template-harness`), `osv-scan`, and `Codex Review`;
 - stale approvals dismissed after new commits;
 - conversation resolution required;
 - administrator enforcement enabled;
@@ -183,7 +192,8 @@ Run before publishing any PR:
 
 ```bash
 node scripts/check-repository.mjs
-node --test tests/repository-guard.test.mjs tests/codex-review-gate.test.mjs
+node --test tests/*.test.mjs
+node --test template/tests/*.test.mjs
 ```
 
 Then run the affected project's commands from its `AGENTS.md` or `README.md`.

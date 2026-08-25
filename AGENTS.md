@@ -29,6 +29,25 @@ must not weaken the repository-wide safety rules below.
   product infrastructure belongs in a separate repository.
 - Preserve existing names and public URLs unless the task explicitly changes
   them.
+- Treat `template/` as a manually copied reference, not shared runtime
+  infrastructure. Do not add release, lock, manifest, sync, update-bot, or
+  upstream-verification coupling between this repository and standalone
+  projects.
+- Keep every project tree in this repository until its standalone history,
+  code, assets, documentation, checks, and deployment have been verified in a
+  separate migration. A template change is not authorization to delete a
+  project.
+
+## Template Changes
+
+- Keep the template customer-free and dependency-light. Prefer Node standard
+  library scripts and one readable CI workflow over a framework of workflows.
+- Keep project facts, deployment configuration, domains, secrets, and
+  stack-specific choices out of the template.
+- Performance budgets are required but project-owned: copy the mechanism, then
+  set explicit thresholds and critical files for the actual build.
+- Template updates are adopted manually through focused PRs. Copy only the
+  relevant files and explain any local deviations.
 
 ## Content And Design Integrity
 
@@ -73,6 +92,7 @@ must not weaken the repository-wide safety rules below.
   versioned deliverable.
 - Run `node scripts/check-repository.mjs` and the affected project's documented
   checks before pushing.
+- For template changes, also run `node --test template/tests/*.test.mjs`.
 - Required checks must be green for the current PR head. Resolve review threads
   and do not rely on stale approvals after material changes.
 

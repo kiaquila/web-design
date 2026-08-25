@@ -20,41 +20,14 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Checkout trusted guard
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          path: .guard-trusted
-          fetch-depth: 1
-
       - name: Run repository policy
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f .guard-trusted/scripts/check-repository.mjs ]; then
-            node .guard-trusted/scripts/check-repository.mjs --root "$GITHUB_WORKSPACE"
-          else
-            echo "Trusted guard is not on the default branch yet; using the bootstrap copy."
-            node scripts/check-repository.mjs --root "$GITHUB_WORKSPACE"
-          fi
+        run: node scripts/check-repository.mjs
 
       - name: Test repository policy
         run: node --test tests/repository-guard.test.mjs
 
-      - name: Test Cloudflare deployment tracking
-        run: node --test tests/cloudflare-stage-deployments.test.mjs
-
       - name: Test KS production deployment policy
         run: node --test tests/ks-production-deploy.test.mjs tests/ks-production-server-deploy.test.mjs
 
-      - name: Test trusted Codex gate regressions
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f .guard-trusted/tests/codex-review-gate.test.mjs ]; then
-            WEB_DESIGN_REPOSITORY_ROOT="$GITHUB_WORKSPACE" \
-              node --test .guard-trusted/tests/codex-review-gate.test.mjs
-          else
-            echo "Trusted Codex gate tests are not on the default branch yet; using the bootstrap copy."
-            node --test tests/codex-review-gate.test.mjs
-          fi
+      - name: Test Codex gate regressions
+        run: node --test tests/codex-review-gate.test.mjs

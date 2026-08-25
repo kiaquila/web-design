@@ -2,6 +2,7 @@
   "infrastructureDirectories": [
     "docs",
     "scripts",
+    "template",
     "tests"
   ],
   "projects": [
@@ -11,33 +12,5 @@
     "ember",
     "ks",
     "misha"
-  ],
-  "stageProjects": {
-    "alex-neon": {
-      "rootDirectory": "alex-neon/website",
-      "watchPath": "alex-neon/*"
-    },
-    "alphacentr": {
-      "rootDirectory": "alphacentr/site",
-      "watchPath": "alphacentr/*"
-    },
-    "chaijana": {
-      "rootDirectory": "chaijana/website",
-      "watchPath": "chaijana/*"
-    },
-    "ember": {
-      "rootDirectory": "ember/website",
-      "watchPath": "ember/*"
-    },
-    "misha": {
-      "rootDirectory": "misha/website",
-      "watchPath": "misha/*"
-    }
-  },
-  "previewProjects": {
-    "ks": {
-      "rootDirectory": "ks/website",
-      "watchPath": "ks/*"
-    }
-  }
+  ]
 }

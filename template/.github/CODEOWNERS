@@ -1,0 +1,5 @@
+# Replace this placeholder before the first PR.
+* @replace-with-owner
+/.github/ @replace-with-owner
+/scripts/ @replace-with-owner
+/web-design.config.json @replace-with-owner
