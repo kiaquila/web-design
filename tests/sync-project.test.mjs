@@ -542,6 +542,46 @@ test("refuses a control path by the file it opens, not by its spelling", () => {
   }
 });
 
+test("refuses a release that respells a managed path onto a revoked one", async () => {
+  // One file, two names. The addition classifies `same` against the bytes the
+  // revocation then stages for deletion, so an apply would delete the file and
+  // write a lock that expects it.
+  for (const [installed, proposed] of [["Foo.md", "foo.md"], ["foo.md", "foo.md."]]) {
+    const paths = [".web-design/managed-files.json", installed];
+    const { parent, source, target } = fixture(paths);
+    try {
+      release(source, "1.0.0", { [proposed]: `installed ${installed}\n` }, [
+        ".web-design/managed-files.json",
+        proposed
+      ]);
+      await assert.rejects(
+        applyLocal(target, source, "1.0.0", { acceptOwnershipChange: true }),
+        /Ownership rename resolves to a revoked path|Unsafe or duplicate/
+      );
+      assert.equal(existsSync(join(target, installed)), true);
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
+    }
+  }
+});
+
+test("refuses an ownership manifest naming one file twice", async () => {
+  const { parent, source, target } = fixture();
+  try {
+    release(source, "1.0.0", { "docs/Guide.md": "v1\n" }, [
+      ".web-design/managed-files.json",
+      "docs/Guide.md",
+      "docs/guide.md"
+    ]);
+    await assert.rejects(
+      applyLocal(target, source, "1.0.0", { acceptOwnershipChange: true }),
+      /Unsafe or duplicate ownership path/
+    );
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
 test("rejects normalized aliases, backslashes, and nested git metadata paths", async () => {
   for (const unsafe of ["docs/../escape", "docs\\escape", "docs/.git/config", "docs/.GIT/config"]) {
     const { parent, source, target } = fixture();
@@ -601,6 +641,24 @@ test("rejects a symlinked source parent before reading managed bytes", async () 
       applyLocal(target, source, "1.0.0", { acceptOwnershipChange: true }),
       /Symlink component is not allowed/
     );
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test("rejects an archive entry that climbs out by a folded segment", () => {
+  // Extraction runs before any manifest is read, so this refusal is the only
+  // thing between a crafted archive and a local file. `.. ` is not `..` to a
+  // string comparison and is to Windows.
+  const parent = mkdtempSync(join(tmpdir(), "web-design-archive-test-"));
+  try {
+    const root = join(parent, "repo-root");
+    mkdirSync(join(root, ".. "), { recursive: true });
+    write(root, ".. /victim.txt", "climbed\n");
+    const archive = join(parent, "source.tgz");
+    const result = spawnSync("tar", ["-czf", archive, "-C", parent, "repo-root"], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+    assert.throws(() => validateArchive(archive), /Unsafe source archive path/);
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }

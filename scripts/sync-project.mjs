@@ -46,25 +46,33 @@ function canonicalSegment(part) {
   return part.replace(/[. ]+$/, "").toLowerCase();
 }
 
+// A segment made only of dots and spaces canonicalizes to nothing, which is how
+// `.`, `..` and the Windows spellings that reach them — `.. `, `...` — are all
+// refused by one condition.
+function traversalSegment(part) {
+  return !part || !canonicalSegment(part);
+}
+
+// The name a filesystem answers to, for deciding whether two entries are the
+// same file rather than two strings.
+function canonicalPath(path) {
+  return path.split("/").map(canonicalSegment).join("/");
+}
+
 const REPOSITORY_METADATA_SEGMENT = new Set([".git", "git~1"]);
 
 export function safeManagedPath(path) {
   if (typeof path !== "string" || !path || isAbsolute(path)) return false;
   if (path.includes("\\")) return false;
   const parts = path.split("/");
-  // A segment made only of dots and spaces canonicalizes to nothing, which is
-  // how `.`, `..` and the Windows spellings that reach them — `.. `, `...` —
-  // are all refused by one condition. `docs/.. /AGENTS.md` is the reason it is
-  // not enough to compare the raw segment: Windows drops the trailing space
-  // and opens the parent, while `resolve()` here reads `.. ` as an ordinary
-  // directory name and reports the path as new.
-  if (parts.some((part) => {
-    const canonical = canonicalSegment(part);
-    return !part || !canonical || REPOSITORY_METADATA_SEGMENT.has(canonical);
-  })) return false;
+  // `docs/.. /AGENTS.md` is why the raw segment is not enough: Windows drops
+  // the trailing space and opens the parent, while `resolve()` here reads
+  // `.. ` as an ordinary directory name and reports the path as new.
+  if (parts.some((part) => traversalSegment(part))) return false;
+  if (parts.some((part) => REPOSITORY_METADATA_SEGMENT.has(canonicalSegment(part)))) return false;
   const normalized = normalize(path);
   if (normalized === ".." || normalized.startsWith(`..${sep}`)) return false;
-  const canonical = normalized.split(sep).map(canonicalSegment).join("/");
+  const canonical = canonicalPath(normalized.split(sep).join("/"));
   if (
     canonical === ".web-design/lock.json" ||
     canonical === ".web-design/project.json" ||
@@ -101,10 +109,15 @@ export function ownershipPaths(root) {
   }
   const paths = ownership.files.map((entry) => typeof entry === "string" ? entry : entry?.path);
   const seen = new Set();
+  // Duplicates are counted by the file a name opens, not by the name: `Foo`
+  // and `foo` are one file on a case-insensitive filesystem, and a manifest
+  // listing both describes a repository that cannot exist.
+  const identities = new Set();
   for (const item of paths) {
-    if (!safeManagedPath(item) || seen.has(item)) {
+    if (!safeManagedPath(item) || identities.has(canonicalPath(item))) {
       throw new Error(`Unsafe or duplicate ownership path: ${item}`);
     }
+    identities.add(canonicalPath(item));
     seen.add(item);
   }
   return seen;
@@ -135,6 +148,18 @@ export function validateRelease(sourceRoot, expectedVersion, installedOwnership,
   }
   const additions = [...upstreamOwnership].filter((path) => !installedOwnership.has(path));
   const removals = [...installedOwnership].filter((path) => !upstreamOwnership.has(path));
+  // A release that respells a managed path by case alone, or by a trailing
+  // dot, reads as one addition and one revocation of two different names while
+  // the filesystem holds one file. Both halves then classify against those
+  // same bytes: the addition is `same` and the revocation is `delete`, so the
+  // apply deletes the file and writes a lock that expects it. There is no
+  // ordering of the two that leaves the repository correct, so the release is
+  // refused rather than resequenced.
+  const removedIdentities = new Set(removals.map(canonicalPath));
+  const collision = additions.find((path) => removedIdentities.has(canonicalPath(path)));
+  if (collision) {
+    throw new Error(`Ownership rename resolves to a revoked path: ${collision}`);
+  }
   // This file defines the ownership set that every later status/update reads.
   // Handing it over while removing it from the lock leaves its retained bytes
   // self-identifying as managed and makes the repository permanently fail the
@@ -154,13 +179,13 @@ export function validateRelease(sourceRoot, expectedVersion, installedOwnership,
   const seen = new Set();
   const files = [];
   for (const entry of manifest.files) {
-    if (!safeManagedPath(entry?.path) || seen.has(entry.path)) {
+    if (!safeManagedPath(entry?.path) || seen.has(canonicalPath(entry.path))) {
       throw new Error(`Unsafe or duplicate managed path: ${entry?.path}`);
     }
     if (!/^[a-f0-9]{64}$/.test(entry.sha256 ?? "")) {
       throw new Error(`Invalid SHA-256 for ${entry.path}`);
     }
-    seen.add(entry.path);
+    seen.add(canonicalPath(entry.path));
     const source = assertNoSymlinkComponents(sourceRoot, entry.path, { finalMustExist: true });
     const stat = lstatSync(source);
     if (!stat.isFile() || stat.isSymbolicLink()) {
@@ -217,11 +242,15 @@ export function validateArchive(archive) {
   for (const entry of entries) {
     const path = entry.endsWith("/") ? entry.slice(0, -1) : entry;
     const parts = path.split("/");
+    // Extraction happens before `validateRelease` reads a manifest, so an
+    // entry refused here is the only thing standing between a crafted archive
+    // and a local file. `root/.. /.. /victim` clears a raw `..` comparison and
+    // climbs out of the extraction root on Windows all the same.
     if (
       !path ||
       path.startsWith("/") ||
       path.includes("\\") ||
-      parts.some((part) => !part || part === "." || part === "..")
+      parts.some((part) => traversalSegment(part))
     ) {
       throw new Error(`Unsafe source archive path: ${JSON.stringify(entry)}`);
     }
