@@ -45,8 +45,14 @@ function parseArgs(argv) {
 // Composition is folded first, for the same reason and before the rest: macOS
 // stores `café` decomposed and opens it for either spelling, so `café.md`
 // written as NFC and as NFD are one file that two strings describe.
+// Case is folded through upper, not by lowering: NTFS compares names by their
+// uppercase form, so `Σ` and the final sigma `ς` are one name there while
+// lowering keeps them apart. Upper-then-lower is full case folding — it also
+// brings `ß` and `ss` together, which is the same question asked of a
+// different pair. Folding two distinct names together only ever refuses a
+// release, so erring wide is the safe direction.
 function canonicalSegment(part) {
-  return part.normalize("NFC").replace(/[. ]+$/, "").toLowerCase().normalize("NFC");
+  return part.normalize("NFC").replace(/[. ]+$/, "").toUpperCase().toLowerCase().normalize("NFC");
 }
 
 // A segment made only of dots and spaces canonicalizes to nothing, which is how

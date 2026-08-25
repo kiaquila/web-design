@@ -550,7 +550,10 @@ test("refuses a release that respells a managed path onto a revoked one", async 
     ["Foo.md", "foo.md"],
     ["foo.md", "foo.md."],
     // macOS stores this name decomposed and opens it for either spelling.
-    ["docs/caf\u00e9.md".normalize("NFC"), "docs/caf\u00e9.md".normalize("NFD")]
+    ["docs/caf\u00e9.md".normalize("NFC"), "docs/caf\u00e9.md".normalize("NFD")],
+    // NTFS compares by the uppercase form, where the final sigma is the same
+    // name; lowering keeps them apart.
+    ["docs/\u03a3.md", "docs/\u03c2.md"]
   ]) {
     const paths = [".web-design/managed-files.json", installed];
     const { parent, source, target } = fixture(paths);
