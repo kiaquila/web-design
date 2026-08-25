@@ -13,4 +13,8 @@ the same target.
 
 The `custom-production` profile does not grant deployment permission. It marks
 the workflow as project-owned and requires its verification and rollback
-contract to be documented and tested.
+contract to be documented and tested. A write-capable manual deployment job
+uses the exact GitHub environment name `production`; the owner restricts that
+environment to the default branch before the workflow is introduced. Hosting
+targets, platform environment names, domains, and credentials remain
+project-owned.

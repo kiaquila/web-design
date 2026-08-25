@@ -1011,6 +1011,16 @@ test("a manual write job needs a restricted environment, not only its own condit
     ),
     []
   );
+  // Project-owned deployment workflows use the one documented production
+  // boundary. The workflow remains project-owned; the environment name is
+  // stable so a branch cannot redirect the job to a newly created lookalike.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      gated("    environment: production\n")
+    ),
+    []
+  );
   // An environment GitHub has never been told to restrict is created on first
   // use with no rules on it, so naming one is not a gate. The name is matched
   // exactly: a run-time expression and a lookalike carrying whitespace both
@@ -1022,6 +1032,9 @@ test("a manual write job needs a restricted environment, not only its own condit
     "    environment: \"web-design-update \"\n",
     "    environment: Web-Design-Update\n",
     "    environment: web-design-update-2\n",
+    "    environment: Production\n",
+    "    environment: production-2\n",
+    "    environment: \"production \"\n",
     "    environment: ''\n",
     "    environment:\n      url: https://example.invalid\n"
   ]) {
@@ -2189,4 +2202,7 @@ test("GitHub setup records the plan-limited manual protection fallback", () => {
   assert.match(setup, /P0-P2/);
   assert.match(setup, /120-second quiet\s+period/);
   assert.match(setup, /Do not make a private repository public/);
+  for (const environment of ["codex-review-dispatch", "production", "web-design-update"]) {
+    assert.match(setup, new RegExp(`\\b${environment}\\b`));
+  }
 });

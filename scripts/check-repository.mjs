@@ -1846,13 +1846,16 @@ function stepTouchesEnvironmentFiles(step) {
 // that renames `environment` to something an operator has never seen gets its
 // write token from an environment nobody restricted, having already deleted
 // the `if` that was the other half of the gate. The names a write-capable
-// dispatch job may carry are therefore the ones the setup guide tells an
-// operator to restrict, and they ship in managed workflows, so the set is
-// knowable here rather than a property of the file being scanned. Adding a
-// privileged manual workflow means adding its environment to this set and to
-// `docs/operations/github-setup.md` together, in a reviewed change.
+// dispatch job may carry are therefore the ones the setup guide tells every
+// operator to restrict. Two ship in managed workflows; `production` is the
+// stable boundary reserved for project-owned deployment workflows. Keeping
+// that project boundary exact lets a consumer own the workflow without letting
+// a branch mint a lookalike, unrestricted environment. Adding another
+// privileged manual boundary means adding its exact name here and to
+// `docs/operations/github-setup.md` together, in a reviewed baseline change.
 const PROTECTED_DISPATCH_ENVIRONMENT = new Set([
   "codex-review-dispatch",
+  "production",
   "web-design-update"
 ]);
 

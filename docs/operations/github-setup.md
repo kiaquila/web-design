@@ -57,16 +57,22 @@ After the first green workflow run:
    `environment: codex-review-dispatch` and holds `checks: write`, so restrict
    that environment's deployment branches to the default branch too. A branch
    copy of the workflow could otherwise mint a passing required check.
-   These two names are the only ones the repository guard accepts on a
+   Project-owned deployment workflows use the exact environment name
+   `production`. Create that environment and restrict its deployment branches
+   to the default branch as well, even while the repository uses `no-deploy`,
+   so a branch cannot introduce a privileged manual workflow before the owner
+   configures the control. The repository guard accepts only
+   `web-design-update`, `codex-review-dispatch`, and `production` on a
    write-capable manual job, matched exactly, because an environment nobody has
    restricted is created on first use with no rules on it — a renamed one would
-   read as gated here and be protected by nothing. Restricting both is the
-   whole of the control; a privileged manual workflow under a third name is a
-   change to the guard and to this list together.
+   read as gated here and be protected by nothing. A privileged manual workflow
+   under another name is a reviewed change to the managed guard and this list
+   together.
 8. Enable available dependency alerts, automated fixes, secret scanning, and
    push protection.
-9. Keep deployment secrets in environment-scoped stores and restrict production
-   environments to `main` plus any required human approval.
+9. Keep deployment secrets in the `production` environment-scoped store and
+   require any desired human approval there. Its deployment branch restriction
+   is the default branch rule from step 7.
 
 Some private-repository plans do not expose branch protection or rulesets and
 may return `403` from their APIs. Record the missing control instead of claiming
