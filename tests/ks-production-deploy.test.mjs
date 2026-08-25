@@ -15,6 +15,10 @@ const workflow = await readFile(
   resolve(root, ".github/workflows/ks-production-deploy.yml"),
   "utf8"
 );
+const projectCiWorkflow = await readFile(
+  resolve(root, ".github/workflows/ci.yml"),
+  "utf8"
+);
 
 test("production deploy is push-only, KS-scoped, main-only, and serialized", () => {
   assert.match(workflow, /^on:\n  push:\n/m);
@@ -91,11 +95,20 @@ test("production deploy verifies the revision, pages, cache purge, and asset has
   assert.ok(workflow.indexOf("purge_cache") < workflow.indexOf("https://ks-design.art/es/"));
 });
 
-test("required checks include every push gate and the PR-only Codex gate", () => {
+test("required checks include every Project CI job and the PR-only Codex gate", () => {
+  const projectCiJobNames = [
+    ...projectCiWorkflow.matchAll(/^  [a-z0-9-]+:\n    name: ([a-z0-9-]+)$/gm)
+  ].map((match) => match[1]);
+  const workflowChecks = PUSH_CHECKS.filter(
+    (name) => !["repository-guard", "osv-scan"].includes(name)
+  );
+
   assert.deepEqual(PULL_REQUEST_CHECKS, [...PUSH_CHECKS, "Codex Review"]);
-  assert.ok(PUSH_CHECKS.includes("repository-guard"));
-  assert.ok(PUSH_CHECKS.includes("ks-website"));
-  assert.ok(PUSH_CHECKS.includes("osv-scan"));
+  assert.deepEqual(workflowChecks.toSorted(), projectCiJobNames.toSorted());
+  assert.match(
+    projectCiWorkflow,
+    /template-harness:[\s\S]*run: node --test template\/tests\/\*\.test\.mjs/
+  );
 });
 
 test("required check evaluation uses the newest run and fails closed", () => {

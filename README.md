@@ -76,8 +76,9 @@ that match its own hosting after its migration is verified.
 
 ## Guardrails
 
-Pull requests run repository policy checks, project tests, a dependency
-vulnerability scan, and a current-head Codex review gate. The policy check
+Pull requests run repository policy checks, every retained project's tests, the
+standalone template harness, a dependency vulnerability scan, and a
+current-head Codex review gate. The policy check
 rejects common secrets and private keys, personal absolute paths, tracked
 generated output, unsafe workflow triggers, un-pinned GitHub Actions, and
 project folders without their local context files.

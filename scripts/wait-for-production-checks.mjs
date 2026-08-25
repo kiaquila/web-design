@@ -8,11 +8,14 @@ const DEFAULT_ATTEMPTS = 120;
 
 export const PUSH_CHECKS = Object.freeze([
   "repository-guard",
+  "template-harness",
   "alex-neon-website",
   "alphacentr-site",
   "chaijana-menu",
   "chaijana-website",
+  "ember-website",
   "ks-website",
+  "misha-website",
   "osv-scan"
 ]);
 

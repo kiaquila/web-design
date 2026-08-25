@@ -127,7 +127,10 @@ bulk-managed updates. The procedure and review evidence are documented in
 ## Project checks and deployment moratorium
 
 Project CI continues to run each project's real build and tests while the
-project remains here. Do not add placeholder checks that always pass.
+project remains here, and it runs the standalone template's regression harness.
+The production wait policy is regression-tested against the complete Project CI
+job list so that adding or renaming a job cannot silently remove it from the
+gate. Do not add placeholder checks that always pass.
 
 Cloudflare build, preview, and stage-registration checks are temporarily
 disabled in this repository during the move to standalone repositories. The
@@ -166,8 +169,8 @@ the expected values are `["PR_TITLE","PR_BODY"]`.
 After the workflows exist on `main`, protect `main` with:
 
 - pull requests required before merge;
-- required checks `repository-guard`, `chaijana-menu`, `chaijana-website`,
-  `osv-scan`, and `Codex Review`;
+- required checks `repository-guard`, every named Project CI job (including
+  `template-harness`), `osv-scan`, and `Codex Review`;
 - stale approvals dismissed after new commits;
 - conversation resolution required;
 - administrator enforcement enabled;
@@ -189,7 +192,8 @@ Run before publishing any PR:
 
 ```bash
 node scripts/check-repository.mjs
-node --test tests/repository-guard.test.mjs tests/codex-review-gate.test.mjs
+node --test tests/*.test.mjs
+node --test template/tests/*.test.mjs
 ```
 
 Then run the affected project's commands from its `AGENTS.md` or `README.md`.
