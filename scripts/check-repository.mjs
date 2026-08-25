@@ -420,7 +420,11 @@ function commandPositionIsTarget(words, executable, workingDirectory) {
     if (index < 0) return false;
     const dispatched = bareWord(words[index]);
     if (isRepositoryFileWord(dispatched, workingDirectory)) return true;
-    const child = executableBasename(dispatched);
+    // A path-qualified executable is either a reviewed script (handled just
+    // above) or an alias that must not inherit trust from its basename.
+    // `./gradlew` is allowed only because that exact spelling is explicit in
+    // the executable set.
+    const child = dispatched;
     return PRODUCT_CHECK_EXECUTABLE.has(child) && runsProjectCode(
       child,
       words.slice(index + 1),
@@ -744,7 +748,11 @@ export function validateProductCheckCommand(command, { workingDirectory = "." } 
       );
     });
     if (abbreviated) return "must spell out its options rather than abbreviate them";
-    const executable = executableBasename(words[0]);
+    // Trust the exact executable spelling. Reducing `./tools/node` or
+    // `/usr/bin/npm` to a basename lets an arbitrary binary impersonate an
+    // approved tool; the only path-qualified exception is the explicitly
+    // allowlisted `./gradlew` wrapper.
+    const executable = bareWord(words[0]);
     if (!PRODUCT_CHECK_EXECUTABLE.has(executable)) {
       return "must execute a real product check";
     }

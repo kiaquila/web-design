@@ -68,6 +68,7 @@ test("accepts product checks whose exit status comes from a real command", () =>
     "swift scripts/check.swift",
     "swift scripts/check.swift -V",
     "cargo fmt --check",
+    "./gradlew test",
     "pytest",
     "pytest tests/unit",
     "node scripts/check.mjs",
@@ -456,6 +457,9 @@ test("rejects commands that only report success", () => {
     "python3 dist/check.py", "swift node_modules/check.swift",
     "node NODE_MODULES./pkg/check.mjs", "node .WEB-DESIGN/policy/check.mjs",
     "node safe-link/../scripts/check.mjs",
+    // An arbitrary path may not inherit trust from an allowlisted basename.
+    "./tools/node scripts/check.mjs", "tools/npm test",
+    "/usr/bin/node scripts/check.mjs", "uv run /usr/bin/node scripts/check.mjs",
     // Managed baseline controls verify the template, not the consumer's
     // product, so they cannot be the only product check.
     "node scripts/check-repository.mjs", "uv run scripts/check-repository.mjs",
