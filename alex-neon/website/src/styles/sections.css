@@ -1,0 +1,545 @@
+/* ==========================================================================
+   Alex Neon — section blocks built from the components layer.
+   Inventory: demo card · video placeholder · compare columns · control cards ·
+   scenario cards · finale panel · about chip and expertise items · community
+   access line · FAQ · contact channels.
+   Informational cards deliberately have no hover state; only real controls
+   and links react to the pointer.
+   ========================================================================== */
+
+/* ---- Demo card («письмо-голосом») ----------------------------------- */
+
+.demo-card {
+  width: min(26.5rem, 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%),
+    var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-1), 0 0 60px rgba(46, 230, 214, 0.05);
+}
+
+.demo-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.demo-quote {
+  margin-top: var(--sp-4);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.demo-steps {
+  margin-top: var(--sp-4);
+}
+
+.demo-steps li {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: baseline;
+  padding-block: 0.625rem;
+  border-top: 1px solid var(--line);
+}
+
+.demo-status {
+  flex-shrink: 0;
+  min-width: 3.5rem;
+  font-size: var(--fs-chip);
+  font-weight: 650;
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.demo-step-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.demo-step-detail {
+  display: block;
+  font-size: var(--fs-meta);
+  color: var(--text-3);
+}
+
+.demo-steps .is-pending {
+  background: var(--tint-violet);
+  border-radius: var(--r-sm);
+  padding-inline: 0.625rem;
+  border-top-color: transparent;
+}
+
+.demo-steps .is-pending .demo-status {
+  color: var(--violet-text);
+}
+
+.demo-domains {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.625rem;
+  font-size: var(--fs-chip);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.demo-domains .sep {
+  color: var(--teal);
+  font-size: 0.5em;
+  opacity: 0.75;
+}
+
+/* ---- Video placeholder (not interactive: no hover by design) -------- */
+
+.video-shell {
+  max-width: 56rem;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+  background: radial-gradient(60% 80% at 50% 0%, rgba(139, 92, 246, 0.06), transparent),
+    var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.play-badge {
+  width: 4.25rem;
+  height: 4.25rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  margin-bottom: var(--sp-2);
+}
+
+.video-title {
+  font-weight: 650;
+  font-size: var(--fs-h4);
+}
+
+.video-sub {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  max-width: 26rem;
+}
+
+/* ---- Compare columns ------------------------------------------------ */
+
+.compare-col {
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+}
+
+.compare-col h3,
+.finale h3 {
+  margin-top: var(--sp-3);
+}
+
+.compare-a {
+  border: 1px solid var(--line);
+}
+
+.compare-b {
+  position: relative;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.compare-b::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 2px;
+  background: var(--grad);
+}
+
+.compare-list {
+  margin-top: var(--sp-5);
+  counter-reset: step;
+  display: grid;
+  gap: var(--sp-4);
+}
+
+.compare-list li {
+  counter-increment: step;
+  display: flex;
+  gap: var(--sp-3);
+  align-items: baseline;
+  color: var(--text-2);
+}
+
+.compare-list li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  min-width: 1.125rem;
+  font-size: var(--fs-meta);
+  font-weight: 650;
+  color: var(--text-3);
+}
+
+.compare-b .compare-list li {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.compare-b .compare-list li::before {
+  color: var(--teal);
+}
+
+/* ---- Control cards -------------------------------------------------- */
+
+.control-quote {
+  max-width: 46rem;
+  margin-bottom: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+  position: relative;
+  padding-left: var(--sp-5);
+  font-size: var(--fs-lead);
+  color: var(--text-2);
+}
+
+.control-quote::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--grad);
+}
+
+.control-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5) var(--sp-5) var(--sp-6);
+}
+
+.control-card h3 {
+  margin-top: var(--sp-4);
+}
+
+.control-card h3 + p {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+/* Trust gradation across the three cards: teal → violet. */
+.control-card:nth-child(2) .chip-state {
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--violet-text);
+}
+
+.control-card:nth-child(3) .chip-state {
+  border-color: rgba(139, 92, 246, 0.45);
+  color: var(--violet-text);
+  background: var(--tint-violet);
+}
+
+/* ---- Scenario cards ------------------------------------------------- */
+
+.scenario-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5);
+}
+
+.card-num {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: var(--fs-num);
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.scenario-card > p {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  flex-grow: 1;
+}
+
+.scenario-card .card-benefit {
+  flex-grow: 0;
+  border-top: 1px solid var(--line);
+  padding-top: var(--sp-3);
+  font-weight: 550;
+  color: var(--text);
+}
+
+.benefit-label {
+  display: block;
+  margin-bottom: var(--sp-1);
+}
+
+/* ---- Finale panel («И это только начало») --------------------------- */
+
+.finale {
+  margin-top: clamp(3rem, 2.5rem + 2vw, 4.5rem);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: clamp(2rem, 1.5rem + 2vw, 3rem);
+  background: linear-gradient(120deg, var(--tint-teal), transparent 45%),
+    linear-gradient(300deg, var(--tint-violet), transparent 45%), var(--surface);
+}
+
+/* ---- About chip and expertise items --------------------------------- */
+
+.about-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  padding: 0.5rem 1.125rem 0.5rem 0.5rem;
+  background: var(--surface);
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: var(--sp-5);
+}
+
+.about-chip .brand-mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.8125rem;
+  border-radius: var(--r-pill);
+}
+
+.xp-title {
+  display: block;
+  margin-top: var(--sp-2);
+  font-weight: 650;
+  font-size: var(--fs-h4);
+}
+
+.xp-desc {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+/* ---- Community ------------------------------------------------------ */
+
+/* Mark and name lockup: the community's own avatar with its label above its
+   title to the right, the way the channel itself introduces itself.
+   --community-mark is the square's side; the two lines beside it are sized so
+   their ink — cap line of the label, baseline of the title — spans exactly
+   that side, which is what makes the row read as aligned. The negative margins
+   below take the half-leading out of the way so the line boxes stop hiding the
+   ink behind a few pixels of air; they are in em, so they follow the type. */
+.community-id {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  /* Derived from --fs-h2, not picked by eye: the column is the label's cap
+     line plus its gap plus 0.96 of the title's size, so the square that ends
+     flush with both has to follow the title as it scales. */
+  --community-mark: clamp(2.875rem, 2.58rem + 1.25vw, 3.4375rem);
+}
+
+/* The community's own Telegram mark; see ../../CONTENT-AUDIT.md. */
+.community-mark {
+  width: var(--community-mark);
+  height: var(--community-mark);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  display: block;
+  flex-shrink: 0;
+}
+
+/* A column, not a block: .kicker is inline-flex, and inside a block its line
+   box would swallow the leading trim below instead of letting the margin move
+   the ink. As flex items both lines answer to their own margins. */
+.community-id-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.community-id .kicker {
+  /* A label, not a paragraph: the body leading only pads the lockup out. */
+  line-height: 1.4;
+  margin-top: -0.348em;
+}
+
+.community-id h2 {
+  margin-top: var(--sp-3);
+  margin-bottom: -0.218em;
+}
+
+.community-id + .section-lead {
+  margin-top: var(--sp-5);
+}
+
+/* 36em is where the title stops fitting on one line. Below it both the label
+   and the title run to two lines, the column grows to about 74 px, and the
+   mark grows with it to stay flush top and bottom. The title pays for that in
+   size: «Нейросеточная?» is one unbreakable word and at 360 px it is the
+   widest thing the column has to carry. The cap holds that wrap steady across
+   the whole range instead of letting it snap back to one line near 36em. */
+@media (max-width: 36em) {
+  .community-id {
+    --community-mark: 4.5rem;
+    gap: var(--sp-3);
+  }
+
+  .community-id-text {
+    max-width: 13rem;
+  }
+
+  .community-id h2 {
+    font-size: 1.0625rem;
+    margin-top: var(--sp-2);
+  }
+}
+
+/* ---- Community access line ------------------------------------------ */
+
+.community-access {
+  display: flex;
+  margin-block: var(--sp-5);
+  font-size: var(--fs-small);
+  font-weight: 550;
+  color: var(--text-2);
+}
+
+.community-access::before {
+  background: var(--teal);
+}
+
+/* ---- FAQ ------------------------------------------------------------ */
+
+.faq-list {
+  border-top: 1px solid var(--line);
+}
+
+.faq-list details {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-list summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding-block: var(--sp-4);
+  font-weight: 600;
+  font-size: var(--fs-h4);
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-list summary::after {
+  content: "+";
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--text-3);
+  transition: transform var(--t-med) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.faq-list summary:hover::after,
+.faq-list details[open] summary::after {
+  color: var(--teal);
+}
+
+.faq-list details[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.faq-list details p {
+  padding-bottom: var(--sp-5);
+  color: var(--text-2);
+  max-width: 42rem;
+}
+
+/* ---- Contact channels ----------------------------------------------- */
+
+.channel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  transition: transform var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    background-color var(--t-fast) var(--ease);
+}
+
+.channel:hover {
+  transform: translateY(-2px);
+  border-color: rgba(46, 230, 214, 0.4);
+  background: var(--surface-2);
+}
+
+.channel:active {
+  transform: translateY(0);
+}
+
+/* The terminal conversion action carries the gradient hairline. */
+.channel-primary {
+  border-color: transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--grad) border-box;
+}
+
+.channel-primary:hover {
+  border-color: transparent;
+  background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    var(--grad) border-box;
+}
+
+.channel-note {
+  display: block;
+  margin-top: var(--sp-1);
+  font-weight: 600;
+}
+
+.channel-arrow {
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.channel:hover .channel-arrow {
+  color: var(--teal);
+  transform: translate(2px, -2px);
+}
+
+.contact-note {
+  margin-top: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--tint-violet);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}

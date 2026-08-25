@@ -11,37 +11,115 @@ permissions:
   contents: read
 
 jobs:
-  project-ci:
-    name: project-ci
+  alex-neon-website:
+    name: alex-neon-website
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22.18.0"
 
-      - name: Install npm dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          declare -A installed=()
-          while IFS= read -r -d '' lockfile; do
-            directory="$(dirname "$lockfile")"
-            if [ -n "${installed[$directory]:-}" ]; then
-              continue
-            fi
-            installed["$directory"]=1
-            npm ci --prefix "$directory"
-          done < <(
-            find . -type f \
-              \( -name package-lock.json -o -name npm-shrinkwrap.json \) \
-              -not -path './.git/*' \
-              -not -path '*/node_modules/*' \
-              -print0
-          )
+      - name: Build and test website
+        run: npm --prefix alex-neon/website run check
 
-      - name: Run project checks
-        run: node scripts/run-project-checks.mjs
+  alphacentr-site:
+    name: alphacentr-site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.18.0"
+
+      - name: Build and test site
+        run: npm --prefix alphacentr/site run check
+
+  chaijana-menu:
+    name: chaijana-menu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.18.0"
+
+      - name: Build and test menu
+        run: npm --prefix chaijana/menu run check
+
+  ks-website:
+    name: ks-website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.18.0"
+
+      - name: Build and test website
+        run: npm --prefix ks/website run check
+
+  ember-website:
+    name: ember-website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.18.0"
+
+      - name: Build and test website
+        run: npm --prefix ember/website run check
+
+  misha-website:
+    name: misha-website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.18.0"
+
+      - name: Build and test website
+        run: npm --prefix misha/website run check
+
+  chaijana-website:
+    name: chaijana-website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.18.0"
+          cache: npm
+          cache-dependency-path: chaijana/website/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci --prefix chaijana/website
+
+      - name: Lint website
+        run: npm --prefix chaijana/website run lint
+
+      - name: Build and test website
+        run: npm --prefix chaijana/website test

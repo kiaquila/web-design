@@ -1,0 +1,245 @@
+/* The frame: masthead, section grid, buttons, footer, print. */
+
+.masthead {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 10;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--hair);
+  padding-inline: var(--gutter);
+}
+
+.wordmark {
+  font-size: var(--step-small);
+  font-weight: 600;
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-block: var(--space-xs);
+}
+
+.site-nav {
+  margin-left: auto;
+}
+
+.site-nav ul {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.6vw, 1.5rem);
+}
+
+.site-nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  min-height: 44px;
+  padding-inline: var(--space-3xs);
+  color: var(--ink-mute);
+  font-size: var(--step-micro);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  transition: color var(--dur) var(--ease);
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current="true"] {
+  color: var(--ink);
+}
+
+.nav-numeral {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Phones keep the numerals only: five tracked words do not fit a 360px row,
+   and the numerals are the reference's own navigation language.
+
+   The whole header is one row that must never overflow, so the budget is
+   measured rather than assumed: at 320px it is 40px of gutter, the wordmark,
+   one 8px gap and five numerals. That is why the gap collapses to nothing and
+   the numerals lose width before the name loses letters — an abbreviated name
+   in the masthead of a CV is a worse trade than a 32px-wide tap target that is
+   still 44px tall. */
+@media (max-width: 720px) {
+  .masthead {
+    gap: var(--space-2xs);
+  }
+
+  /* Clipped, not removed. `display: none` took the word out of the
+     accessibility tree as well as out of the layout, and left five links whose
+     entire accessible name was "01", "02", "03" — a screen reader user on a
+     phone got a numbered list of nothing. The numeral is what the eye needs at
+     this width; the word is what the ear needs at every width. */
+  .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .site-nav ul {
+    gap: 0;
+  }
+
+  .site-nav a {
+    min-width: 2rem;
+    padding-inline: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .wordmark {
+    font-size: var(--step-micro);
+    letter-spacing: 0.1em;
+  }
+}
+
+main {
+  padding-top: var(--header-h);
+}
+
+.section {
+  padding-block: var(--space-xl);
+  border-top: 1px solid var(--hair);
+  scroll-margin-top: var(--header-h);
+}
+
+.section > .shell {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  column-gap: var(--space-lg);
+  row-gap: var(--space-lg);
+  align-items: start;
+}
+
+.section > .shell > *:not(.section-head) {
+  grid-column: 2;
+}
+
+.section-head {
+  grid-column: 1;
+}
+
+/* One grid item, so the head's tall numeral cannot set the height of a row the
+   body's first line has to share. */
+.section-body {
+  display: grid;
+  row-gap: var(--space-md);
+  align-content: start;
+}
+
+.numeral {
+  display: block;
+  font-size: var(--step-numeral);
+  font-weight: 500;
+  line-height: 0.85;
+  letter-spacing: var(--track-tight);
+  color: var(--ghost);
+  font-variant-numeric: tabular-nums;
+}
+
+.section-head h2 {
+  margin-top: var(--space-2xs);
+  font-size: var(--step-small);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.section-note {
+  max-width: 44ch;
+  color: var(--ink-mute);
+  font-size: var(--step-small);
+}
+
+@media (max-width: 900px) {
+  .section > .shell {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-md);
+  }
+
+  .section > .shell > *:not(.section-head) {
+    grid-column: 1;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+  }
+
+  .section-head h2 {
+    margin-top: 0;
+  }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--ground);
+  font-size: var(--step-small);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.btn:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn-quiet {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+
+.btn-quiet:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+  background: transparent;
+}
+
+.site-footer {
+  border-top: 1px solid var(--hair);
+  padding-block: var(--space-md);
+}
+
+.site-footer .shell {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2xs) var(--space-md);
+  color: var(--ink-mute);
+  font-size: var(--step-micro);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.footer-link {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: color var(--dur) var(--ease);
+}
+
+.footer-link:hover {
+  color: var(--ink);
+}

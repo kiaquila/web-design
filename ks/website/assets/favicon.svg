@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ks">
+  <!-- The wordmark's monogram set as type, not a drawn mark, in the tracked
+       caps the wordmark uses, with the brand-gold dot sitting on the
+       baseline after the letters. No background plate: the letters flip
+       black/white with the browser theme, so the tab icon reads on both;
+       the gold dot stays the same on either. Favicons cannot load webfonts,
+       so the stack leans on the system's closest grotesk. -->
+  <style>
+    /* Sized so the two caps plus the dot fill the 64px square: at a tab's
+       16px anything smaller reads as a smudge, anything larger clips the S.
+       The baseline sits so the cap height is centred rather than hanging
+       low in the box. */
+    text {
+      font-family: ui-sans-serif, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: 0;
+      fill: #0b0b0c;
+    }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #ffffff; }
+    }
+  </style>
+  <text x="27" y="46" text-anchor="middle">KS</text>
+  <circle cx="60" cy="42" r="4" fill="#e8a038"/>
+</svg>

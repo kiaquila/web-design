@@ -33,10 +33,14 @@ export function checkRunPayload({ headSha, conclusion, detailsUrl }) {
   };
 }
 
-// Publishing from a managed script rather than workflow shell is what lets a
-// write-capable job keep its hands off both `gh` and the event payload; the
-// baseline's own verification publishes through here too.
-export async function publishCheckRun({ token, repository, payload, request = globalThis.fetch }) {
+export async function publishCodexReviewCheck({
+  token,
+  repository,
+  headSha,
+  conclusion,
+  detailsUrl,
+  request = globalThis.fetch
+}) {
   if (!token || !repository) {
     throw new Error("GITHUB_TOKEN and GITHUB_REPOSITORY are required.");
   }
@@ -51,28 +55,12 @@ export async function publishCheckRun({ token, repository, payload, request = gl
       "content-type": "application/json",
       "x-github-api-version": "2022-11-28"
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(checkRunPayload({ headSha, conclusion, detailsUrl }))
   });
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText}: ${await response.text()}`);
   }
   return response.json();
-}
-
-export async function publishCodexReviewCheck({
-  token,
-  repository,
-  headSha,
-  conclusion,
-  detailsUrl,
-  request = globalThis.fetch
-}) {
-  return publishCheckRun({
-    token,
-    repository,
-    payload: checkRunPayload({ headSha, conclusion, detailsUrl }),
-    request
-  });
 }
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {

@@ -1,0 +1,44 @@
+[
+ {
+  "slug": "samorazvitie_i_samosoznanie",
+  "name": "Саморазвитие и самосознание",
+  "standalone": false,
+  "count": 16
+ },
+ {
+  "slug": "gipnoz_i_samogipnoz",
+  "name": "Гипноз и самогипноз",
+  "standalone": false,
+  "count": 32
+ },
+ {
+  "slug": "lechenie_zabolevaniy_gipnozom",
+  "name": "Лечение заболеваний гипнозом",
+  "standalone": false,
+  "count": 35
+ },
+ {
+  "slug": "rekomendatsii_po_vyboru_seansov",
+  "name": "Рекомендации по выбору сеансов",
+  "standalone": false,
+  "count": 8
+ },
+ {
+  "slug": "alfa_ritm",
+  "name": "Альфа-ритм",
+  "standalone": true,
+  "count": 1
+ },
+ {
+  "slug": "volny_shumana",
+  "name": "Волны Шумана",
+  "standalone": true,
+  "count": 1
+ },
+ {
+  "slug": "knigi_na_temu_psikhologii",
+  "name": "Книги на тему психологии",
+  "standalone": false,
+  "count": 13
+ }
+]

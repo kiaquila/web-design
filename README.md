@@ -1,84 +1,90 @@
-# Web Design Project Template
+# Design
 
-`web-design` is the shared source of truth for standalone web projects: design
-and content integrity, repository safety, testing, reviews, deployment
-discipline, and controlled updates. It intentionally contains no customer
-project or production credential.
+Private, version-controlled workspace for designs and redesigns of existing
+businesses: landing pages, compact websites, and adjacent digital deliverables.
 
-The repository is designed to be marked as a GitHub Template. A repository
-created from it contains guardrail workflows and a safe `no-deploy` profile;
-the project owner then records the real project shape in
-`.web-design/project.json` and applies the owner-only GitHub settings.
+## Project model
 
-## Start a new project
+Each business has one lower-case kebab-case top-level directory. That directory
+is the boundary for its source material, concept, design decisions, code,
+working documents, and verification commands.
 
-1. Choose **Use this template** on GitHub and create a private repository.
-2. Clone it and run:
-
-   ```bash
-   npm ci --ignore-scripts --prefix .web-design/policy
-   npm run setup -- --slug my-project --profile static-cloudflare \
-     --source-commit <40-character-web-design-release-sha> \
-     --root-directory website \
-     --check "npm run check --prefix website"
-   ```
-
-3. Replace the clearly marked project placeholders in `README.md` and
-   `AGENTS.md`; keep business facts and approvals traceable.
-4. Run `npm run preflight` and open the first pull request.
-5. Configure deployment credentials only in the destination platform's secret
-   store. Creating a repository from this template never deploys by itself.
-6. Apply the owner-only GitHub settings in
-   [`docs/operations/github-setup.md`](./docs/operations/github-setup.md).
-
-Available profiles are `no-deploy`, `static-cloudflare`, `next-cloudflare`,
-`static-vercel`, and `custom-production`. Profiles describe policy and expected
-deployment shape; names, domains, account identifiers, and secrets remain
-project-owned.
-
-## Adopt the baseline in an existing project
-
-Copy the baseline into a migration branch, preserve the project's own README,
-instructions, deployment files, and application code, then configure
-`.web-design/project.json`. The migration must pass the project's existing tests
-and this repository's policy tests before it is merged.
-
-The canonical standards are under [`docs/standards/`](./docs/standards/). The
-bootstrap and update runbooks are under
-[`docs/operations/`](./docs/operations/).
-
-## Receive future updates
-
-Managed files are enumerated in `.web-design/managed-files.json`; the installed
-hashes and exact upstream commit are recorded in `.web-design/lock.json`.
-Updates are deliberately pull-request based:
-
-```bash
-npm run sync:web-design -- plan \
-  --source-ref <40-character-release-commit> \
-  --version <release-version>
-
-npm run sync:web-design -- apply \
-  --source-ref <40-character-release-commit> \
-  --version <release-version>
-
-npm ci --ignore-scripts --prefix .web-design/policy
-npm run preflight
+```text
+<business-slug>/
+├── README.md     # product context, deliverables, sources, and current decisions
+├── AGENTS.md     # project-specific instructions and constraints
+└── ...           # implementation and project working documents
 ```
 
-The updater replaces only allowlisted managed files. If a managed file was
-locally changed since the previous update, it fails without writing anything.
-Project code, assets, facts, local instructions, deployment configuration, and
-secrets are never managed by the updater. See
-[`docs/operations/updates.md`](./docs/operations/updates.md).
+The root [`AGENTS.md`](./AGENTS.md) applies across the repository. A nested
+`AGENTS.md` adds instructions for its directory tree, so project-specific agent
+context is both supported and preferred. Nested instructions may refine the
+workflow, brand, content sources, or test commands; they may not relax root
+safety rules. [`CLAUDE.md`](./CLAUDE.md) points Claude Code at the same source of
+truth instead of maintaining a second copy.
 
-## Repository commands
+## Projects
 
-```bash
-npm run check       # repository policy + managed-file drift
-npm test            # baseline regression tests
-npm run preflight   # both of the above
-```
+- [`alex-neon/`](./alex-neon/) — «ИИ по делу» AI-training landing by Aleksei
+  Grishchenko, redesigned under the **Alex Neon** concept.
+- [`alphacentr/`](./alphacentr/) — Alpha-Centr hypnosis practice website and
+  audio-session catalogue, redesigned under the **Alpha Lumen** concept.
+- [`chaijana/`](./chaijana/) — Chaijaná restaurant website and multilingual
+  menu, redesigned under the **Chaijaná Noir** concept.
+- [`ember/`](./ember/) — **Ember**, a ks-design lab study: an interactive
+  burning-and-reassembling particle figure with a synthesized tuning-fork
+  score, after a motion reference pinned from `@skvortsov.design`.
+- [`ks/`](./ks/) — Kristina Aquila's bilingual web design portfolio and selling
+  landing page, live at [ks-design.art](https://ks-design.art).
+- [`misha/`](./misha/) — Mikhail Orlov's one-page English CV portfolio, an
+  original design staged at
+  [misha.ks-design.workers.dev](https://misha.ks-design.workers.dev).
 
-Releases are immutable SemVer tags. Consumer repositories pin the full commit
-SHA even when a release version is shown to humans.
+Menus can be a deliverable inside a business project, as they are for Chaijaná.
+Reusable menu tooling or a menu-focused product should live in its own future
+repository rather than turning this workspace into a menu monorepo.
+
+## Lightweight project template
+
+[`template/`](./template/) is the small, customer-free reference harness for
+new standalone web-design repositories. It contains the reusable instructions,
+CI policy, project-command runner, and configurable payload-budget check. It is
+an example to copy and adapt in a reviewed migration PR, not a package or a
+centrally managed baseline.
+
+There is deliberately no release, lock, manifest, sync, update-bot, or
+upstream-verification protocol. Existing projects choose the files and rules
+that fit their stack, keep them locally, and receive later improvements only
+through an explicit manual PR. See
+[`docs/template-adoption.md`](./docs/template-adoption.md).
+
+## Starting a project
+
+1. Create `<business-slug>/` in lower-case kebab-case.
+2. Add `<business-slug>/README.md` with the business context, requested
+   deliverables, verified sources, approved concept, open questions, and checks.
+3. Add `<business-slug>/AGENTS.md` with only the rules that are specific to that
+   business or implementation.
+4. Add the slug to `projects` in [`.repo-guard.json`](./.repo-guard.json).
+5. Add the project to this index and run `node scripts/check-repository.mjs`.
+
+Cloudflare build and stage checks are under a migration moratorium in this
+repository. The historical configuration remains documented in
+[`docs/stage-hosting.md`](./docs/stage-hosting.md), but it is no longer enforced
+or run here. Each standalone project will re-enable only the deployment checks
+that match its own hosting after its migration is verified.
+
+## Guardrails
+
+Pull requests run repository policy checks, project tests, a dependency
+vulnerability scan, and a current-head Codex review gate. The policy check
+rejects common secrets and private keys, personal absolute paths, tracked
+generated output, unsafe workflow triggers, un-pinned GitHub Actions, and
+project folders without their local context files.
+
+The standalone template adds a configurable production-payload budget based on
+the proven `alex-neon` check: raw and gzip totals, per-extension ceilings, and a
+critical first-render gzip ceiling.
+
+The implementation and maintainer setup are documented in
+[`docs/repository-guardrails.md`](./docs/repository-guardrails.md).

@@ -1,0 +1,16 @@
+{
+  "infrastructureDirectories": [
+    "docs",
+    "scripts",
+    "template",
+    "tests"
+  ],
+  "projects": [
+    "alex-neon",
+    "alphacentr",
+    "chaijana",
+    "ember",
+    "ks",
+    "misha"
+  ]
+}

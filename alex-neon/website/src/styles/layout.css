@@ -1,0 +1,641 @@
+/* ==========================================================================
+   Alex Neon — layout layer: page scaffolding, section structure, grids,
+   responsive behavior, page-level patterns (reveal, 404).
+   Component skins live in components.css.
+   ========================================================================== */
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.section {
+  padding-block: var(--section);
+  position: relative;
+}
+
+/* Shared section header: kicker → display h2 → measured lead. */
+.section-head {
+  max-width: 46rem;
+  margin-bottom: clamp(2.5rem, 2rem + 2vw, 4rem);
+}
+
+.section-head h2 {
+  font-size: var(--fs-h2);
+  margin-top: var(--sp-4);
+}
+
+.section-lead {
+  margin-top: var(--sp-4);
+  color: var(--text-2);
+  font-size: var(--fs-lead);
+  max-width: 42rem;
+}
+
+/* ---- Header --------------------------------------------------------- */
+
+.site-header {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid transparent;
+  transition: background-color var(--t-med) var(--ease),
+    border-color var(--t-med) var(--ease);
+}
+
+.site-header.is-scrolled {
+  background: rgba(5, 6, 10, 0.72);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  border-bottom-color: var(--line);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  min-height: var(--header-h);
+}
+
+.site-nav {
+  margin-left: auto;
+}
+
+.site-nav ul {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* The last nav item is the header's call to action, as on the source page. */
+.nav-cta {
+  margin-left: var(--sp-3);
+}
+
+.nav-toggle {
+  display: none;
+}
+
+/* ---- Hero ----------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  padding-block: calc(var(--header-h) + var(--sp-7)) var(--sp-8);
+  overflow: hidden;
+  /* Field composition, inherited by the canvas and read there by neural.js.
+     --nr asks for a circle of that fraction of the canvas height; --nx / --ny
+     place its centre. neural.js then keeps the circle clear of .hero-copy, so
+     the rim never runs into the headline. */
+  --nx: 0.72;
+  --ny: 0.5;
+  --nr: 0.44;
+}
+
+/* Soft corona behind the figure: gives the neurons depth without a third hue. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      42rem 42rem at calc(var(--nx) * 100%) calc(var(--ny) * 100%),
+      var(--tint-teal),
+      transparent 62%
+    ),
+    radial-gradient(
+      34rem 34rem at calc(var(--nx) * 100% + 9rem) calc(var(--ny) * 100% + 6rem),
+      var(--tint-violet),
+      transparent 60%
+    );
+  pointer-events: none;
+}
+
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---- Process: a quiet field that answers the hovered step ----------- */
+
+.process-shell {
+  position: relative;
+}
+
+.process-canvas {
+  position: absolute;
+  inset: -1.5rem -0.5rem;
+  width: calc(100% + 1rem);
+  height: calc(100% + 3rem);
+  pointer-events: none;
+  --nx: 0.5;
+  --ny: 0.5;
+  --nrx: 0.52;
+  --nry: 0.55;
+}
+
+.hero-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-copy {
+  max-width: min(34rem, 52%);
+}
+
+/* ---- Demo card band -------------------------------------------------- */
+
+.demo-section {
+  padding-block: 0 var(--section);
+}
+
+.demo-inner {
+  display: flex;
+  justify-content: center;
+}
+
+.hero-copy h1 {
+  font-size: var(--fs-h1);
+  font-weight: 400;
+  margin-top: var(--sp-5);
+}
+
+.hero-copy h1 span {
+  display: block;
+}
+
+.hero-lead {
+  margin-top: var(--sp-5);
+  color: var(--text-2);
+  font-size: var(--fs-lead);
+  max-width: 34rem;
+}
+
+.hero-cta {
+  margin-top: var(--sp-6);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  flex-wrap: wrap;
+}
+
+.hero-points {
+  margin-top: var(--sp-6);
+  display: flex;
+  gap: var(--sp-3) var(--sp-6);
+  flex-wrap: wrap;
+}
+
+/* ---- Section structure ---------------------------------------------- */
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-6);
+  align-items: stretch;
+}
+
+.cards-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-5);
+}
+
+.scenario-cat {
+  margin-top: clamp(2.5rem, 2rem + 2vw, 4rem);
+}
+
+.cat-head {
+  margin-bottom: var(--sp-5);
+  max-width: 46rem;
+}
+
+.cat-head h3 {
+  font-size: 1.375rem;
+  margin-top: var(--sp-2);
+}
+
+.finale .n-list {
+  margin-top: var(--sp-5);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3) var(--sp-6);
+}
+
+.cta-bridge {
+  margin-top: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Process: four steps on a gradient rail. */
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-6) var(--sp-5);
+  position: relative;
+  z-index: 1;
+  counter-reset: step;
+}
+
+.process-grid::before {
+  content: "";
+  position: absolute;
+  top: 0.3125rem;
+  inset-inline: 0.5rem;
+  height: 1px;
+  background: var(--grad);
+  opacity: 0.3;
+}
+
+.process-step {
+  position: relative;
+  padding-top: var(--sp-5);
+  counter-increment: step;
+}
+
+/* The source numbers these steps 1–4; keep that ordinal visible. */
+.process-step::after {
+  content: counter(step);
+  position: absolute;
+  top: -0.125rem;
+  left: 1.375rem;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: var(--fs-meta);
+  line-height: 1;
+  color: var(--text-3);
+}
+
+.process-step::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.6875rem;
+  height: 0.6875rem;
+  border-radius: var(--r-pill);
+  background: var(--grad);
+  box-shadow: 0 0 10px var(--glow-teal);
+}
+
+.process-step p {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+/* About: text column + expertise rail. */
+.about-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: clamp(2.5rem, 5vw, 5rem);
+  align-items: start;
+}
+
+.about-text > p {
+  color: var(--text-2);
+  max-width: 40rem;
+}
+
+.about-text > p + p {
+  margin-top: var(--sp-4);
+}
+
+.about-links {
+  margin-top: var(--sp-6);
+  display: flex;
+  gap: var(--sp-5);
+  flex-wrap: wrap;
+}
+
+.xp-item {
+  border-top: 1px solid var(--line);
+  padding-block: var(--sp-4);
+}
+
+.xp-item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+/* Community: one framed panel. */
+.community-panel {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: clamp(2rem, 1.5rem + 3vw, 4rem);
+  background: radial-gradient(50% 90% at 85% 0%, rgba(139, 92, 246, 0.09), transparent),
+    var(--surface);
+}
+
+.community-panel .section-head {
+  margin-bottom: var(--sp-5);
+}
+
+/* FAQ and contact structure. */
+.faq-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 4.5fr) minmax(0, 7fr);
+  gap: clamp(2.5rem, 5vw, 5rem);
+  align-items: start;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: clamp(2.5rem, 5vw, 5rem);
+  align-items: start;
+}
+
+.contact-points {
+  margin-top: var(--sp-5);
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.channels-title {
+  display: block;
+  margin-bottom: var(--sp-4);
+}
+
+.channel-list {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+/* ---- Footer --------------------------------------------------------- */
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  padding-block: var(--sp-7);
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.footer-copyright {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+
+.footer-signature {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--r-sm);
+}
+
+.footer-signature img {
+  width: clamp(3.825rem, 6.12vw, 4.59rem);
+  height: auto;
+  opacity: 0.68;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.footer-signature:hover img,
+.footer-signature:focus-visible img {
+  opacity: 1;
+}
+
+/* ---- Reveal on scroll (JS present; ≤ 250ms, fade + 10px rise) ------- */
+
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 240ms var(--ease), transform 240ms var(--ease);
+  transition-delay: calc(var(--i, 0) * 45ms);
+}
+
+.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- 404 ------------------------------------------------------------ */
+
+.error-page {
+  min-height: 100svh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: var(--sp-4);
+  padding: var(--sp-6);
+}
+
+.error-code {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(4rem, 3rem + 6vw, 7rem);
+  line-height: 1;
+}
+
+.error-page p {
+  color: var(--text-2);
+}
+
+.error-page .btn {
+  margin-top: var(--sp-4);
+}
+
+/* ---- Responsive ----------------------------------------------------- */
+
+@media (max-width: 60em) {
+  /* Section rhythm tightens: 8rem of air between blocks reads as generous on
+     a desktop page and as dead space on a phone. */
+  :root {
+    --section: clamp(4rem, 3rem + 4vw, 6rem);
+  }
+
+  /* Navigation collapses to an accessible disclosure when JS is present;
+     without JS the nav stays a visible wrapping row (page must work). */
+  .js .nav-toggle {
+    display: inline-flex;
+  }
+
+  .js .site-nav {
+    position: absolute;
+    top: 100%;
+    inset-inline: 0;
+    margin-left: 0;
+    background: rgba(5, 6, 10, 0.94);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--line);
+    padding: var(--sp-3) var(--gutter) var(--sp-5);
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-0.5rem);
+    transition: opacity var(--t-med) var(--ease),
+      transform var(--t-med) var(--ease), visibility var(--t-med);
+  }
+
+  .js .site-header.nav-open .site-nav {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+  }
+
+  .js .site-nav ul {
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+
+  .site-nav ul {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0;
+  }
+
+  /* The crown moves behind the headline; a scrim keeps the copy at AA. */
+  .hero {
+    align-items: flex-start;
+    padding-top: calc(var(--header-h) + var(--sp-5));
+    /* One column leaves no room for a circle beside the copy, so the copy owns
+       the top of the hero and the figure owns the band under it. The centre
+       sits exactly on the bottom edge, so what shows is the top half of the
+       sphere — the desktop circle cut across, not a thin arc. neural.js grows
+       it into whatever the copy leaves and never lets it touch the text. */
+    --nx: 0.5;
+    --ny: 1;
+    --nr: 0.62;
+  }
+
+  /* The three points stand down on a phone so the dome can have the room.
+     Everything they say is either in the lead above or on the page below, the
+     CTA and the examples link still carry the next step, and desktop keeps
+     them. Recorded under «Осознанные отклонения» in ../../CONTENT-AUDIT.md. */
+  .hero-points {
+    display: none;
+  }
+
+  .hero-copy {
+    max-width: 34rem;
+  }
+
+
+  /* Scrim covers the copy and then gets out of the way. Below the last line the
+     dome is the thing worth looking at, and any veil over it costs exactly the
+     brightness the figure is there to show, so it clears to nothing. */
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(5, 6, 10, 0.2) 0%,
+      rgba(5, 6, 10, 0.66) 26%,
+      rgba(5, 6, 10, 0.88) 46%,
+      rgba(5, 6, 10, 0.44) 64%,
+      rgba(5, 6, 10, 0) 80%
+    );
+    pointer-events: none;
+  }
+
+  .compare-grid,
+  .cards-3,
+  .finale .n-list,
+  .about-grid,
+  .faq-grid,
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .process-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .process-grid::before {
+    inset-inline: auto;
+    left: 0.3125rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    height: auto;
+  }
+
+  .process-step {
+    padding: 0 0 var(--sp-6) var(--sp-6);
+  }
+
+  .process-step:last-child {
+    padding-bottom: 0;
+  }
+
+  .process-step::before {
+    top: 0.375rem;
+  }
+}
+
+@media (max-width: 60em) {
+  /* Safari changes the visible viewport height as its bars collapse. If the
+     hero follows that height, the copy-clearance clamp changes the dome's
+     radius mid-scroll. Give the stacked composition a content-sized band
+     instead: the width fixes the radius, and scrolling can only light it. */
+  .hero {
+    min-height: 0;
+    padding-bottom: calc(var(--sp-5) + 62vw);
+  }
+}
+
+@media (max-width: 30em) {
+  /* Narrow phones: the headline and lead tighten so the primary call to
+     action stays above the fold on a 360 × 760 screen. */
+  :root {
+    --fs-h1: 1.5rem;
+    --fs-lead: 1rem;
+    --lh-body: 1.55;
+  }
+
+  .hero {
+    padding-top: calc(var(--header-h) + var(--sp-4));
+  }
+
+  .hero-copy h1 {
+    margin-top: var(--sp-4);
+  }
+
+  .hero-lead,
+  .hero-cta {
+    margin-top: var(--sp-4);
+  }
+
+  .hero-points {
+    margin-top: var(--sp-5);
+    gap: var(--sp-2) var(--sp-5);
+  }
+
+  .hero-cta {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero-cta .btn {
+    justify-content: center;
+  }
+
+  .header-inner {
+    gap: var(--sp-3);
+  }
+
+  /* The mark-and-name lockup needs every pixel of the panel's inner width on a
+     phone, and a 35 px inset buys nothing there. */
+  .community-panel {
+    padding: var(--sp-5);
+  }
+}

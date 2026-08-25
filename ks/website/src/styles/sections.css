@@ -1,0 +1,626 @@
+/* Per-section composition. Each section's own responsive rules live here, at
+   the end of the cascade, so they win over the generic frame in layout.css. */
+
+/* --- hero ------------------------------------------------------------------ */
+
+.hero {
+  background: var(--ground);
+}
+
+.hero-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: clamp(2rem, 1rem + 4vw, 5rem);
+}
+
+.hero h1 {
+  max-width: 16ch;
+}
+
+.hero-subtitle {
+  max-width: 36ch;
+  margin-top: var(--space-md);
+  color: var(--ink-soft);
+  font-size: var(--step-lead);
+  line-height: 1.5;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xl);
+}
+
+.hero-portrait {
+  justify-self: end;
+  width: 100%;
+  max-width: min(29rem, 74svh * 776 / 971);
+}
+
+@media (max-width: 899px) {
+  .hero-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-lg);
+  }
+
+  /* Portrait first on a phone: the face is the hook, and it is what makes the
+     page feel like a person rather than a template. */
+  .hero-copy {
+    order: 2;
+  }
+
+  .hero-portrait {
+    order: 1;
+    justify-self: center;
+    max-width: min(84vw, 26rem);
+  }
+
+  .hero h1,
+  .hero-subtitle {
+    max-width: none;
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* --- work ------------------------------------------------------------------ */
+
+.work-card {
+  display: flex;
+}
+
+.work-link {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  transition: transform var(--dur) var(--ease);
+}
+
+.work-link:hover {
+  transform: translateY(-4px);
+}
+
+.work-shot {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--ground-sunk);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.work-link:hover .work-shot {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lift);
+}
+
+/* The screenshots are 1200×750 and are shown at exactly that proportion: a
+   portfolio card that crops the work or stretches it is showing something the
+   client never designed. Height therefore follows width and is never set. */
+.work-shot img {
+  width: 100%;
+  height: auto;
+  transition: transform var(--dur-slow) var(--ease);
+}
+
+/* The slide still has to fit one screen, and with the proportion fixed the only
+   honest way to fit is to make the cards narrower — never shorter than their
+   own ratio. The cap is the height left once the header, the container padding,
+   the heading and the card meta have taken theirs; ×1.6 for the 8:5 ratio, ×2
+   for the two cards, plus the gap between them. The track is capped rather than
+   the container, so the heading keeps the section's own left edge and stays
+   aligned with every other slide. */
+@media (min-width: 900px) and (min-height: 660px) {
+  .work-track {
+    max-width: calc((100svh - var(--header-h) - 25rem) * 1.6 * 2 + 3rem);
+  }
+
+  /* The carousel shrinks with the capped track, plus its two 4.5rem arrow
+     lanes, so on a wide but short viewport — where the cap bites hardest — the
+     arrows keep flanking the screenshots instead of stranding themselves
+     against the section's edges. */
+  .carousel {
+    max-width: calc((100svh - var(--header-h) - 25rem) * 1.6 * 2 + 3rem + 9rem);
+    margin-inline: auto;
+  }
+
+  /* Two lines on the deck: the summary is a teaser next to the shot, and the
+     full sentence still shows in the flowing layout on phones. */
+  .work-summary {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.work-link:hover .work-shot img {
+  transform: scale(1.03);
+}
+
+.work-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-top: var(--space-md);
+}
+
+/* Reserves two eyebrow lines and bottom-aligns the text inside them, so a
+   card whose kind wraps ("Restaurant · site and menu · 2026") keeps its name,
+   summary and link on the same horizontals as its one-line neighbours. */
+.work-kind {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-end;
+  min-height: 2lh;
+  color: var(--ink-mute);
+  font-size: var(--step-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.work-name {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.3125rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.work-summary {
+  display: block;
+  flex: 1;
+  margin-top: 0.5rem;
+  max-width: 52ch;
+  color: var(--ink-soft);
+  font-size: var(--step-small);
+  line-height: 1.55;
+}
+
+.work-visit {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.3rem;
+  margin-top: var(--space-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line-strong);
+  padding-bottom: 0.2rem;
+}
+
+.work-visit svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-mute);
+  transition: transform var(--dur) var(--ease);
+}
+
+.work-link:hover .work-visit svg {
+  transform: translate(2px, -2px);
+}
+
+/* --- process ---------------------------------------------------------------- */
+
+/* Four columns reading left to right, each opened by a chapter numeral — the
+   tall serif figures a book chapter starts with. */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+/* Answers a pointer the way the work and service cards do: the whole item
+   lifts 4px. The step has no panel to shade, so its own hairline takes the
+   place of the card's shadow — an inset rule doubles it to 2px without the
+   layout shift a thicker border would cause. */
+.step {
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--ink);
+  transition: transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.step:hover,
+.step:focus-within {
+  transform: translateY(-4px);
+  box-shadow: inset 0 1px 0 var(--ink);
+}
+
+.step-number {
+  display: inline-block;
+  font-family: var(--font-serif);
+  font-size: var(--step-numeral);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  /* The elongation: stretched vertically like condensed folio numerals. */
+  transform: scaleY(1.18);
+  /* Anchored top-left so growing on hover pushes the numeral into the step's
+     own margin rather than shifting the title under it. */
+  transform-origin: top left;
+  transition: transform var(--dur) var(--ease);
+  user-select: none;
+}
+
+/* The numeral grows a little on top of the lift, so the eye lands on the step's
+   own mark. Reduced motion switches every transition off wholesale in
+   base.css. */
+.step:hover .step-number,
+.step:focus-within .step-number {
+  transform: scaleY(1.18) scale(1.07);
+}
+
+.step:hover .step-text,
+.step:focus-within .step-text {
+  color: var(--ink);
+}
+
+.step-title {
+  margin-top: clamp(0.75rem, 2.4svh, 1.5rem);
+  font-size: var(--step-h3);
+}
+
+.step-text {
+  margin-top: 0.5rem;
+  color: var(--ink-soft);
+  font-size: var(--step-small);
+  line-height: 1.55;
+}
+
+@media (max-width: 899px) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+}
+
+@media (max-width: 539px) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- services --------------------------------------------------------------- */
+
+/* The one tinted slide: a grey ground with soft shadow-blobs behind the
+   cards, so the frosted glass has something real to blur. */
+.services {
+  background: var(--ground-alt);
+}
+
+/* Frosted glass only reads when there is something behind it to blur, so the
+   grey ground carries soft tonal drifts for the cards to sit on. */
+.services-blobs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(38rem 26rem at 14% 88%, rgb(11 11 12 / 0.26), transparent 64%),
+    radial-gradient(32rem 22rem at 84% 12%, rgb(11 11 12 / 0.2), transparent 62%),
+    radial-gradient(26rem 20rem at 62% 74%, rgb(11 11 12 / 0.14), transparent 66%),
+    radial-gradient(24rem 18rem at 40% 24%, rgb(255 255 255 / 0.95), transparent 70%);
+}
+
+.services .container {
+  position: relative;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+/* The package card: rounded and frosted, its height set by its width. Three
+   packages make each column half again as wide as four did, and a square at
+   that width opened a hand's width of empty glass between the description and
+   the price — so the ratio is landscape now. */
+.service-card {
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 4 / 3;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur) var(--ease), background-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lift);
+}
+
+.service-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
+.service-note {
+  margin-top: 0.75rem;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+/* Pinned to the bottom edge: the three prices then line up across the row
+   whatever length each description happens to be. */
+.service-price {
+  margin-top: auto;
+  padding-top: var(--space-md);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.currency-note {
+  margin-top: var(--space-md);
+  color: var(--ink-mute);
+  font-size: var(--step-small);
+}
+
+@media (max-width: 1023px) {
+  .service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .service-card {
+    aspect-ratio: auto;
+    min-height: 11rem;
+  }
+}
+
+@media (max-width: 539px) {
+  .service-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- kind words -------------------------------------------------------------- */
+
+.quote-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.quote-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--ink);
+  background: var(--ground);
+}
+
+.quote-text {
+  flex: 1;
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.quote-text::before {
+  content: "“";
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--ink-faint);
+  font-size: 2.25rem;
+  line-height: 0.6;
+}
+
+.quote-person {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.quote-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--ground-sunk);
+  border: 1px solid var(--line);
+  color: var(--ink-mute);
+  font-family: var(--font-display);
+  font-size: var(--step-small);
+  font-weight: 700;
+}
+
+.quote-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.quote-id {
+  display: grid;
+}
+
+.quote-name {
+  font-weight: 700;
+  font-size: var(--step-small);
+}
+
+.quote-role {
+  color: var(--ink-mute);
+  font-size: var(--step-eyebrow);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 899px) {
+  .quote-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- contact ----------------------------------------------------------------- */
+
+/* Last slide: the band and the footer are one block, closing the page at its
+   bottom edge. Centring them left a field of white under the footer that read
+   as an unfinished page; anchoring the pair to the end puts the footer where a
+   footer belongs and gives the band the air above it instead. */
+.contact {
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: end;
+  padding-bottom: 0;
+}
+
+.contact-middle {
+  display: grid;
+}
+
+/* The band runs edge to edge — one printed stripe across the page. */
+.contact-band {
+  display: block;
+  width: 100%;
+  background: var(--panel);
+  color: var(--panel-ink);
+  padding-block: clamp(2.5rem, 9svh, 5.5rem);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.contact-band:hover {
+  background: #26272b;
+}
+
+.band-inner {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.band-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  border-radius: var(--radius-pill);
+}
+
+.band-copy {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.band-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 1rem + 2.4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.band-note {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  color: var(--panel-ink-soft);
+}
+
+.band-arrow {
+  margin-left: auto;
+  color: var(--panel-ink-soft);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.band-arrow svg {
+  width: 34px;
+  height: 34px;
+}
+
+.contact-band:hover .band-arrow {
+  transform: translate(4px, -4px);
+  color: var(--panel-ink);
+}
+
+.contact-band:focus-visible {
+  outline-offset: -4px;
+  outline-color: var(--panel-ink);
+}
+
+@media (max-width: 599px) {
+  .band-inner {
+    flex-wrap: wrap;
+  }
+
+  .band-arrow {
+    display: none;
+  }
+}
+
+/* --- 404 --------------------------------------------------------------------- */
+
+.not-found {
+  text-align: center;
+}
+
+.not-found .section-intro {
+  margin-inline: auto;
+  max-width: 40ch;
+}
+
+.not-found p:last-child {
+  margin-top: var(--space-lg);
+}
+
+/* The error page carries only the copyright, on a page whose every line is
+   centred — and it has no black band above to divide it from the copy, so here
+   the hairline rule stays. */
+main + .site-footer .footer-inner {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  border-top: 1px solid var(--line);
+}
+
+/* Keep the process emphasis without moving either the card or its numeral for
+   visitors who have asked the system to reduce motion. This override belongs
+   in the final stylesheet layer so it wins over the interaction rules above. */
+@media (prefers-reduced-motion: reduce) {
+  .step:hover,
+  .step:focus-within {
+    transform: none;
+  }
+
+  .step:hover .step-number,
+  .step:focus-within .step-number {
+    transform: scaleY(1.18);
+  }
+}
