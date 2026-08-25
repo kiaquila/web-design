@@ -57,9 +57,14 @@ downloads bytes at the supplied full SHA, commits them on a dedicated branch,
 and opens a pull request. Downloaded scripts are not executed during that run.
 The branch name includes the workflow run ID and attempt, so retrying an update
 cannot collide with a branch left by an earlier failed or closed run. The
-workflow's ownership-change option defaults to off. Normal pull-request checks
-use policy from the trusted default branch and verify the proposed new updater
-before it can become trusted for a later update.
+workflow's ownership-change option defaults to off. It creates the branch and
+pull request with `GITHUB_TOKEN`, so GitHub keeps candidate-controlled
+`pull_request` workflows approval-gated. The already trusted update workflow
+instead validates the exact generated head in read-only jobs, publishes
+head-bound `project-ci`, `repository-guard`, `osv-scan`, and
+`baseline-source-verification` checks, and dispatches the trusted Codex gate.
+Candidate workflow bytes therefore do not execute automatically before the
+update has passed the trust-promotion review boundary.
 
 After applying or checking out an update, run
 `npm ci --ignore-scripts --prefix .web-design/policy` before any structural

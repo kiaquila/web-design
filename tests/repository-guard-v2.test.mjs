@@ -1964,6 +1964,29 @@ test("update retries use a fresh remote branch", () => {
   );
 });
 
+test("generated update pull requests authenticate so their checks start", () => {
+  const workflow = readFileSync(resolve(".github/workflows/web-design-update.yml"), "utf8");
+  const checkout = workflow.slice(
+    workflow.indexOf("- name: Checkout trusted default branch"),
+    workflow.indexOf("- name: Validate immutable inputs")
+  );
+  const openPullRequest = workflow.slice(workflow.indexOf("- name: Open update pull request"));
+
+  assert.doesNotMatch(checkout, /persist-credentials:\s*false/);
+  assert.match(openPullRequest, /GH_TOKEN:\s*\$\{\{ github\.token \}\}/);
+  assert.doesNotMatch(openPullRequest, /WEB_DESIGN_UPDATE_TOKEN/);
+  const push = openPullRequest.indexOf("git push --set-upstream");
+  const create = openPullRequest.indexOf("gh pr create");
+  const dispatch = openPullRequest.indexOf("gh workflow run codex-review.yml");
+  assert.ok(push !== -1 && push < create && create < dispatch);
+  for (const job of ["project-ci", "repository-guard", "osv-scan"]) {
+    assert.match(workflow, new RegExp(`^  ${job}:$`, "m"));
+  }
+  assert.match(workflow, /^  publish-update-checks:$/m);
+  assert.match(workflow, /run: node scripts\/publish-update-checks\.mjs/);
+  assert.match(workflow, /UPDATE_CHECK_HEAD_SHA:\s*\$\{\{ needs\.update\.outputs\.head_sha \}\}/);
+});
+
 test("trusted YAML policy installs its pinned managed dependency without scripts", () => {
   const packageData = JSON.parse(readFileSync(resolve(".web-design/policy/package.json"), "utf8"));
   const packageLock = JSON.parse(readFileSync(resolve(".web-design/policy/package-lock.json"), "utf8"));
