@@ -57,6 +57,12 @@ After the first green workflow run:
    `environment: codex-review-dispatch` and holds `checks: write`, so restrict
    that environment's deployment branches to the default branch too. A branch
    copy of the workflow could otherwise mint a passing required check.
+   These two names are the only ones the repository guard accepts on a
+   write-capable manual job, matched exactly, because an environment nobody has
+   restricted is created on first use with no rules on it — a renamed one would
+   read as gated here and be protected by nothing. Restricting both is the
+   whole of the control; a privileged manual workflow under a third name is a
+   change to the guard and to this list together.
 8. Enable available dependency alerts, automated fixes, secret scanning, and
    push protection.
 9. Keep deployment secrets in environment-scoped stores and restrict production

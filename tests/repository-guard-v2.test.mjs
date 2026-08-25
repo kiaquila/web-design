@@ -990,7 +990,7 @@ test("rejects flow-style job permissions on pull requests", () => {
   assert.match(failures.join("\n"), /job test may not grant write permissions/);
 });
 
-test("a manual write job needs an environment, not only its own condition", () => {
+test("a manual write job needs a restricted environment, not only its own condition", () => {
   // A manual run picks a ref and GitHub loads that ref's copy of the file, so
   // a branch could delete the condition before asking for the token. An
   // environment is GitHub's to decide, and a branch cannot rewrite it.
@@ -998,19 +998,39 @@ test("a manual write job needs an environment, not only its own condition", () =
     `on: [pull_request, workflow_dispatch]\npermissions:\n  contents: read\njobs:\n  publish:\n    if: \${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n${extra}    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n`;
   assert.match(
     validateWorkflowText(".github/workflows/example.yml", gated("")).join("\n"),
-    /may not grant write permissions/
+    /must name a restricted environment/
   );
   assert.deepEqual(
-    validateWorkflowText(".github/workflows/example.yml", gated("    environment: release\n")),
+    validateWorkflowText(".github/workflows/example.yml", gated("    environment: web-design-update\n")),
     []
   );
   assert.deepEqual(
     validateWorkflowText(
       ".github/workflows/example.yml",
-      gated("    environment:\n      name: release\n")
+      gated("    environment:\n      name: codex-review-dispatch\n")
     ),
     []
   );
+  // An environment GitHub has never been told to restrict is created on first
+  // use with no rules on it, so naming one is not a gate. The name is matched
+  // exactly: a run-time expression and a lookalike carrying whitespace both
+  // reach a different environment than the one an operator protected.
+  for (const environment of [
+    "    environment: release\n",
+    "    environment:\n      name: release\n",
+    "    environment: ${{ github.event.inputs.environment }}\n",
+    "    environment: \"web-design-update \"\n",
+    "    environment: Web-Design-Update\n",
+    "    environment: web-design-update-2\n",
+    "    environment: ''\n",
+    "    environment:\n      url: https://example.invalid\n"
+  ]) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", gated(environment)).join("\n"),
+      /must name a restricted environment/,
+      environment
+    );
+  }
 });
 
 test("rejects a write-capable job gated only to the manual event", () => {
@@ -1930,7 +1950,7 @@ test("allows top-level write permissions on default-branch-only events", () => {
 test("a manual write job stays valid when it keeps the default-branch gate", () => {
   const failures = validateWorkflowText(
     ".github/workflows/example.yml",
-    "on: workflow_dispatch\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n    environment: release\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
+    "on: workflow_dispatch\npermissions:\n  contents: read\njobs:\n  publish:\n    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n    environment: web-design-update\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n"
   );
   assert.deepEqual(failures, []);
 });
