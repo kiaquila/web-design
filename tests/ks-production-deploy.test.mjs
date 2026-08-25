@@ -35,6 +35,7 @@ function projectCiCheckNames(source) {
       continue;
     }
     if (!insideJobs) continue;
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
     if (line && !line.startsWith(" ")) break;
 
     const job = /^  ([A-Za-z_][A-Za-z0-9_-]*):(?:\s+#.*)?$/.exec(line);
@@ -149,6 +150,7 @@ test("Project CI job discovery uses the job id when name is omitted", () => {
   named-job:
     name: visible-check
     runs-on: ubuntu-latest
+# A flush-left YAML comment does not end the jobs mapping.
   implicit-check:
     runs-on: ubuntu-latest
 `),
