@@ -3,7 +3,7 @@
   "version": "0.1.0-dev",
   "sourceCommit": null,
   "profile": "no-deploy",
-  "manifestSha256": "9c1ccf482bb6bbf001098842341e0eb1104678ba558359ca049e9688226486a9",
+  "manifestSha256": "ca8128c25b510a7fa85481fb24273fde5d2ba47c9e1b3fe06663f0244ddaaeea",
   "files": {
     ".github/CODEOWNERS": "811519a86b06a0cea019f12e841ab59784f2ed674ec057be6d93da4d64e6c24e",
     ".github/pull_request_template.md": "36fbe73d6f56406ee98f07799253b0dff427ee3c38ddb43d8f7332e07c0b7d7f",
@@ -14,7 +14,7 @@
     ".github/workflows/codex-review.yml": "847d3e93c7f20dd525b4eb0d1c382d2b30626d9c7771114b08ef413c4aa38187",
     ".github/workflows/osv-scan.yml": "a14d1b91520601a22b36c057711a7e80c1f3827e585e9cd90f809e09e90d860d",
     ".github/workflows/repository-guard.yml": "686d5d927fc6d52f189ebd003333391e51cd7437b38b3475cbec347aa1b79735",
-    ".github/workflows/web-design-update.yml": "da0d84310ee1ea474b5f73e66d1681fdce4d8c07fa83ca31877c104a2d9318af",
+    ".github/workflows/web-design-update.yml": "e11e375970f6d8219804100a3a9a4c1d77c5607357ea903f314ae7b692c7f129",
     ".web-design/managed-files.json": "6c5355c6e8882562ec38122938843e7dfab3e2125a431c0f1c9efda6b5562c92",
     ".web-design/policy/package-lock.json": "a13e6dead7cf8e58f785b0ef48483bfbe3e0513fe162bfb35d81b0a0b923bec9",
     ".web-design/policy/package.json": "b83a9b6bc1503475c4126e2b63351134997951239f49b57c9f6bcc8db8945d05",
@@ -27,7 +27,7 @@
     "docs/operations/cloudflare.md": "70d6ab3e6fc74164ab5b510918008f2d3794556293a62be07445a5af0093c9d3",
     "docs/operations/github-setup.md": "3285916711cc68b87a867f8a445a305f72545d9dd69df1e85582643576ba4a97",
     "docs/operations/project-handoff.md": "36d7fc1f52ab9ee5d4a81be55d799942ebb6971c327414c385f8f79b8e070414",
-    "docs/operations/updates.md": "8adf07fb99de9da734d84b6be2ea63a72d55a29b3eda5a4c6a73f72c96e330ff",
+    "docs/operations/updates.md": "700616115ddeaab577c4c94889174b7d5727ce5ebadadc75d6569ec2a83472af",
     "docs/standards/content-and-design.md": "97026c6f26f7e78ce31a756fd8d7c5f37d684f5f7ef87de2f8774c26b7cfebe7",
     "docs/standards/deployment.md": "47f5e60bb1db48216738ac28e1881df7fdfc75fa245cdfb5fd330ec4ff6e7903",
     "docs/standards/git-and-reviews.md": "b5077b9b4b4f939fcbf57ffca190914f62e8115c06a02fa7596c26a58bd9b6ec",
@@ -53,7 +53,7 @@
     "tests/codex-review-gate.test.mjs": "1156864577f9a48b83ac57a0aef2e366c676b33949600fd130347a3360d52d5b",
     "tests/managed-files.test.mjs": "6b641ed06bcef07b741b06cfae7afc713a2aa22262ac04199ee0130e902c410d",
     "tests/profiles.test.mjs": "9e8f6931cc07d0b5e450bbf6737c4df2ee40f20659b5272206b00d2b146501b5",
-    "tests/repository-guard-v2.test.mjs": "3aa88e2effe5ea8b07b9a65da6dfcdc30725302a269b6eadbcbab2a23b51570e",
+    "tests/repository-guard-v2.test.mjs": "61ee87736dd8bd8df48e42e1dc5a39b48e680adbe5c8473288698971bc6bf381",
     "tests/sync-project.test.mjs": "90b53c4db4492c83c4f58e1fae0674f2c5504eeea383bf5783166e02da8063f9"
   }
 }

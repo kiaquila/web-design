@@ -1927,6 +1927,16 @@ test("workflow jobs that execute Node install the pinned runtime first", () => {
   }
 });
 
+test("update retries use a fresh remote branch", () => {
+  const workflow = readFileSync(resolve(".github/workflows/web-design-update.yml"), "utf8");
+  assert.match(workflow, /RUN_ID:\s*\$\{\{ github\.run_id \}\}/);
+  assert.match(workflow, /RUN_ATTEMPT:\s*\$\{\{ github\.run_attempt \}\}/);
+  assert.match(
+    workflow,
+    /branch="chore\/web-design-\$\{VERSION\/\/\.\/-\}-\$\{RUN_ID\}-\$\{RUN_ATTEMPT\}"/
+  );
+});
+
 test("trusted YAML policy installs its pinned managed dependency without scripts", () => {
   const packageData = JSON.parse(readFileSync(resolve(".web-design/policy/package.json"), "utf8"));
   const packageLock = JSON.parse(readFileSync(resolve(".web-design/policy/package-lock.json"), "utf8"));

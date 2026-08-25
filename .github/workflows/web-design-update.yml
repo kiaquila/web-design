@@ -83,6 +83,8 @@ jobs:
       - name: Open update pull request
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUN_ID: ${{ github.run_id }}
           SOURCE_SHA: ${{ inputs.source_sha }}
           VERSION: ${{ inputs.version }}
         shell: bash
@@ -92,7 +94,10 @@ jobs:
             echo "Baseline is already current."
             exit 0
           fi
-          branch="chore/web-design-${VERSION//./-}"
+          # A manual retry starts from the default branch again and creates a
+          # new commit. Include both run identifiers so that neither a new
+          # dispatch nor a rerun collides with an earlier remote branch.
+          branch="chore/web-design-${VERSION//./-}-${RUN_ID}-${RUN_ATTEMPT}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"

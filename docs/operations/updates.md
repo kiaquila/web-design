@@ -55,9 +55,11 @@ including additions and removals, with the exact pinned upstream commit.
 The manual `Web Design Update` workflow runs from the consumer default branch,
 downloads bytes at the supplied full SHA, commits them on a dedicated branch,
 and opens a pull request. Downloaded scripts are not executed during that run.
-The workflow's ownership-change option defaults to off. Normal pull-request
-checks use policy from the trusted default branch and verify the proposed new
-updater before it can become trusted for a later update.
+The branch name includes the workflow run ID and attempt, so retrying an update
+cannot collide with a branch left by an earlier failed or closed run. The
+workflow's ownership-change option defaults to off. Normal pull-request checks
+use policy from the trusted default branch and verify the proposed new updater
+before it can become trusted for a later update.
 
 After applying or checking out an update, run
 `npm ci --ignore-scripts --prefix .web-design/policy` before any structural

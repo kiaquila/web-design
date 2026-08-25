@@ -40,7 +40,7 @@
     },
     {
       "path": ".github/workflows/web-design-update.yml",
-      "sha256": "da0d84310ee1ea474b5f73e66d1681fdce4d8c07fa83ca31877c104a2d9318af"
+      "sha256": "e11e375970f6d8219804100a3a9a4c1d77c5607357ea903f314ae7b692c7f129"
     },
     {
       "path": ".web-design/managed-files.json",
@@ -92,7 +92,7 @@
     },
     {
       "path": "docs/operations/updates.md",
-      "sha256": "8adf07fb99de9da734d84b6be2ea63a72d55a29b3eda5a4c6a73f72c96e330ff"
+      "sha256": "700616115ddeaab577c4c94889174b7d5727ce5ebadadc75d6569ec2a83472af"
     },
     {
       "path": "docs/standards/content-and-design.md",
@@ -196,7 +196,7 @@
     },
     {
       "path": "tests/repository-guard-v2.test.mjs",
-      "sha256": "3aa88e2effe5ea8b07b9a65da6dfcdc30725302a269b6eadbcbab2a23b51570e"
+      "sha256": "61ee87736dd8bd8df48e42e1dc5a39b48e680adbe5c8473288698971bc6bf381"
     },
     {
       "path": "tests/sync-project.test.mjs",
