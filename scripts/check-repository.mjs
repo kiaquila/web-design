@@ -1735,6 +1735,186 @@ function jobDecidesWhatRunsFromExpression(job, root) {
   return nodeDecidesWhatRunsFromExpression(job, true);
 }
 
+// Reaching the shell through `env` is the door everything above points at, and
+// it is a door, not a wall: `COMMAND: ${{ inputs.command }}` with
+// `run: $COMMAND` lets the dispatcher pick the program instead of writing it.
+// A value the code allowlist could not read is still a value — a step may hand
+// one to `git commit -m` or test it against a regex, which is what the managed
+// update workflow does with every input it takes — but it may not be the thing
+// that decides which program runs.
+//
+// Two positions carry that decision. The first is the command itself, which is
+// a position rather than a word list, so it is read as one: the first word of
+// every simple command, with a command substitution and a backtick opening a
+// command of their own. The second is the argument of a word that runs what it
+// is given, and naming those is a denylist — this file has twice said what one
+// is worth. It is kept narrow and paired with the position rule rather than
+// leaned on: a runtime is refused its inline-program flag while
+// `node scripts/x.mjs "$VALUE"` stays exactly as available as it is today,
+// because a value handed to a reviewed script is data and that is the whole
+// point of the door.
+const RUNS_WHAT_IT_IS_GIVEN = new Set([
+  ".", "awk", "bash", "bunx", "command", "dash", "deno", "env", "eval", "exec", "gawk",
+  "jq", "ksh", "node", "npx", "perl", "php", "pnpx", "python", "python3", "ruby", "sh",
+  "source", "sudo", "xargs", "zsh"
+]);
+
+// Words that precede the command rather than being it.
+const SHELL_KEYWORD_WORD = new Set([
+  "!", "do", "done", "elif", "else", "esac", "fi", "if", "then", "until", "while", "{", "}"
+]);
+
+function environmentNamesHoldingUnreadableValues(node) {
+  const env = mapPair(node, "env")?.value;
+  if (!isMap(env)) return [];
+  return env.items
+    .filter(
+      (pair) =>
+        isScalar(pair.key) &&
+        typeof pair.key.value === "string" &&
+        isScalar(pair.value) &&
+        unreadableCode(pair.value.value)
+    )
+    .map((pair) => String(pair.key.value));
+}
+
+function referencesName(text, name) {
+  return new RegExp(`\\$\\{?${name}(?![A-Za-z0-9_])`).test(text);
+}
+
+// A command substitution and a backtick each open a command of their own, so
+// they end the segment rather than sitting inside it; a name spent in one is
+// therefore read in command position, where it belongs.
+function shellCommandSegments(text) {
+  const segments = [];
+  let current = "";
+  let quote = null;
+  let index = 0;
+  const cut = () => {
+    segments.push(current);
+    current = "";
+  };
+  while (index < text.length) {
+    const character = text[index];
+    if (quote === "'") {
+      current += character;
+      if (character === "'") quote = null;
+      index += 1;
+      continue;
+    }
+    if (character === "\\") {
+      current += character + (text[index + 1] ?? "");
+      index += 2;
+      continue;
+    }
+    if (character === "$" && text[index + 1] === "(") {
+      cut();
+      index += 2;
+      continue;
+    }
+    if (character === "`") {
+      cut();
+      index += 1;
+      continue;
+    }
+    if (quote === '"') {
+      current += character;
+      if (character === '"') quote = null;
+      index += 1;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      current += character;
+      index += 1;
+      continue;
+    }
+    if ("\n;&|()".includes(character)) {
+      cut();
+      index += 1;
+      continue;
+    }
+    current += character;
+    index += 1;
+  }
+  cut();
+  return segments.filter((segment) => segment.trim() !== "");
+}
+
+// `CMD2=$CMD` then `$CMD2` renames the value without changing what it is, so a
+// name assigned from an unreadable one joins them. Repeated to a fixed point,
+// because the rename can be done twice. The assignment scan reads whole values
+// the way the tree rules do; an append is read by the line it sits on, because
+// that scan does not see one.
+function namesCarryingUnreadableValues(text, declared) {
+  const names = new Set(declared);
+  const assignments = shellAssignmentTargets(text);
+  const appends = [...text.matchAll(/(?:^|[\s;&|(])([A-Za-z_][A-Za-z0-9_]*)\+=([^\n;&|]*)/g)].map(
+    (match) => ({ target: match[1], raw: match[2] })
+  );
+  for (let pass = 0; pass <= assignments.length + appends.length; pass += 1) {
+    let grew = false;
+    for (const { target, raw } of [...assignments, ...appends]) {
+      if (names.has(target)) continue;
+      if ([...names].some((name) => referencesName(raw, name))) {
+        names.add(target);
+        grew = true;
+      }
+    }
+    if (!grew) break;
+  }
+  return names;
+}
+
+// `shellAssignmentValues` walks the same starts in the same order, so the two
+// stay paired; the pattern is kept identical to its own for that reason.
+function shellAssignmentTargets(text) {
+  const values = shellAssignmentValues(text);
+  const starts = /(?:^|[\s;&|(])([A-Za-z_][A-Za-z0-9_]*)=/g;
+  const targets = [];
+  let match;
+  while ((match = starts.exec(text)) !== null && targets.length < values.length) {
+    targets.push({ target: match[1], raw: values[targets.length].raw });
+    starts.lastIndex = match.index + match[0].length;
+  }
+  return targets;
+}
+
+function stepLetsAValueDecideItsProgram(step, declared) {
+  const text = stepShellText(step);
+  if (text === null) return false;
+  const names = namesCarryingUnreadableValues(text, [
+    ...declared,
+    ...environmentNamesHoldingUnreadableValues(step)
+  ]);
+  if (names.size === 0) return false;
+  const carries = (word) => [...names].some((name) => referencesName(word, name));
+  return shellCommandSegments(text).some((segment) => {
+    // Operator words are not stripped: `[` is the command in
+    // `[ "$VALUE" = x ]`, and dropping it would read the value as one.
+    const words = shellWords(segment);
+    let position = 0;
+    while (
+      position < words.length &&
+      (SHELL_KEYWORD_WORD.has(words[position]) || /^[A-Za-z_][A-Za-z0-9_]*\+?=/.test(words[position]))
+    ) {
+      position += 1;
+    }
+    if (position >= words.length) return false;
+    const command = words[position];
+    if (carries(command)) return true;
+    if (!RUNS_WHAT_IT_IS_GIVEN.has(command.replace(/^["']|["']$/g, ""))) return false;
+    // Everything up to and including the first word that is not an option is
+    // the program this command was given; after that the words are its own
+    // arguments.
+    for (let at = position + 1; at < words.length; at += 1) {
+      if (carries(words[at])) return true;
+      if (!words[at].startsWith("-")) return false;
+    }
+    return false;
+  });
+}
+
 // Actions substitutes `${{ }}` into run text before the shell parses it, so
 // what the shell actually runs is not the text being scanned. Beside an
 // untrusted checkout a write-capable shell gets no interpolation at all —
@@ -2170,6 +2350,20 @@ export function validateWorkflowText(path, text) {
           failures.push(
             `Write-capable job ${jobName} decides what it runs from an expression that cannot be read: ${path}`
           );
+        }
+        if (writes && isSeq(steps)) {
+          const unreadableValueNames = [
+            ...environmentNamesHoldingUnreadableValues(root),
+            ...environmentNamesHoldingUnreadableValues(jobPair.value)
+          ];
+          for (const step of steps.items) {
+            if (!isMap(step)) continue;
+            if (stepLetsAValueDecideItsProgram(step, unreadableValueNames)) {
+              failures.push(
+                `Write-capable job ${jobName} lets a value it cannot read decide which program runs: ${path}`
+              );
+            }
+          }
         }
         if (writes && actorTriggered) {
           // A job that calls a reusable workflow has no steps to scan, and the

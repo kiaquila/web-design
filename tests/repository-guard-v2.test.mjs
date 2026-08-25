@@ -2081,6 +2081,66 @@ test("an input still reaches a manual job as a value", () => {
   assert.deepEqual(validateWorkflowText(".github/workflows/example.yml", proposed), []);
 });
 
+test("a value the guard cannot read may be an argument, never the program", () => {
+  // `env` is the door, and a door is not a wall: `COMMAND: ${{ inputs.command }}`
+  // with `run: $COMMAND` lets the dispatcher pick the program instead of
+  // writing it. The value stays spendable as an argument, which is what the
+  // managed update workflow does with every input it takes.
+  const dispatched = (stepYaml) =>
+    "on:\n  workflow_dispatch:\n    inputs:\n      command:\n        required: true\n        type: string\npermissions:\n  contents: read\njobs:\n  deploy:\n" +
+    "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
+    "    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    steps:\n" +
+    "      - env:\n          CMD: ${{ inputs.command }}\n" + stepYaml;
+  for (const [label, run] of Object.entries({
+    "the command itself": "        run: $CMD\n",
+    "quoted": '        run: "$CMD"\n',
+    "braced": "        run: ${CMD}\n",
+    "after an operator": "        run: npm ci && $CMD\n",
+    "evaluated": '        run: eval "$CMD"\n',
+    "sourced": '        run: . "$CMD"\n',
+    "a shell's inline program": '        run: bash -c "$CMD"\n',
+    "a runtime's inline program": '        run: node -e "$CMD"\n',
+    "another runtime's": '        run: python3 -c "$CMD"\n',
+    "handed to xargs": "        run: echo x | xargs $CMD\n",
+    "inside a command substitution": '        run: |\n          out="$($CMD)"\n          echo "$out"\n',
+    "renamed first": '        run: |\n          C2="$CMD"\n          $C2\n',
+    "renamed twice": '        run: |\n          C2="$CMD"\n          C3="$C2"\n          $C3\n',
+    "appended first": '        run: |\n          C2=x\n          C2+="$CMD"\n          eval "$C2"\n'
+  })) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", dispatched(run)).join("\n"),
+      /job deploy lets a value it cannot read decide which program runs/,
+      label
+    );
+  }
+  // Spending it is still allowed: as an argument to a tool that does not run
+  // what it is given, as the subject of a test, and as an argument to a
+  // reviewed script, which is the whole point of the door.
+  for (const [label, run] of Object.entries({
+    "an argument": '        run: git commit -m "release $CMD"\n',
+    "the subject of a test": '        run: |\n          set -euo pipefail\n          [[ "$CMD" =~ ^[0-9]+$ ]]\n',
+    "an argument to a managed script": '        run: node scripts/sync-project.mjs --version "$CMD"\n'
+  })) {
+    assert.deepEqual(
+      validateWorkflowText(".github/workflows/example.yml", dispatched(run)),
+      [],
+      label
+    );
+  }
+  // A readable value is not tracked at all — a named secret is not the
+  // dispatcher's to choose.
+  assert.deepEqual(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      "on:\n  workflow_dispatch:\npermissions:\n  contents: read\njobs:\n  deploy:\n" +
+        "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
+        "    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    steps:\n" +
+        '      - env:\n          TOOL: ${{ secrets.TOOL }}\n        run: $TOOL\n'
+    ),
+    []
+  );
+});
+
 test("a project-owned production deployment keeps its own tooling", () => {
   // `production` exists for a workflow the project owns, so the rule has to
   // leave that workflow buildable: a named secret and a literal command are

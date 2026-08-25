@@ -72,7 +72,8 @@ After the first green workflow run:
    inputs through `env`, where a step can validate one before using it. The
    guard refuses an input that becomes the command itself, the directory a
    command runs in, the job's container image, or the input of an action the
-   baseline does not vouch for.
+   baseline does not vouch for — including one that reaches the command through
+   a variable the workflow set from it.
 8. Enable available dependency alerts, automated fixes, secret scanning, and
    push protection.
 9. Keep deployment secrets in the `production` environment-scoped store and

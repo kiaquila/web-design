@@ -33,7 +33,10 @@
   one of them. This is read as an allowlist rather than by looking for the
   word `inputs`: contexts are case-insensitive, `github.event['inputs']`
   indexes its way to the same value, and dumping the payload carries it
-  without naming it.
+  without naming it. `env` is a door and not a wall, so a name holding such a
+  value may be spent as an argument — tested against a pattern, handed to a
+  reviewed script — but may not be the command itself, be evaluated or sourced,
+  or become a runtime's inline program. Renaming it does not change what it is.
 - Pin external GitHub Actions and shared workflows to full commit SHAs. Do not
   use `pull_request_target`, `write-all`, or implicit secret inheritance.
 - Keep `.env`, private keys, session files, tokens, personal absolute paths,
