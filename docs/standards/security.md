@@ -22,7 +22,14 @@
   workflow, so a branch can delete the condition before asking for the token.
   Name an environment on the job and restrict its deployment branches to the
   default branch, so GitHub rather than the workflow file decides whether the
-  job may run.
+  job may run. That environment decides which ref runs, not what the run was
+  asked to do: a workflow's `inputs` are typed into the dispatch form by
+  whoever pressed the button, or passed by a caller, and they reach a job
+  through `env`, where they are the contents of a variable a script reads.
+  They may not be spliced into `run:`, name a `working-directory` or a
+  `container`, be handed to a published action's `with:`, or be passed on as a
+  job output, because Actions substitutes them before anything parses the line
+  and what the actor typed then becomes what runs.
 - Pin external GitHub Actions and shared workflows to full commit SHAs. Do not
   use `pull_request_target`, `write-all`, or implicit secret inheritance.
 - Keep `.env`, private keys, session files, tokens, personal absolute paths,

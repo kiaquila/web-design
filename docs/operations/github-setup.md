@@ -67,7 +67,10 @@ After the first green workflow run:
    restricted is created on first use with no rules on it — a renamed one would
    read as gated here and be protected by nothing. A privileged manual workflow
    under another name is a reviewed change to the managed guard and this list
-   together.
+   together. The environment settles which ref may run, not what the run was
+   asked to do, so a project-owned deployment workflow reads its dispatch
+   inputs through `env` — the guard refuses one that becomes a command, a
+   working directory, a container image, an action's input, or a job output.
 8. Enable available dependency alerts, automated fixes, secret scanning, and
    push protection.
 9. Keep deployment secrets in the `production` environment-scoped store and

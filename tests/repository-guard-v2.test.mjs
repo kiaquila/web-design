@@ -1968,6 +1968,114 @@ test("a manual write job stays valid when it keeps the default-branch gate", () 
   assert.deepEqual(failures, []);
 });
 
+test("a manual run's inputs are the actor's words, not the repository's", () => {
+  // The dispatch gate binds which copy of the file may hold the token; it says
+  // nothing about what the run was asked to do. `inputs` are typed into a form
+  // by whoever pressed the button, and Actions substitutes them before the
+  // shell parses the line.
+  const dispatched = (jobYaml) =>
+    "on:\n  workflow_dispatch:\n    inputs:\n      command:\n        required: true\n        type: string\npermissions:\n  contents: read\njobs:\n  deploy:\n" +
+    "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
+    jobYaml;
+  const gated = (environment, stepYaml) =>
+    dispatched(
+      `    environment: ${environment}\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    steps:\n${stepYaml}`
+    );
+  // Every restricted environment, including the one reserved for a
+  // project-owned deployment workflow: the environment decides which ref may
+  // run, never what the inputs say.
+  for (const environment of ["web-design-update", "codex-review-dispatch", "production"]) {
+    assert.match(
+      validateWorkflowText(
+        ".github/workflows/example.yml",
+        gated(environment, "      - run: ${{ inputs.command }}\n")
+      ).join("\n"),
+      /job deploy makes code of a workflow input/,
+      environment
+    );
+  }
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      gated("web-design-update", "      - run: curl -sL ${{ inputs.command }} | bash\n")
+    ).join("\n"),
+    /job deploy makes code of a workflow input/
+  );
+  // The older spelling reaches the same value.
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      gated("production", "      - run: ${{ github.event.inputs.command }}\n")
+    ).join("\n"),
+    /job deploy makes code of a workflow input/
+  );
+  // An input that picks where a command runs, which image the job runs inside,
+  // or what a published action is handed decides what runs just as directly.
+  const refused = [
+    gated("production", "      - working-directory: ${{ inputs.command }}\n        run: npm run deploy\n"),
+    gated(
+      "production",
+      "      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea\n        with:\n          script: ${{ inputs.command }}\n"
+    ),
+    dispatched(
+      "    container: ${{ inputs.command }}\n    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm run deploy\n"
+    ),
+    // A read-only job hands its `outputs` on as the next job's `needs`, where
+    // a trusted event no longer reads the run text as an expression.
+    "on:\n  workflow_dispatch:\n    inputs:\n      command:\n        required: true\n        type: string\npermissions:\n  contents: read\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    outputs:\n      command: ${{ inputs.command }}\n    steps:\n      - run: npm ci\n"
+  ];
+  for (const workflow of refused) {
+    assert.match(
+      validateWorkflowText(".github/workflows/example.yml", workflow).join("\n"),
+      /job deploy makes code of a workflow input/,
+      workflow
+    );
+  }
+  // A workflow-level default moves every step that does not override it.
+  assert.match(
+    validateWorkflowText(
+      ".github/workflows/example.yml",
+      "on:\n  workflow_dispatch:\n    inputs:\n      command:\n        required: true\n        type: string\npermissions:\n  contents: read\ndefaults:\n  run:\n    working-directory: ${{ inputs.command }}\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm ci\n"
+    ).join("\n"),
+    /runs its steps from a directory a workflow input names/
+  );
+});
+
+test("an input still reaches a manual job as a value", () => {
+  // `env` is the door the managed update workflow already uses for every one
+  // of its inputs: the value arrives as the contents of a variable. A step
+  // gated on an input, or named after one, never reaches a shell, and
+  // `actions/checkout` needs the input to reach a proposed head at all.
+  const failures = validateWorkflowText(
+    ".github/workflows/example.yml",
+    "on:\n  workflow_dispatch:\n    inputs:\n      head_sha:\n        required: true\n        type: string\npermissions:\n  contents: read\njobs:\n  deploy:\n" +
+      "    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}\n" +
+      "    environment: production\n    permissions:\n      contents: write\n    runs-on: ubuntu-latest\n    env:\n      HEAD_SHA: ${{ inputs.head_sha }}\n    steps:\n" +
+      "      - name: Check ${{ inputs.head_sha }} out under its own path\n        if: ${{ inputs.head_sha != '' }}\n" +
+      "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          ref: ${{ inputs.head_sha }}\n          path: candidate\n" +
+      "      - env:\n          HEAD_SHA: ${{ inputs.head_sha }}\n        run: node scripts/verify.mjs\n"
+  );
+  assert.deepEqual(failures, []);
+});
+
+test("the managed workflows this baseline ships stay acceptable to its own guard", () => {
+  // The rule above is only worth having if the workflows every consumer
+  // receives still pass it — a manual dispatch job that reads its inputs
+  // through `env` is exactly what `web-design-update.yml` and the Codex review
+  // dispatch already do.
+  const workflows = readdirSync(resolve(".github/workflows")).filter((file) => file.endsWith(".yml"));
+  assert.ok(workflows.includes("web-design-update.yml"));
+  assert.ok(workflows.includes("codex-review.yml"));
+  for (const file of workflows) {
+    const path = `.github/workflows/${file}`;
+    assert.deepEqual(
+      validateWorkflowText(path, readFileSync(resolve(path), "utf8")),
+      [],
+      path
+    );
+  }
+});
+
 test("workflow jobs that execute Node install the pinned runtime first", () => {
   const workflows = readdirSync(resolve(".github/workflows"))
     .filter((file) => file.endsWith(".yml"));

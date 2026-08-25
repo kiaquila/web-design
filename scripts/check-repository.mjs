@@ -1014,7 +1014,11 @@ const REF_SELECTABLE_EVENTS = new Set([
 
 // The events whose payload the repository itself produces. A `push` qualifies
 // only when it is filtered to the default branch, which the caller checks;
-// `workflow_call` is absent because the caller decides what arrives.
+// `workflow_call` is absent because the caller decides what arrives. A manual
+// dispatch is here for its payload alone — the ref it selects and the run
+// metadata around it come from what the repository already holds — and not
+// for its `inputs`, which are typed by whoever dispatched the run and are held
+// to `WORKFLOW_INPUT_EXPRESSION` separately.
 const REPOSITORY_CONTROLLED_EVENTS = new Set(["push", "workflow_dispatch", "schedule"]);
 
 // A push filtered to the default branch runs the default branch's own copy of
@@ -1623,6 +1627,77 @@ function environmentCarriesComputedValue(node) {
   );
 }
 
+// A workflow input is the one thing a manual run does not already hold: the
+// ref is chosen from what the repository has, but the inputs are typed into a
+// form by whoever pressed the button, and a called workflow's are whatever the
+// caller passed. The allowlist above vouches for `inputs.X` because in `env:`
+// it arrives as the contents of a variable — data a script reads. Actions
+// substitutes it before anything parses the line, so in `run:` the same text
+// arrives as the command itself, as a `working-directory` it picks which
+// project's scripts a later command runs, as a `container` it picks the image
+// the whole job runs inside, and in a published action's `with:` it lands
+// where the scan cannot read it at all — the reason an action beside proposed
+// code has to be vouched for. So an input reaches a job through `env`, the
+// door the managed update workflow already uses for every one of its inputs,
+// and every other position is refused. Listing the positions that are code
+// would be the losing side of this, as it has been elsewhere in this file, so
+// the few that are provably a value are named instead and the rest of the job
+// tree is walked. `github.event.inputs` is the same value under its older
+// spelling.
+const WORKFLOW_INPUT_EXPRESSION = /\$\{\{[^}]*\b(?:github\.event\.)?inputs\./;
+
+function inputInText(value) {
+  return typeof value === "string" && WORKFLOW_INPUT_EXPRESSION.test(value);
+}
+
+function carriesInput(node) {
+  if (isScalar(node)) return inputInText(node.value);
+  if (isSeq(node)) return node.items.some((item) => carriesInput(item));
+  if (isMap(node)) {
+    return node.items.some((pair) => carriesInput(pair.key) || carriesInput(pair.value));
+  }
+  return false;
+}
+
+// `if:`, `name:`, and a concurrency group are read by the runner and never
+// reach a shell — a step gated on an input, or a deployment queue keyed by
+// one, is how a manual workflow is meant to be written. `runs-on`, `strategy`,
+// `environment`, and `outputs` are absent on purpose: each of those decides
+// where the job runs, what it runs over, which secrets it may read, or what a
+// later job receives.
+const INPUT_VALUE_KEY = new Set(["concurrency", "env", "if", "name"]);
+
+// The same boundary `usesUnvouchedReference` draws beside an untrusted
+// checkout: this repository's own local actions and reusable workflows, which
+// are reviewed code under the same CODEOWNERS rule as the scripts a `run:`
+// step calls, and the two published actions whose handling of inputs the
+// baseline vouches for. `actions/checkout` needs `ref: ${{ inputs.head_sha }}`
+// to reach a proposed head at all, and where that ref is not provably trusted
+// `untrustedCheckoutDirectory` already governs what may happen beside it.
+function nodeMakesCodeOfInput(node, steps) {
+  if (!isMap(node)) return carriesInput(node);
+  const uses = mapPair(node, "uses")?.value;
+  const vouched = uses !== undefined && !usesUnvouchedReference(uses);
+  return node.items.some((pair) => {
+    const key = isScalar(pair.key) ? pair.key.value : null;
+    if (typeof key === "string" && INPUT_VALUE_KEY.has(key)) return false;
+    if (key === "with" && vouched) return false;
+    if (key === "steps" && steps && isSeq(pair.value)) {
+      return pair.value.items.some((step) => nodeMakesCodeOfInput(step, false));
+    }
+    return carriesInput(pair.key) || carriesInput(pair.value);
+  });
+}
+
+// Every job, not only a write-capable one: a job that holds nothing but a read
+// token can still hand an input onward, because its `outputs` are the next
+// job's `needs`, and the receiving job's run text is not read as an expression
+// once its event is trusted. What the rule protects is the workflow's inputs,
+// so it does not depend on which token a particular job was given.
+function jobMakesCodeOfInput(job) {
+  return nodeMakesCodeOfInput(job, true);
+}
+
 // Actions substitutes `${{ }}` into run text before the shell parses it, so
 // what the shell actually runs is not the text being scanned. Beside an
 // untrusted checkout a write-capable shell gets no interpolation at all —
@@ -1978,17 +2053,25 @@ export function validateWorkflowText(path, text) {
     const refSelectable = [...events].some((event) =>
       event === "push" ? !trustedPush : REF_SELECTABLE_EVENTS.has(event)
     );
-    // A default-branch push, a manual dispatch, and a schedule carry only what
-    // the repository already holds. Every other event arrives with a payload
-    // someone outside the trust boundary shaped — a comment body, a run to
-    // inspect, a caller's inputs — so a write-capable job under one of those
-    // may reach only for the actions this baseline vouches for. A deploy job
-    // on a repository-controlled event keeps its own tooling.
+    // A default-branch push, a manual dispatch, and a schedule carry a payload
+    // the repository already holds. Every other event arrives with one someone
+    // outside the trust boundary shaped — a comment body, a run to inspect, a
+    // caller's inputs — so a write-capable job under one of those may reach
+    // only for the actions this baseline vouches for. A deploy job on a
+    // repository-controlled event keeps its own tooling; what a dispatch adds
+    // on top of its payload is its `inputs`, which `jobMakesCodeOfInput`
+    // holds every job in this workflow to on its own.
     const actorTriggered =
       events.size === 0 ||
       [...events].some((event) =>
         event === "push" ? !trustedPush : !REPOSITORY_CONTROLLED_EVENTS.has(event)
       );
+    // A workflow-level default moves every step that does not override it, so
+    // the directory an input names has to be refused here as well as on the
+    // job and the step.
+    if (inputInText(defaultRunDirectoryValue(root))) {
+      failures.push(`Workflow runs its steps from a directory a workflow input names: ${path}`);
+    }
     let topLevelWrites = false;
     const rootDefaults = mapPair(root, "defaults")?.value;
     const rootRunDefaults = isMap(rootDefaults) ? mapPair(rootDefaults, "run")?.value : undefined;
@@ -2024,6 +2107,9 @@ export function validateWorkflowText(path, text) {
           continue;
         }
         validateMappingKeys(jobPair.value, `job ${jobName} mapping`, failures, path);
+        if (jobMakesCodeOfInput(jobPair.value)) {
+          failures.push(`Workflow job ${jobName} makes code of a workflow input: ${path}`);
+        }
         const reusableWorkflow = mapPair(jobPair.value, "uses");
         if (reusableWorkflow) validateActionReference(reusableWorkflow.value, failures, path);
         const jobSecrets = mapPair(jobPair.value, "secrets");
