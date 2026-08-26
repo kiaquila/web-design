@@ -14,7 +14,11 @@ and checks that match its actual stack.
    than overwriting an existing toolchain.
 4. Configure real check commands, the production output directory, exact
    critical first-render files, and measured payload budgets.
-5. Run `npm run preflight`, inspect the smallest and largest supported layouts,
+5. Point the `npm` entry in `.github/dependabot.yml` at the directory that holds
+   the project's `package.json` and lockfile, keep `.gitattributes` limited to
+   files the project does not own as product code, and enable Dependabot alerts
+   and security updates in the repository settings.
+6. Run `npm run preflight`, inspect the smallest and largest supported layouts,
    and open a focused setup PR.
 
 ## Existing repository
@@ -27,7 +31,9 @@ package manager, and existing checks. Copy one concern at a time when useful:
 - repository safety check;
 - project command runner;
 - payload-budget check;
-- CI workflow and CODEOWNERS.
+- CI workflow and CODEOWNERS;
+- dependency update policy (`.github/dependabot.yml`);
+- language-statistics rules (`.gitattributes`).
 
 Do not replace project-owned configuration merely to match the example. Record
 why each copied file applies and why any template file was intentionally
