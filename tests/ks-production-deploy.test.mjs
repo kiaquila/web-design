@@ -84,7 +84,7 @@ test("production credentials are isolated to the production environment", () => 
   assert.match(deployJob, /runs-on: ubuntu-latest/);
   assert.doesNotMatch(deployJob, /self-hosted/);
   assert.match(deployJob, /id-token: write/);
-  assert.match(deployJob, /tailscale\/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8/);
+  assert.match(deployJob, /tailscale\/github-action@780049a30b6ff5c378a9e7b389d15ece7a204888/);
   assert.match(deployJob, /oauth-client-id: \$\{\{ vars\.TAILSCALE_OAUTH_CLIENT_ID \}\}/);
   assert.match(deployJob, /KS_DESIGN_DEPLOY_TARGET: ks-production/);
   const registrationJob = workflow.slice(
