@@ -130,6 +130,64 @@ test("repository policy rejects unpinned actions", () => {
   });
 });
 
+test("the harness stays out of GitHub language statistics", () => {
+  withFixture({}, (root) => {
+    write(root, "src/app.js", "document.documentElement.dataset.ready = 'true';\n");
+    const attribute = (path) => spawnSync("git", ["check-attr", "linguist-vendored", "--", path], {
+      cwd: root,
+      encoding: "utf8"
+    }).stdout.trim();
+    for (const harness of [
+      "scripts/check-performance-budget.mjs",
+      "scripts/check-repository.mjs",
+      "scripts/config.mjs",
+      "scripts/run-project-checks.mjs",
+      "tests/harness.test.mjs"
+    ]) {
+      assert.equal(attribute(harness), `${harness}: linguist-vendored: set`);
+    }
+    assert.equal(attribute("src/app.js"), "src/app.js: linguist-vendored: unspecified");
+  });
+});
+
+test("the dependency update policy and language rules are required", () => {
+  withFixture({}, (root) => {
+    rmSync(join(root, ".gitattributes"));
+    rmSync(join(root, ".github/dependabot.yml"));
+    const result = run(root, "check-repository.mjs");
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Missing harness file: \.gitattributes/);
+    assert.match(result.stderr, /Missing harness file: \.github\/dependabot\.yml/);
+  });
+});
+
+test("dependabot groups minor and patch updates behind a cooldown", () => {
+  const [, actions, npm, ...extra] = readFileSync(join(templateRoot, ".github/dependabot.yml"), "utf8")
+    .split(/^\s*- package-ecosystem:/m);
+  assert.equal(extra.length, 0);
+  assert.match(actions, /^\s*"github-actions"/);
+  assert.match(npm, /^\s*"npm"/);
+  for (const ecosystem of [actions, npm]) {
+    assert.match(ecosystem, /interval: "weekly"/);
+    assert.match(ecosystem, /default-days: 7/);
+    assert.match(ecosystem, /update-types:\s*\n\s*- "minor"\s*\n\s*- "patch"/);
+    assert.doesNotMatch(ecosystem, /"major"/);
+  }
+  // Action tags are not guaranteed to be semantic versions.
+  assert.doesNotMatch(actions, /semver-[a-z]+-days/);
+  assert.match(npm, /semver-major-days: 14/);
+  assert.match(npm, /semver-minor-days: 7/);
+  assert.match(npm, /semver-patch-days: 3/);
+});
+
+test("the OSV scan reports findings and fails the workflow", () => {
+  const workflow = readFileSync(join(templateRoot, ".github/workflows/ci.yml"), "utf8");
+  assert.match(workflow, /osv-scanner-action@[a-f0-9]{40}/);
+  assert.match(workflow, /osv-reporter-action@[a-f0-9]{40}/);
+  assert.match(workflow, /--gh-annotations=true/);
+  assert.match(workflow, /--fail-on-vuln=true/);
+});
+
 test("configuration paths cannot escape the repository", () => {
   withFixture({}, (root) => {
     const path = join(root, "web-design.config.json");

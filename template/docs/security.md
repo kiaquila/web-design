@@ -9,3 +9,7 @@
   pull-request validation.
 - Review new network dependencies, embeds, analytics, and trackers for purpose,
   license, privacy, and failure behavior.
+- Keep Dependabot alerts and security updates enabled in the repository
+  settings; `.github/dependabot.yml` only schedules routine version updates.
+- Let a new dependency version cool down before adopting it, group only minor
+  and patch updates, and review every major update on its own.

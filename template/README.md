@@ -11,7 +11,12 @@ or deployment configuration.
 ## What it provides
 
 - concise repository and design instructions;
-- one least-privilege CI workflow with pinned actions and an OSV scan;
+- one least-privilege CI workflow with pinned actions and an OSV scan that
+  annotates the pull request and fails on vulnerabilities;
+- weekly Dependabot updates that group minor and patch releases, keep majors
+  separate, and hold freshly published versions back for a cooldown period;
+- a `.gitattributes` that keeps the harness out of the repository's GitHub
+  language statistics;
 - checks for secrets, personal paths, generated output, unsafe workflow
   triggers, and unpinned actions;
 - explicit project check commands without shell parsing;
@@ -36,7 +41,13 @@ upstream-verification mechanism.
    needs more.
 5. Merge the package scripts into the project's existing `package.json`; do not
    overwrite its toolchain or lockfile.
-6. Run `npm run preflight` and record responsive, keyboard, reduced-motion, and
+6. Point the `npm` entry in `.github/dependabot.yml` at the directory that holds
+   the project's `package.json` and lockfile, and remove the entry when the
+   project has no npm dependencies. Enable Dependabot alerts and security
+   updates in the repository settings as well; the configuration file only
+   schedules version updates.
+7. Drop any `.gitattributes` line for a file the project owns as product code.
+8. Run `npm run preflight` and record responsive, keyboard, reduced-motion, and
    critical-flow checks in the PR.
 
 Later template improvements are copied selectively through normal reviewable

@@ -10,7 +10,9 @@ const root = resolve(rootIndex === -1 ? import.meta.dirname : process.argv[rootI
 const failures = [];
 
 for (const path of [
+  ".gitattributes",
   ".github/CODEOWNERS",
+  ".github/dependabot.yml",
   ".github/pull_request_template.md",
   ".github/workflows/ci.yml",
   ".gitignore",
