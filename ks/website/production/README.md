@@ -4,6 +4,10 @@ Production serves the static build at `https://ks-design.art` from the `cz`
 server. Cloudflare Workers remains a disposable stage, not the production
 origin.
 
+> Production source, automation, and authoritative operational documentation
+> moved to [`kiaquila/ks`](https://github.com/kiaquila/ks). This directory is a
+> retained migration snapshot; changes in `kiaquila/web-design` do not deploy.
+
 ## Isolation contract
 
 - Compose project: `ks-design-portfolio`
@@ -28,14 +32,15 @@ Spaceship Advanced DNS carries these records with a 30-minute TTL:
 | `@` | `AAAA` | `2a01:4f8:1c18:af10::1` |
 | `www` | `CNAME` | `ks-design.art` |
 
-## Deployment
+## Historical deployment reference
 
-Production deploys automatically after a merged pull request changes `ks/**`
-and the resulting push to `main` passes every push check plus the required
-checks on the reviewed pull-request head. A direct push, a pull-request event,
-or a red/missing check fails closed before production credentials are exposed.
+The retired monorepo automation deployed after a merged pull request changed
+`ks/**` and the resulting push to `main` passed every push check plus the
+required checks on the reviewed pull-request head. It is disabled and removed
+from this repository.
 
-The workflow is [`.github/workflows/ks-production-deploy.yml`](../../../.github/workflows/ks-production-deploy.yml).
+The active workflow is
+[`kiaquila/ks:.github/workflows/ks-production-deploy.yml`](https://github.com/kiaquila/ks/blob/main/.github/workflows/ks-production-deploy.yml).
 It uses the GitHub Environment `production`, whose deployment branch policy
 must allow `main` only. Configure these Environment values:
 

@@ -41,7 +41,6 @@ const requiredRootFiles = [
   ".github/workflows/codex-review-request.yml",
   ".github/workflows/codex-review-rerun.yml",
   ".github/workflows/codex-review.yml",
-  ".github/workflows/ks-production-deploy.yml",
   ".github/workflows/osv-scan.yml",
   ".github/workflows/repository-guard.yml",
   "AGENTS.md",
@@ -58,7 +57,6 @@ const requiredRootFiles = [
   "scripts/publish-codex-review-check.mjs",
   "template/README.md",
   "tests/codex-review-gate.test.mjs",
-  "tests/ks-production-deploy.test.mjs",
   "tests/ks-production-server-deploy.test.mjs",
   "tests/repository-guard.test.mjs",
   "third-party-notices.md"

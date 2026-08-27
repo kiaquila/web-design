@@ -36,7 +36,6 @@ function makeFixture() {
     "scripts/publish-codex-review-check.mjs",
     "template/README.md",
     "tests/codex-review-gate.test.mjs",
-    "tests/ks-production-deploy.test.mjs",
     "tests/ks-production-server-deploy.test.mjs",
     "tests/repository-guard.test.mjs",
     "third-party-notices.md"
@@ -56,7 +55,6 @@ function makeFixture() {
     "codex-review",
     "codex-review-request",
     "codex-review-rerun",
-    "ks-production-deploy",
     "osv-scan",
     "repository-guard"
   ]) {

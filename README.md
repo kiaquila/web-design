@@ -34,8 +34,9 @@ truth instead of maintaining a second copy.
 - [`ember/`](./ember/) — **Ember**, a ks-design lab study: an interactive
   burning-and-reassembling particle figure with a synthesized tuning-fork
   score, after a motion reference pinned from `@skvortsov.design`.
-- [`ks/`](./ks/) — Kristina Aquila's bilingual web design portfolio and selling
-  landing page, live at [ks-design.art](https://ks-design.art).
+- [`ks/`](./ks/) — retained pre-migration copy of Kristina Aquila's bilingual
+  portfolio; the production source and deploy automation live in
+  [`kiaquila/ks`](https://github.com/kiaquila/ks).
 - [`misha/`](./misha/) — Mikhail Orlov's one-page English CV portfolio, an
   original design staged at
   [misha.ks-design.workers.dev](https://misha.ks-design.workers.dev).
