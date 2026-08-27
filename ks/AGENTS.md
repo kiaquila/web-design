@@ -157,6 +157,9 @@ Below that it is an ordinary flowing document.
 - Production is `https://ks-design.art`. Keep canonical, Open Graph, sitemap,
   and robots URLs on that origin even when a Cloudflare stage builds the same
   source.
+- Production source and deploy automation live in the standalone
+  [`kiaquila/ks`](https://github.com/kiaquila/ks) repository. This retained
+  subtree does not deploy.
 - The production Compose project is `ks-design-portfolio` and may publish only
   `127.0.0.1:3100`. Do not reuse the `capsule-zero` Compose project, networks,
   volumes, images, ports, or Nginx configuration.

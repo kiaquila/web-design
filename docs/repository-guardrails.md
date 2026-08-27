@@ -128,9 +128,10 @@ bulk-managed updates. The procedure and review evidence are documented in
 
 Project CI continues to run each project's real build and tests while the
 project remains here, and it runs the standalone template's regression harness.
-The production wait policy is regression-tested against the complete Project CI
-job list so that adding or renaming a job cannot silently remove it from the
-gate. Do not add placeholder checks that always pass.
+The KS production wait gate and its regression coverage moved to the standalone
+[`kiaquila/ks`](https://github.com/kiaquila/ks) repository; this monorepo no
+longer has a production-deploy gate. Do not add placeholder checks that always
+pass.
 
 Cloudflare build, preview, and stage-registration checks are temporarily
 disabled in this repository during the move to standalone repositories. The

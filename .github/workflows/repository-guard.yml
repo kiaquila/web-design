@@ -26,8 +26,8 @@ jobs:
       - name: Test repository policy
         run: node --test tests/repository-guard.test.mjs
 
-      - name: Test KS production deployment policy
-        run: node --test tests/ks-production-deploy.test.mjs tests/ks-production-server-deploy.test.mjs
+      - name: Test retained KS production server policy
+        run: node --test tests/ks-production-server-deploy.test.mjs
 
       - name: Test Codex gate regressions
         run: node --test tests/codex-review-gate.test.mjs
