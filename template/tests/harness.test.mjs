@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { gzipSync } from "node:zlib";
 import test from "node:test";
 
 const templateRoot = resolve(import.meta.dirname, "..");
@@ -106,6 +107,31 @@ test("critical first-render text retains the 45 KiB gzip ceiling", () => {
     const result = run(root, "check-performance-budget.mjs");
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Critical gzip payload .* exceeds 46080 B/);
+  });
+});
+
+test("each critical file is measured as its own gzip response", () => {
+  withFixture({}, (root) => {
+    const script = "document.documentElement.dataset.ready = 'true';\n".repeat(400);
+    const markup = `<!doctype html><title>Demo</title><script>${script}</script>\n`;
+    write(root, "dist/index.html", markup);
+    write(root, "dist/app.js", script);
+    const buffers = [Buffer.from(markup), Buffer.from(script)];
+    const streamed = buffers.reduce((total, buffer) => total + gzipSync(buffer, { level: 9 }).length, 0);
+    const budget = streamed - 1;
+    // One shared stream lets app.js reuse the markup's dictionary, so a critical
+    // path that is really over budget would be measured as comfortably under it.
+    assert.ok(gzipSync(Buffer.concat(buffers), { level: 9 }).length < budget);
+
+    const path = join(root, "web-design.config.json");
+    const config = JSON.parse(readFileSync(path, "utf8"));
+    config.performance.criticalFiles = ["index.html", "app.js"];
+    config.performance.budgets.criticalGzipBytes = budget;
+    writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+
+    const result = run(root, "check-performance-budget.mjs");
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, new RegExp(`Critical gzip payload ${streamed} B exceeds ${budget} B`));
   });
 });
 

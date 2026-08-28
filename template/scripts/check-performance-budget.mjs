@@ -65,11 +65,13 @@ export function checkPerformance(root) {
     }
   }
 
-  const criticalBuffers = performance.criticalFiles.map((file) => {
+  // The browser fetches every critical file as its own response, so each one is
+  // compressed as an independent gzip stream. Concatenating before compression
+  // would let later files reuse earlier dictionaries and charge one header.
+  const criticalGzip = performance.criticalFiles.reduce((total, file) => {
     const path = resolveWithin(output, file, `critical file ${file}`);
-    return readFileSync(path);
-  });
-  const criticalGzip = gzipSync(Buffer.concat(criticalBuffers), { level: 9 }).length;
+    return total + gzipSync(readFileSync(path), { level: 9 }).length;
+  }, 0);
   if (criticalGzip > budgets.criticalGzipBytes) {
     failures.push(`Critical gzip payload ${displayBytes(criticalGzip)} exceeds ${displayBytes(budgets.criticalGzipBytes)}`);
   }
